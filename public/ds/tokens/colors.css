@@ -1,0 +1,155 @@
+/* ============================================================
+   MESSENGER — COLOR SYSTEM · "Winter Post"
+   Warm cream paper, a winter-night spectrum of blues
+   (periwinkle → royal → midnight), inked illustrations in
+   dusty indigo, and small artisanal pops of coral & honey.
+   ============================================================ */
+
+:root {
+  /* ---- Cream / paper (warm base) ---- */
+  --cream-0: #F8F4E9; /* brightest sheet */
+  --cream-1: #F2EDDE; /* default paper / canvas */
+  --cream-2: #E9E2CF; /* aged edge */
+  --fog-1:   #E1DECF; /* warm grey-green neutral panel */
+  --fog-2:   #D3CFBE;
+
+  /* ---- Blue ramp (winter night, light → dark) ---- */
+  --peri-100: #DCE8FB;
+  --peri-200: #C4D8F7;
+  --peri-300: #A9C9F4; /* periwinkle — the soft signature sky */
+  --peri-400: #87AEEC;
+  --royal-500: #3A57DD;
+  --royal-600: #2B45D4; /* royal — vivid accent, tickets & panels */
+  --royal-700: #2138AE;
+  --ink-500:  #3A356E;
+  --ink-600:  #272357;
+  --ink-700:  #1C1848;
+  --ink-800:  #15123E; /* midnight — primary ink & dark ground */
+  --ink-900:  #0E0B2C;
+
+  /* ---- Illustration inks (the pencil / engraving tones) ---- */
+  --pencil-500: #6F6AA6; /* light graphite-violet */
+  --pencil-600: #565190; /* mid — default illustration tone */
+  --pencil-700: #403B74; /* deep shading */
+
+  /* ---- Artisanal accents (small pops) ---- */
+  --coral-400: #E97A63;
+  --coral-500: #E2563D; /* warm red — wax, ribbon, alerts */
+  --coral-600: #C23F29;
+  --honey-400: #E6C46A;
+  --honey-500: #E0AE45; /* gold — soap, oil, foil */
+  --honey-600: #BE8F2E;
+  --pine-500:  #3F7A63; /* rare evergreen accent */
+
+  --white: #FFFFFF;
+  --black: #0A0820;
+
+  /* ============================================================
+     SEMANTIC ALIASES — default "Paper" (cream) context
+     ============================================================ */
+  --bg-base:      var(--cream-1);
+  --bg-elevated:  var(--cream-0);
+  --bg-sunken:    var(--cream-2);
+  --surface-letter: var(--cream-0);
+  --surface-fog:    var(--fog-1);
+  --surface-night:  var(--ink-800);
+  --surface-peri:   var(--peri-300);
+  --surface-royal:  var(--royal-600);
+
+  --text-strong: var(--ink-800);
+  --text-body:   var(--ink-700);
+  --text-muted:  var(--ink-500);
+  --text-faint:  #8E8AB0;
+  --text-on-night: var(--cream-0);
+  --text-on-royal: var(--cream-0);
+  --text-on-peri:  var(--ink-800);
+  --text-on-accent: var(--cream-0);
+
+  --border-hair:   rgba(21, 18, 62, 0.12);
+  --border-soft:   rgba(21, 18, 62, 0.20);
+  --border-strong: rgba(21, 18, 62, 0.40);
+  --border-night:  rgba(220, 232, 251, 0.20);
+  --rule-double:   var(--ink-700);
+
+  --accent:        var(--royal-600); /* primary interactive blue */
+  --accent-hover:  var(--royal-700);
+  --accent-press:  var(--ink-700);
+  --seal:          var(--coral-500); /* wax / ribbon red */
+  --foil:          var(--honey-500); /* gold foil */
+  --illustration:  var(--pencil-600);
+
+  --success: var(--pine-500);
+  --warning: var(--honey-600);
+  --danger:  var(--coral-500);
+  --info:    var(--royal-600);
+
+  --focus-ring: rgba(43, 69, 212, 0.45);
+  --selection-bg: var(--peri-200);
+}
+
+/* ============================================================
+   NIGHT CONTEXT — midnight ground (hero, splash, send ceremony)
+   ============================================================ */
+.night {
+  --bg-base:     var(--ink-800);
+  --bg-elevated: var(--ink-700);
+  --bg-sunken:   var(--ink-900);
+  --surface-letter: var(--ink-700);
+
+  --text-strong: var(--cream-0);
+  --text-body:   var(--peri-100);
+  --text-muted:  var(--peri-300);
+  --text-faint:  #8C88B8;
+  --text-on-accent: var(--ink-800);
+
+  --border-hair:   rgba(220, 232, 251, 0.14);
+  --border-soft:   rgba(220, 232, 251, 0.22);
+  --border-strong: rgba(220, 232, 251, 0.42);
+
+  --accent:       var(--peri-300);
+  --accent-hover: var(--peri-200);
+  --accent-press: var(--peri-400);
+  --focus-ring:   rgba(169, 201, 244, 0.5);
+  --selection-bg: var(--ink-500);
+}
+
+/* ============================================================
+   ROYAL CONTEXT — vivid blue ground (feature panels)
+   ============================================================ */
+.royal {
+  --bg-base:     var(--royal-600);
+  --bg-elevated: var(--royal-500);
+  --surface-letter: var(--royal-500);
+
+  --text-strong: var(--cream-0);
+  --text-body:   var(--peri-100);
+  --text-muted:  var(--peri-200);
+  --text-on-accent: var(--royal-600);
+
+  --border-hair:  rgba(248, 244, 233, 0.20);
+  --border-soft:  rgba(248, 244, 233, 0.30);
+  --border-strong:rgba(248, 244, 233, 0.55);
+
+  --accent:       var(--cream-0);
+  --accent-hover: var(--peri-100);
+  --accent-press: var(--peri-200);
+  --focus-ring:   rgba(248, 244, 233, 0.6);
+}
+
+/* ============================================================
+   PERIWINKLE CONTEXT — soft blue ground (cards, modals)
+   ============================================================ */
+.periwinkle {
+  --bg-base:     var(--peri-300);
+  --bg-elevated: var(--peri-200);
+  --surface-letter: var(--cream-0);
+
+  --text-strong: var(--ink-800);
+  --text-body:   var(--ink-700);
+  --text-muted:  var(--ink-500);
+
+  --border-hair:  rgba(21, 18, 62, 0.16);
+  --border-soft:  rgba(21, 18, 62, 0.26);
+  --accent:       var(--royal-600);
+  --accent-hover: var(--royal-700);
+}

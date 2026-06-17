@@ -1,0 +1,15 @@
+/* ============================================================
+   MESSENGER — WEBFONTS
+   Loaded from Google Fonts CDN. For offline / production use,
+   download the woff2 binaries into assets/fonts/ and replace
+   this @import with local @font-face rules.
+
+   Families (all Google Fonts approximations of the brand's
+   premium lettering — see readme "Typography" for the note):
+   · Fraunces            — high-contrast "fashion" display serif
+                           (the wordmark & hero voice)
+   · Cormorant Garamond  — soft elegant serif (category names, quotes)
+   · Hanken Grotesk      — neutral grotesque (labels, UI, body)
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Hanken+Grotesk:wght@400;500;600;700&display=swap');

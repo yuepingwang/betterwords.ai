@@ -1,0 +1,113 @@
+/* ============================================================
+   MESSENGER — TYPOGRAPHY
+   A high-contrast fashion serif for the masthead, a soft serif
+   for elegant category & quote text, and a neutral grotesque
+   for chrome and running copy.
+   ============================================================ */
+
+:root {
+  /* ---- Families ---- */
+  --font-display: "Fraunces", "Hoefler Text", Garamond, serif;        /* wordmark / hero */
+  --font-serif:   "Cormorant Garamond", "Iowan Old Style", Georgia, serif; /* category / quote */
+  --font-sans:    "Hanken Grotesk", "Helvetica Neue", system-ui, sans-serif; /* UI / body / labels */
+
+  /* Optical settings for the display serif */
+  --display-soft: "SOFT" 0, "WONK" 0; /* @kind other */
+
+  /* ---- Weights ---- */
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+
+  /* ---- Type scale ---- */
+  --text-3xs: 0.6875rem; /* 11px — postmark micro-caps */
+  --text-2xs: 0.75rem;   /* 12px — stamp / ticket labels */
+  --text-xs:  0.8125rem; /* 13px — metadata */
+  --text-sm:  0.9375rem; /* 15px — UI default */
+  --text-base:1.0625rem; /* 17px — body prose */
+  --text-md:  1.1875rem; /* 19px */
+  --text-lg:  1.5rem;    /* 24px */
+  --text-xl:  2rem;      /* 32px */
+  --text-2xl: 2.75rem;   /* 44px */
+  --text-3xl: 3.75rem;   /* 60px */
+  --text-4xl: 5rem;      /* 80px */
+  --text-5xl: 7rem;      /* 112px — masthead */
+
+  /* ---- Line heights ---- */
+  --leading-tight:   1.02;
+  --leading-snug:    1.14;
+  --leading-normal:  1.4;
+  --leading-relaxed: 1.62;
+  --leading-loose:   1.8;
+
+  /* ---- Letter spacing ---- */
+  --tracking-tighter: -0.02em;
+  --tracking-tight:   -0.01em;
+  --tracking-normal:  0em;
+  --tracking-wide:    0.04em;
+  --tracking-wider:   0.14em;  /* stamp / label caps */
+  --tracking-widest:  0.26em;  /* dateline / masthead kicker */
+}
+
+/* ---- Type roles (opt-in utility classes) ---- */
+.t-masthead {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-5xl);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+}
+.t-display {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-3xl);
+  line-height: var(--leading-tight);
+}
+.t-title {
+  font-family: var(--font-display);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-xl);
+  line-height: var(--leading-snug);
+}
+.t-category {
+  font-family: var(--font-serif);
+  font-weight: var(--weight-medium);
+  font-size: var(--text-lg);
+  line-height: var(--leading-snug);
+}
+.t-prose {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-regular);
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
+}
+.t-quote {
+  font-family: var(--font-serif);
+  font-weight: var(--weight-regular);
+  font-style: italic;
+  font-size: var(--text-2xl);
+  line-height: var(--leading-snug);
+}
+.t-ui {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-medium);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+.t-label {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+}
+.t-postmark {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-3xs);
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+}

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="140" height="140" viewBox="0 0 140 140" fill="none"><defs>
+<filter id="sk" x="-12%" y="-12%" width="124%" height="124%">
+  <feTurbulence type="fractalNoise" baseFrequency="0.014" numOctaves="2" seed="53" result="w"></feTurbulence>
+  <feDisplacementMap in="SourceGraphic" in2="w" scale="4.5" xChannelSelector="R" yChannelSelector="G" result="d"></feDisplacementMap>
+  <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="58" result="g"></feTurbulence>
+  <feColorMatrix in="g" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0" result="ga"></feColorMatrix>
+  <feComposite in="ga" in2="d" operator="in" result="gm"></feComposite>
+  <feBlend in="d" in2="gm" mode="multiply"></feBlend>
+</filter>
+</defs><g filter="url(#sk)"><rect x="34" y="44" width="72" height="72" rx="3" fill="#565190"></rect>
+   <rect x="62" y="44" width="16" height="72" fill="#3f3b73"></rect>
+   <rect x="34" y="72" width="72" height="14" fill="#3f3b73"></rect>
+   <path d="M70 44 q-18 -22 -28 -10 q-8 10 28 10 q36 0 28 -10 q-10 -12 -28 10 Z" fill="#565190"></path></g></svg>

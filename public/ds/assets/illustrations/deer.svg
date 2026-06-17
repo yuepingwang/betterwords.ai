@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="140" height="140" viewBox="0 0 140 140" fill="none"><defs>
+<filter id="sk" x="-12%" y="-12%" width="124%" height="124%">
+  <feTurbulence type="fractalNoise" baseFrequency="0.014" numOctaves="2" seed="65" result="w"></feTurbulence>
+  <feDisplacementMap in="SourceGraphic" in2="w" scale="4.5" xChannelSelector="R" yChannelSelector="G" result="d"></feDisplacementMap>
+  <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="70" result="g"></feTurbulence>
+  <feColorMatrix in="g" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0" result="ga"></feColorMatrix>
+  <feComposite in="ga" in2="d" operator="in" result="gm"></feComposite>
+  <feBlend in="d" in2="gm" mode="multiply"></feBlend>
+</filter>
+</defs><g filter="url(#sk)"><path d="M70 50 q-12 0 -16 14 q-2 10 6 22 q6 8 10 8 q4 0 10 -8 q8 -12 6 -22 q-4 -14 -16 -14 Z" fill="#565190"></path>
+   <ellipse cx="70" cy="104" rx="10" ry="8" fill="#565190"></ellipse>
+   <g stroke="#565190" stroke-width="5" fill="none" stroke-linecap="round">
+     <path d="M58 50 q-10 -16 -8 -34 M50 32 q-10 -2 -14 -12 M50 24 q-12 0 -18 -6"></path>
+     <path d="M82 50 q10 -16 8 -34 M90 32 q10 -2 14 -12 M90 24 q12 0 18 -6"></path>
+   </g></g></svg>

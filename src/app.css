@@ -1,0 +1,237 @@
+/* ============================================================
+   BetterWords — application styles
+   Authored against Messenger design-system tokens only.
+   ============================================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg-base);
+  color: var(--text-body);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* --- shared helpers ------------------------------------------------ */
+
+.bw-kicker {
+  font-family: var(--font-sans);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.bw-display {
+  font-family: var(--font-display);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-tight);
+  color: var(--text-strong);
+  margin: 0;
+}
+
+.bw-serif {
+  font-family: var(--font-serif);
+  color: var(--text-body);
+}
+
+.bw-container {
+  width: 100%;
+  max-width: var(--container-lg);
+  margin-inline: auto;
+  padding-inline: var(--space-5);
+}
+
+.bw-link {
+  color: var(--text-muted);
+  transition: color var(--dur-fast) var(--ease-quiet);
+}
+.bw-link:hover {
+  color: var(--text-strong);
+}
+
+/* --- risk / impact meters ----------------------------------------- */
+
+.bw-meter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.bw-meter-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.bw-meter-label {
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.bw-meter-value {
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+.bw-meter-track {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--cream-2);
+  overflow: hidden;
+}
+.bw-meter-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  transition: width var(--dur-base) var(--ease-quiet);
+}
+
+/* --- range sliders (tone / length) -------------------------------- */
+
+.adv-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--cream-2);
+  outline: none;
+}
+.adv-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--royal-600);
+  border: 2px solid var(--cream-0);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-quiet);
+}
+.adv-range::-webkit-slider-thumb:hover {
+  transform: scale(1.08);
+}
+.adv-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--royal-600);
+  border: 2px solid var(--cream-0);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+}
+.adv-range:focus-visible {
+  box-shadow: var(--focus-shadow);
+}
+.adv-range-ends {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--space-2);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* --- cards with a gentle hover lift -------------------------------- */
+
+.bw-lift {
+  transition: transform var(--dur-base) var(--ease-quiet),
+    box-shadow var(--dur-base) var(--ease-quiet),
+    border-color var(--dur-base) var(--ease-quiet);
+}
+.bw-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+/* --- chips (selectable options) ----------------------------------- */
+
+.bw-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-soft);
+  background: var(--cream-0);
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all var(--dur-fast) var(--ease-quiet);
+}
+.bw-chip:hover {
+  border-color: var(--accent);
+  background: var(--peri-100);
+}
+.bw-chip[aria-pressed='true'] {
+  background: var(--royal-600);
+  border-color: var(--royal-600);
+  color: var(--cream-0);
+}
+
+/* --- a fading rise used by popups / inserts ----------------------- */
+
+@keyframes adv-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes bw-twinkle {
+  0%, 100% { opacity: 0.55; transform: scale(0.92); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+@keyframes bw-spin {
+  to { transform: rotate(360deg); }
+}
+
+.bw-fade-up {
+  animation: adv-up 0.32s var(--ease-quiet) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

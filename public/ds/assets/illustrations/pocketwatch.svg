@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="140" height="140" viewBox="0 0 140 140" fill="none"><defs>
+<filter id="sk" x="-12%" y="-12%" width="124%" height="124%">
+  <feTurbulence type="fractalNoise" baseFrequency="0.014" numOctaves="2" seed="61" result="w"></feTurbulence>
+  <feDisplacementMap in="SourceGraphic" in2="w" scale="4.5" xChannelSelector="R" yChannelSelector="G" result="d"></feDisplacementMap>
+  <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="66" result="g"></feTurbulence>
+  <feColorMatrix in="g" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0" result="ga"></feColorMatrix>
+  <feComposite in="ga" in2="d" operator="in" result="gm"></feComposite>
+  <feBlend in="d" in2="gm" mode="multiply"></feBlend>
+</filter>
+</defs><g filter="url(#sk)"><circle cx="70" cy="76" r="40" fill="none" stroke="#565190" stroke-width="5"></circle>
+   <circle cx="70" cy="76" r="32" fill="#565190"></circle>
+   <rect x="62" y="20" width="16" height="14" rx="3" fill="#3f3b73"></rect>
+   <path d="M70 20 v-6" stroke="#3f3b73" stroke-width="4"></path>
+   <g stroke="#F2EDDE" stroke-width="3.4" stroke-linecap="round"><path d="M70 76 V56"></path><path d="M70 76 l16 8"></path></g></g></svg>

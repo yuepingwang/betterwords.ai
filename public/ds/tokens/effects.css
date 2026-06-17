@@ -1,0 +1,123 @@
+/* ============================================================
+   MESSENGER — EFFECTS
+   Radii, (mostly flat, print-like) shadows, and the brand's
+   signature postal motifs: perforations, scallops, ticket
+   notches, postmarks, paper grain, and hatched datelines.
+   ============================================================ */
+
+:root {
+  /* ---- Corner radii — crisp like cut paper ---- */
+  --radius-xs:   2px;
+  --radius-sm:   4px;
+  --radius-md:   7px;
+  --radius-lg:   12px;
+  --radius-xl:   20px;
+  --radius-pill: 999px;
+
+  /* ---- Shadows — subtle, print-flat ---- */
+  --shadow-xs: 0 1px 1px rgba(21, 18, 62, 0.05);
+  --shadow-sm: 0 1px 2px rgba(21, 18, 62, 0.07), 0 2px 5px rgba(21, 18, 62, 0.05);
+  --shadow-md: 0 2px 4px rgba(21, 18, 62, 0.06), 0 8px 22px rgba(21, 18, 62, 0.10);
+  --shadow-lg: 0 8px 18px rgba(21, 18, 62, 0.10), 0 28px 60px rgba(21, 18, 62, 0.16);
+  --shadow-stamp: 0 3px 8px rgba(21, 18, 62, 0.20);
+  --shadow-letter: 0 1px 0 rgba(255,255,255,0.6) inset, 0 2px 5px rgba(21,18,62,0.07), 0 18px 44px rgba(21,18,62,0.14);
+
+  --inset-press: inset 0 2px 4px rgba(21, 18, 62, 0.16);
+  --focus-shadow: 0 0 0 3px var(--focus-ring);
+
+  /* ---- Motion ---- */
+  --ease-quiet:  cubic-bezier(0.22, 0.61, 0.36, 1);   /* @kind other */
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);       /* @kind other */
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);      /* @kind other */
+  --dur-fast:   140ms; /* @kind other */
+  --dur-base:   240ms; /* @kind other */
+  --dur-slow:   420ms; /* @kind other */
+  --dur-ceremony: 760ms; /* @kind other */
+
+  /* ---- Paper grain (data-URI turbulence, subtle) ---- */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E"); /* @kind other */
+}
+
+/* ============================================================
+   POSTAL MOTIFS (utility classes)
+   ============================================================ */
+
+/* Perforated postage edge — concave scallops cut from all four edges.
+   Each radial layer is confined to an edge strip (51%) so their union
+   stays opaque in the middle but punches holes along the borders. */
+.edge-perforated {
+  --perf: 6px;
+  -webkit-mask:
+    radial-gradient(var(--perf) at 50% 0,    #0000 96%, #000) 0 0   / calc(2*var(--perf)) 51% repeat-x,
+    radial-gradient(var(--perf) at 50% 100%, #0000 96%, #000) 0 100% / calc(2*var(--perf)) 51% repeat-x,
+    radial-gradient(var(--perf) at 0 50%,    #0000 96%, #000) 0 0   / 51% calc(2*var(--perf)) repeat-y,
+    radial-gradient(var(--perf) at 100% 50%, #0000 96%, #000) 100% 0 / 51% calc(2*var(--perf)) repeat-y;
+  mask:
+    radial-gradient(var(--perf) at 50% 0,    #0000 96%, #000) 0 0   / calc(2*var(--perf)) 51% repeat-x,
+    radial-gradient(var(--perf) at 50% 100%, #0000 96%, #000) 0 100% / calc(2*var(--perf)) 51% repeat-x,
+    radial-gradient(var(--perf) at 0 50%,    #0000 96%, #000) 0 0   / 51% calc(2*var(--perf)) repeat-y,
+    radial-gradient(var(--perf) at 100% 50%, #0000 96%, #000) 100% 0 / 51% calc(2*var(--perf)) repeat-y;
+}
+
+/* Ticket — semicircle notch cut from the middle of left & right edges */
+.edge-ticket {
+  --notch: 9px;
+  -webkit-mask:
+    radial-gradient(circle var(--notch) at 0 50%, #0000 var(--notch), #000 0) ,
+    radial-gradient(circle var(--notch) at 100% 50%, #0000 var(--notch), #000 0);
+  -webkit-mask-composite: source-in;
+  mask:
+    radial-gradient(circle var(--notch) at 0 50%, #0000 var(--notch), #000 0) ,
+    radial-gradient(circle var(--notch) at 100% 50%, #0000 var(--notch), #000 0);
+  mask-composite: intersect;
+}
+
+/* Hatched dateline — diagonal stitch rule (////) used atop panels */
+.rule-hatched {
+  height: 10px;
+  background-image: repeating-linear-gradient(115deg,
+    var(--border-strong) 0 1.5px, transparent 1.5px 9px);
+}
+
+/* Double letterhead rule */
+.rule-double {
+  border: 1.5px solid var(--rule-double);
+  box-shadow: 0 0 0 1.5px var(--bg-elevated), 0 0 0 3px var(--rule-double);
+}
+.rule-hair { border: 0; border-top: 1px solid var(--border-hair); }
+.rule-dotted { border: 0; border-top: 1.5px dotted var(--border-soft); }
+
+/* Postmark ring — circular cancellation */
+.postmark {
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-pill); border: 1.5px solid currentColor;
+  position: relative; text-align: center;
+}
+
+/* Grain overlay — drop on any surface */
+.has-grain { position: relative; }
+.has-grain::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: var(--grain); background-size: 160px 160px;
+  opacity: 0.14; mix-blend-mode: multiply; border-radius: inherit;
+}
+
+/* Winter-night starfield ground (CSS only) */
+.bg-night-sky {
+  background-color: var(--ink-800);
+  background-image:
+    radial-gradient(1.4px 1.4px at 18% 26%, rgba(220,232,251,0.85), transparent),
+    radial-gradient(1px 1px at 62% 18%, rgba(220,232,251,0.6), transparent),
+    radial-gradient(1.4px 1.4px at 82% 42%, rgba(224,174,69,0.55), transparent),
+    radial-gradient(1px 1px at 38% 62%, rgba(220,232,251,0.5), transparent),
+    radial-gradient(1px 1px at 74% 76%, rgba(220,232,251,0.45), transparent),
+    radial-gradient(1.4px 1.4px at 26% 84%, rgba(220,232,251,0.55), transparent),
+    radial-gradient(820px 480px at 80% -10%, rgba(58,87,221,0.40), transparent),
+    radial-gradient(680px 420px at 8% 112%, rgba(63,122,99,0.14), transparent);
+}
+
+/* Foil/ink gradient text */
+.foil-text {
+  background: linear-gradient(100deg, var(--honey-600), var(--honey-400) 45%, var(--honey-500) 70%, var(--honey-600));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}

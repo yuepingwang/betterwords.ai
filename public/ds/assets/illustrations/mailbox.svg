@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="140" height="140" viewBox="0 0 140 140" fill="none"><defs>
+<filter id="sk" x="-12%" y="-12%" width="124%" height="124%">
+  <feTurbulence type="fractalNoise" baseFrequency="0.014" numOctaves="2" seed="17" result="w"></feTurbulence>
+  <feDisplacementMap in="SourceGraphic" in2="w" scale="4.5" xChannelSelector="R" yChannelSelector="G" result="d"></feDisplacementMap>
+  <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="22" result="g"></feTurbulence>
+  <feColorMatrix in="g" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0" result="ga"></feColorMatrix>
+  <feComposite in="ga" in2="d" operator="in" result="gm"></feComposite>
+  <feBlend in="d" in2="gm" mode="multiply"></feBlend>
+</filter>
+</defs><g filter="url(#sk)"><rect x="62" y="78" width="10" height="52" fill="#3f3b73"></rect>
+   <path d="M30 64 q0 -26 34 -26 t34 26 v34 H30 Z" fill="#565190"></path>
+   <rect x="30" y="92" width="68" height="10" fill="#3f3b73"></rect>
+   <path d="M100 40 q8 0 8 10 v22" fill="none" stroke="#565190" stroke-width="6" stroke-linecap="round"></path>
+   <g stroke="#F2EDDE" stroke-width="2.2"><path d="M101 44 l5 4"></path><path d="M101 54 l7 4"></path><path d="M104 64 l5 3"></path></g></g></svg>
