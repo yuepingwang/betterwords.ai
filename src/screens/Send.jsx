@@ -1,102 +1,64 @@
-import React, { useMemo, useState } from 'react'
+import React from 'react'
 import DS from '../ds'
 import { useStore } from '../store'
-import { composeDraft, plainText } from '../lib/advisor'
+import { buildParas } from '../lib/advisor'
 
 export default function Send() {
-  const { state, go, selected } = useStore()
+  const { state, dispatch, scenario, selected } = useStore()
   const { Button, Postmark } = DS
-  const [sent, setSent] = useState(false)
-  const [copied, setCopied] = useState(false)
 
-  const letter = useMemo(() => {
-    if (!selected) return null
-    const base = composeDraft(selected, state.tone, state.length, { inserts: state.inserts })
-    return { ...base, paragraphs: base.paragraphs.map((p) => ({ ...p, text: state.edits[p.id] ?? p.text })) }
-  }, [selected, state.tone, state.length, state.inserts, state.edits])
+  const paras = buildParas(state.scenarioId, state.selectedIdx, state.tone, state.verbosity, state.replacements, state.inserts)
 
-  if (!letter) {
-    return (
-      <main className="bw-container" style={{ paddingBlock: 'var(--space-10)' }}>
-        <p className="bw-serif" style={{ color: 'var(--text-muted)' }}>Nothing to send yet.</p>
-        <button onClick={() => go('home')} className="bw-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>← Start over</button>
-      </main>
-    )
-  }
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(plainText(letter))
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1800)
-    } catch {
-      setCopied(false)
-    }
-  }
-
-  if (sent) {
-    return (
-      <main style={{ minHeight: '70vh', display: 'grid', placeItems: 'center', textAlign: 'center', padding: 'var(--space-8)' }}>
-        <div style={{ maxWidth: 560 }}>
-          <div style={{ display: 'inline-block' }}>
-            <Postmark tone="royal" size={104}>Sent ✦ On its way</Postmark>
-          </div>
-          <h1 className="bw-display" style={{ fontSize: 'var(--text-2xl)', marginTop: 'var(--space-6)' }}>
-            It’s on its way.
-          </h1>
-          <p className="bw-serif" style={{ color: 'var(--text-muted)', marginTop: 'var(--space-3)', fontSize: 'var(--text-md)' }}>
-            You said the hard thing — clearly and with care. We’ll keep the context, in case you need help with whatever comes next.
-          </p>
-          <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'center', marginTop: 'var(--space-6)' }}>
-            <Button variant="outline" onClick={() => setSent(false)}>← Back</Button>
-            <Button variant="primary" onClick={() => go('next')}>What happens next →</Button>
-          </div>
-        </div>
-      </main>
-    )
+  const doSend = () => {
+    const full = `To: ${scenario.recipient}\nRe: ${selected.subject}\n\n${paras.join('\n\n')}`
+    if (navigator.clipboard) navigator.clipboard.writeText(full).catch(() => {})
+    dispatch({ type: 'SET_SENT', sent: true })
   }
 
   return (
-    <main className="bw-container" style={{ paddingBlock: 'var(--space-9)', maxWidth: 'var(--container-md)' }}>
-      <div style={{ textAlign: 'center' }}>
-        <p className="bw-kicker">One last look</p>
-        <h1 className="bw-display" style={{ fontSize: 'var(--text-2xl)', marginTop: 'var(--space-2)' }}>Ready to send?</h1>
-      </div>
+    <main style={{ maxWidth: 620, margin: '0 auto', padding: '52px 32px 90px' }}>
+      {!state.sent && (
+        <>
+          <div style={{ textAlign: 'center', marginBottom: 30 }}>
+            <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--royal-600)', marginBottom: 10 }}>One last look</div>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 40, lineHeight: 1.05, color: 'var(--ink-800)', margin: 0 }}>Ready to send?</h1>
+          </div>
+          <div style={{ background: 'var(--surface-letter)', border: '1px solid rgba(11,22,38,0.07)', borderRadius: 8, boxShadow: 'var(--shadow-letter)', padding: '32px 34px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '46px 1fr', gap: '7px 14px', alignItems: 'baseline', borderBottom: '1px solid var(--border-hair)', paddingBottom: 14, marginBottom: 18, fontFamily: 'var(--font-sans)', fontSize: 13 }}>
+              <span style={{ color: 'var(--text-faint)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>To</span>
+              <span style={{ color: 'var(--ink-800)', fontWeight: 500 }}>{scenario.recipient}</span>
+              <span style={{ color: 'var(--text-faint)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Re</span>
+              <span style={{ color: 'var(--ink-800)', fontWeight: 500 }}>{selected.subject}</span>
+            </div>
+            <p style={{ fontFamily: 'var(--font-serif)', fontSize: 17, lineHeight: 1.65, color: 'var(--ink-700)', margin: 0 }}>{paras[0] || ''}</p>
+            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--text-faint)', margin: '14px 0 0', fontStyle: 'italic' }}>…your full message, tuned the way you left it.</p>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginTop: 28 }}>
+            <button onClick={() => dispatch({ type: 'GOTO', screen: 'editor' })} style={{ border: 'none', background: 'transparent', color: 'var(--text-muted)', fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 14, cursor: 'pointer', padding: '12px 8px' }}>
+              ← Keep editing
+            </button>
+            <Button variant="seal" size="lg" onClick={doSend} style={{ color: 'var(--cream-0)' }}>✦ Copy to clipboard</Button>
+          </div>
+        </>
+      )}
 
-      <div
-        style={{
-          marginTop: 'var(--space-6)',
-          background: 'var(--surface-letter)',
-          border: '1px solid var(--border-hair)',
-          borderRadius: 'var(--radius-lg)',
-          boxShadow: 'var(--shadow-letter)',
-          padding: 'var(--space-8)',
-        }}
-      >
-        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: 'var(--space-4)', rowGap: 'var(--space-1)', paddingBottom: 'var(--space-4)', borderBottom: '1px solid var(--border-soft)' }}>
-          <span className="bw-meter-label">To</span>
-          <span style={{ color: 'var(--text-body)' }}>{letter.to}</span>
-          <span className="bw-meter-label">Re</span>
-          <span style={{ color: 'var(--text-body)' }}>{letter.re}</span>
+      {state.sent && (
+        <div style={{ textAlign: 'center', animation: 'adv-up .5s var(--ease-quiet)' }}>
+          <div style={{ display: 'inline-block', animation: 'adv-seal .7s var(--ease-out)', marginBottom: 26 }}>
+            <Postmark tone="royal" size={104}>Sent ✦ On its way</Postmark>
+          </div>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 44, lineHeight: 1.05, color: 'var(--ink-800)', margin: '0 0 14px' }}>It’s on its way.</h1>
+          <p style={{ fontFamily: 'var(--font-serif)', fontSize: 19, lineHeight: 1.5, color: 'var(--text-muted)', margin: '0 auto 34px', maxWidth: 440 }}>
+            You said the hard thing — clearly and with care. We’ll keep the context, in case you need help with whatever comes next.
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+            <button onClick={() => dispatch({ type: 'SET_SENT', sent: false })} style={{ border: 'none', background: 'transparent', color: 'var(--text-muted)', fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 14, cursor: 'pointer', padding: '12px 8px' }}>
+              ← Back
+            </button>
+            <Button variant="primary" size="lg" onClick={() => dispatch({ type: 'GOTO', screen: 'next' })}>What happens next →</Button>
+          </div>
         </div>
-        <div style={{ marginTop: 'var(--space-5)', fontFamily: 'var(--font-serif)', fontSize: 'var(--text-md)', lineHeight: 'var(--leading-relaxed)', color: 'var(--text-body)' }}>
-          <p style={{ marginTop: 0 }}>{letter.salutation}</p>
-          {letter.paragraphs.map((p) => (
-            <p key={p.id}>{p.text}</p>
-          ))}
-          <p style={{ marginBottom: 0 }}>{letter.closing}</p>
-          <p style={{ marginTop: 'var(--space-3)', marginBottom: 0 }}>{letter.signoff}</p>
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'center', alignItems: 'center', marginTop: 'var(--space-6)', flexWrap: 'wrap' }}>
-        <Button variant="outline" onClick={() => go('composer')}>← Keep editing</Button>
-        <Button variant="outline" onClick={copy}>{copied ? 'Copied ✓' : 'Copy to clipboard'}</Button>
-        <Button variant="seal" size="lg" onClick={() => setSent(true)}>✦ Seal &amp; send</Button>
-      </div>
-      <p style={{ textAlign: 'center', color: 'var(--text-faint)', fontSize: 'var(--text-sm)', marginTop: 'var(--space-5)' }}>
-        Nothing leaves this screen until you seal it.
-      </p>
+      )}
     </main>
   )
 }

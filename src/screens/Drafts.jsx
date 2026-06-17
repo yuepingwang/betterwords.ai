@@ -1,115 +1,89 @@
-import React, { useState } from 'react'
-import DS from '../ds'
+import React from 'react'
 import { useStore } from '../store'
-import Meter from '../components/Meter'
-import { riskWord, impactWord } from '../lib/advisor'
+import { badgeColors, stanceLabel, lvl } from '../lib/advisor'
 
-const STANCE_STYLE = {
-  Gentle: { bg: 'var(--peri-100)', fg: 'var(--royal-700)' },
-  Balanced: { bg: 'var(--cream-2)', fg: 'var(--ink-700)' },
-  Firm: { bg: 'rgba(226,86,61,0.12)', fg: 'var(--coral-600)' },
+const BADGE_BASE = {
+  fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 10, letterSpacing: '0.12em',
+  textTransform: 'uppercase', padding: '4px 10px', borderRadius: 999,
+}
+const REC_BADGE = {
+  display: 'inline-flex', alignItems: 'center', gap: 5, ...BADGE_BASE,
+  background: '#F3E6C2', color: 'var(--honey-600)',
 }
 
-function StanceBadge({ stance }) {
-  const s = STANCE_STYLE[stance] || STANCE_STYLE.Balanced
+function Badge({ st }) {
+  const bc = badgeColors(st.level)
+  return <span style={{ ...BADGE_BASE, background: bc.bg, color: bc.fg }}>{stanceLabel(st.level)}</span>
+}
+
+function Bars({ st }) {
   return (
-    <span
-      style={{
-        display: 'inline-block',
-        padding: '2px var(--space-3)',
-        borderRadius: 'var(--radius-pill)',
-        fontSize: 'var(--text-2xs)',
-        fontWeight: 'var(--weight-semibold)',
-        letterSpacing: 'var(--tracking-wide)',
-        textTransform: 'uppercase',
-        background: s.bg,
-        color: s.fg,
-      }}
-    >
-      {stance}
-    </span>
+    <>
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 5 }}>
+          <span style={{ color: 'var(--text-muted)' }}>Risk</span>
+          <span style={{ color: 'var(--coral-600)' }}>{lvl(st.risk)}</span>
+        </div>
+        <div style={{ height: 6, background: 'var(--cream-2)', borderRadius: 999, overflow: 'hidden' }}>
+          <div style={{ width: `${st.risk}%`, height: '100%', background: 'var(--coral-500)', borderRadius: 999 }} />
+        </div>
+      </div>
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 5 }}>
+          <span style={{ color: 'var(--text-muted)' }}>Impact</span>
+          <span style={{ color: 'var(--royal-700)' }}>{lvl(st.eff)}</span>
+        </div>
+        <div style={{ height: 6, background: 'var(--cream-2)', borderRadius: 999, overflow: 'hidden' }}>
+          <div style={{ width: `${st.eff}%`, height: '100%', background: 'var(--royal-600)', borderRadius: 999 }} />
+        </div>
+      </div>
+    </>
   )
 }
 
-function Recommended() {
+function ReactionBox({ text }) {
   return (
-    <span
-      style={{
-        display: 'inline-block',
-        padding: '2px var(--space-3)',
-        borderRadius: 'var(--radius-pill)',
-        fontSize: 'var(--text-2xs)',
-        fontWeight: 'var(--weight-semibold)',
-        letterSpacing: 'var(--tracking-wide)',
-        textTransform: 'uppercase',
-        background: '#F3E6C2',
-        color: 'var(--honey-600)',
-      }}
-    >
-      ✦ Recommended
-    </span>
-  )
-}
-
-function ReactionBox({ children }) {
-  return (
-    <div
-      style={{
-        background: 'var(--fog-1)',
-        borderRadius: 'var(--radius-md)',
-        padding: 'var(--space-4)',
-      }}
-    >
-      <p className="bw-meter-label" style={{ marginBottom: 4 }}>Likely reaction</p>
-      <p className="bw-serif" style={{ fontStyle: 'italic', color: 'var(--text-body)', margin: 0 }}>
-        {children}
-      </p>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '12px 14px', background: 'var(--fog-1)', borderRadius: 8 }}>
+      <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', whiteSpace: 'nowrap', paddingTop: 2 }}>Likely reaction</span>
+      <span style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 15.5, lineHeight: 1.45, color: 'var(--ink-700)' }}>{text}</span>
     </div>
   )
 }
 
-const SEGMENTS = [
-  { id: 'list', label: 'List' },
-  { id: 'compare', label: 'Compare' },
-  { id: 'map', label: 'Map' },
+const SEGS = [
+  { key: 'list', label: 'Ranked' },
+  { key: 'compare', label: 'Compare' },
+  { key: 'map', label: 'Risk map' },
 ]
 
 export default function Drafts() {
-  const { state, dispatch, go } = useStore()
-  const { Button } = DS
-  const [mode, setMode] = useState('list')
-  const strategies = state.strategies
+  const { state, dispatch, scenario } = useStore()
+  const strategies = scenario.strategies
+  const mode = state.draftMode
 
-  const open = (s) => {
-    dispatch({ type: 'SELECT_STRATEGY', id: s.id })
-    go('composer')
-  }
+  const open = (idx) => dispatch({ type: 'OPEN_COMPOSER', idx, toneDefault: strategies[idx].toneDefault })
 
   return (
-    <main className="bw-container" style={{ paddingBlock: 'var(--space-9)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
+    <main style={{ maxWidth: 1160, margin: '0 auto', padding: '44px 32px 90px' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', marginBottom: 28 }}>
         <div>
-          <p className="bw-kicker">A few ways to say it</p>
-          <h1 className="bw-display" style={{ fontSize: 'var(--text-2xl)', marginTop: 'var(--space-2)' }}>
-            Choose how to say it.
+          <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--royal-600)', marginBottom: 8 }}>
+            {scenario.draftContext}
+          </div>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 44, lineHeight: 1.02, color: 'var(--ink-800)', margin: 0 }}>
+            A few ways to say it
           </h1>
         </div>
-        {/* segmented control */}
-        <div style={{ display: 'inline-flex', gap: 4, padding: 5, background: 'var(--cream-0)', border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-pill)' }}>
-          {SEGMENTS.map((seg) => (
+        <div style={{ display: 'inline-flex', gap: 4, padding: 5, background: 'var(--cream-0)', border: '1px solid var(--border-hair)', borderRadius: 999 }}>
+          {SEGS.map((seg) => (
             <button
-              key={seg.id}
-              onClick={() => setMode(seg.id)}
+              key={seg.key}
+              onClick={() => dispatch({ type: 'SET_DRAFT_MODE', mode: seg.key })}
               style={{
-                border: 'none',
-                cursor: 'pointer',
-                padding: 'var(--space-2) var(--space-4)',
-                borderRadius: 'var(--radius-pill)',
-                fontSize: 'var(--text-sm)',
-                fontWeight: 'var(--weight-semibold)',
-                background: mode === seg.id ? 'var(--royal-600)' : 'transparent',
-                color: mode === seg.id ? 'var(--cream-0)' : 'var(--text-muted)',
-                transition: 'all var(--dur-fast) var(--ease-quiet)',
+                padding: '8px 18px', cursor: 'pointer', border: 'none', borderRadius: 999,
+                fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 13, letterSpacing: '0.03em',
+                background: mode === seg.key ? 'var(--ink-800)' : 'transparent',
+                color: mode === seg.key ? 'var(--cream-0)' : 'var(--text-muted)',
               }}
             >
               {seg.label}
@@ -118,193 +92,128 @@ export default function Drafts() {
         </div>
       </div>
 
-      <div style={{ marginTop: 'var(--space-7)' }}>
-        {mode === 'list' && <ListMode strategies={strategies} onOpen={open} />}
-        {mode === 'compare' && <CompareMode strategies={strategies} onOpen={open} />}
-        {mode === 'map' && <MapMode strategies={strategies} onOpen={open} />}
-      </div>
+      {mode === 'list' && <ListMode strategies={strategies} onOpen={open} />}
+      {mode === 'compare' && <CompareMode strategies={strategies} onOpen={open} />}
+      {mode === 'map' && <MapMode strategies={strategies} onOpen={open} />}
     </main>
   )
 }
 
 function ListMode({ strategies, onOpen }) {
-  const { Button } = DS
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-      {strategies.map((s) => (
-        <article
-          key={s.id}
-          className="bw-lift"
-          style={{
-            background: 'var(--surface-letter)',
-            border: '1px solid var(--border-hair)',
-            borderRadius: 'var(--radius-lg)',
-            boxShadow: 'var(--shadow-sm)',
-            padding: 'var(--space-6)',
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0,1fr) 230px',
-            gap: 'var(--space-6)',
-          }}
-        >
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      {strategies.map((st, idx) => (
+        <div key={idx} className="adv-card-hover bw-list-card" style={{ display: 'grid', gridTemplateColumns: '1fr 230px', gap: 28, padding: '26px 28px', background: 'var(--cream-0)', border: '1px solid var(--border-hair)', borderRadius: 14, boxShadow: 'var(--shadow-sm)' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', color: 'var(--text-faint)' }}>
-                {String(s.rank).padStart(2, '0')}
-              </span>
-              <h2 className="bw-display" style={{ fontSize: 'var(--text-lg)' }}>{s.name}</h2>
-              <StanceBadge stance={s.stance} />
-              {s.recommended && <Recommended />}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 22, color: 'var(--text-faint)' }}>0{idx + 1}</span>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 24, color: 'var(--ink-800)', margin: 0 }}>{st.name}</h3>
+              <Badge st={st} />
+              {st.recommended && <span style={REC_BADGE}>✦ Recommended</span>}
             </div>
-            <p className="bw-serif" style={{ color: 'var(--text-body)', marginTop: 'var(--space-3)', maxWidth: '60ch' }}>
-              {s.description}
-            </p>
-            <div style={{ marginTop: 'var(--space-4)', maxWidth: '60ch' }}>
-              <ReactionBox>{s.likelyReaction}</ReactionBox>
-            </div>
+            <p style={{ fontFamily: 'var(--font-serif)', fontSize: 17, lineHeight: 1.5, color: 'var(--text-body)', margin: '0 0 14px' }}>{st.why}</p>
+            <ReactionBox text={st.reaction} />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-              <Meter label="Risk" value={s.risk} word={riskWord(s.risk)} tone="risk" />
-              <Meter label="Impact" value={s.impact} word={impactWord(s.impact)} tone="impact" />
-            </div>
-            <Button variant="primary" block onClick={() => onOpen(s)}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, justifyContent: 'center', borderLeft: '1px solid var(--border-hair)', paddingLeft: 26 }}>
+            <Bars st={st} />
+            <button
+              onClick={() => onOpen(idx)}
+              style={{ marginTop: 4, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 42, padding: '0 20px', border: 'none', borderRadius: 999, background: 'var(--royal-600)', color: 'var(--cream-0)', fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 13, letterSpacing: '0.03em', cursor: 'pointer' }}
+              onMouseOver={(e) => (e.currentTarget.style.background = 'var(--royal-700)')}
+              onMouseOut={(e) => (e.currentTarget.style.background = 'var(--royal-600)')}
+            >
               Open in composer →
-            </Button>
+            </button>
           </div>
-        </article>
+        </div>
       ))}
     </div>
   )
 }
 
 function CompareMode({ strategies, onOpen }) {
-  const { Button } = DS
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 'var(--space-5)' }}>
-      {strategies.map((s) => (
-        <article
-          key={s.id}
-          className="bw-lift"
-          style={{
-            background: 'var(--surface-letter)',
-            border: '1px solid var(--border-hair)',
-            borderRadius: 'var(--radius-lg)',
-            boxShadow: 'var(--shadow-sm)',
-            padding: 'var(--space-5)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 'var(--space-3)',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <StanceBadge stance={s.stance} />
-            {s.recommended && <Recommended />}
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 18 }}>
+      {strategies.map((st, idx) => (
+        <div key={idx} style={{ display: 'flex', flexDirection: 'column', padding: '24px 22px', background: 'var(--cream-0)', border: '1px solid var(--border-hair)', borderRadius: 14, boxShadow: 'var(--shadow-sm)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+            <Badge st={st} />
+            {st.recommended && <span style={REC_BADGE}>✦ Pick</span>}
           </div>
-          <h2 className="bw-display" style={{ fontSize: 'var(--text-md)' }}>{s.name}</h2>
-          <p className="bw-serif" style={{ color: 'var(--text-body)', fontSize: 'var(--text-sm)' }}>{s.description}</p>
-          <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-            <Meter label="Risk" value={s.risk} word={riskWord(s.risk)} tone="risk" />
-            <Meter label="Impact" value={s.impact} word={impactWord(s.impact)} tone="impact" />
-            <Button variant="outline" block onClick={() => onOpen(s)}>Open →</Button>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 23, lineHeight: 1.05, color: 'var(--ink-800)', margin: '0 0 14px' }}>{st.name}</h3>
+          <p style={{ fontFamily: 'var(--font-serif)', fontSize: 15.5, lineHeight: 1.45, color: 'var(--text-body)', margin: '0 0 16px' }}>{st.why}</p>
+          <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 5 }}>Likely reaction</div>
+          <p style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 15, lineHeight: 1.4, color: 'var(--ink-700)', margin: '0 0 20px' }}>{st.reaction}</p>
+          <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 13 }}>
+            <Bars st={st} />
+            <button
+              onClick={() => onOpen(idx)}
+              style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 42, border: 'none', borderRadius: 999, background: 'var(--royal-600)', color: 'var(--cream-0)', fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 13, letterSpacing: '0.03em', cursor: 'pointer' }}
+              onMouseOver={(e) => (e.currentTarget.style.background = 'var(--royal-700)')}
+              onMouseOut={(e) => (e.currentTarget.style.background = 'var(--royal-600)')}
+            >
+              Open →
+            </button>
           </div>
-        </article>
+        </div>
       ))}
     </div>
   )
 }
 
 function MapMode({ strategies, onOpen }) {
-  const { Button } = DS
-  const [sel, setSel] = useState(strategies.find((s) => s.recommended) || strategies[0])
+  const { state, dispatch } = useStore()
+  const sel = strategies[state.mapSelIdx] || null
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 320px', gap: 'var(--space-6)', alignItems: 'start' }}>
-      <div
-        style={{
-          position: 'relative',
-          height: 420,
-          background: 'var(--surface-letter)',
-          border: '1px solid var(--border-hair)',
-          borderRadius: 'var(--radius-lg)',
-          boxShadow: 'var(--shadow-sm)',
-          padding: 'var(--space-6)',
-        }}
-      >
-        {/* axes */}
-        <span style={{ position: 'absolute', top: 'var(--space-4)', left: 'var(--space-4)', fontSize: 'var(--text-2xs)', letterSpacing: 'var(--tracking-wide)', textTransform: 'uppercase', color: 'var(--text-faint)' }}>↑ Higher risk</span>
-        <span style={{ position: 'absolute', bottom: 'var(--space-4)', right: 'var(--space-5)', fontSize: 'var(--text-2xs)', letterSpacing: 'var(--tracking-wide)', textTransform: 'uppercase', color: 'var(--text-faint)' }}>More impact / directness →</span>
-        <span style={{ position: 'absolute', bottom: 'var(--space-4)', left: 'var(--space-5)', fontSize: 'var(--text-2xs)', letterSpacing: 'var(--tracking-wide)', textTransform: 'uppercase', color: 'var(--text-faint)' }}>Gentle</span>
-        {/* quadrant lines */}
-        <div style={{ position: 'absolute', left: '50%', top: '8%', bottom: '8%', borderLeft: '1px dashed var(--border-soft)' }} />
-        <div style={{ position: 'absolute', top: '50%', left: '8%', right: '8%', borderTop: '1px dashed var(--border-soft)' }} />
-        {/* dots */}
-        {strategies.map((s) => {
-          const x = 10 + (s.impact / 100) * 78 // %
-          const y = 10 + ((100 - s.risk) / 100) * 78 // % (invert: high risk -> top)
-          const active = sel?.id === s.id
-          return (
-            <button
-              key={s.id}
-              onClick={() => setSel(s)}
-              title={s.name}
-              style={{
-                position: 'absolute',
-                left: `${x}%`,
-                top: `${y}%`,
-                transform: 'translate(-50%, -50%)',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 4,
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              <span
-                style={{
-                  width: active ? 22 : 16,
-                  height: active ? 22 : 16,
-                  borderRadius: '50%',
-                  background: active ? 'var(--royal-600)' : 'var(--peri-400)',
-                  border: '2px solid var(--cream-0)',
-                  boxShadow: 'var(--shadow-sm)',
-                  transition: 'all var(--dur-fast) var(--ease-quiet)',
-                }}
-              />
-              <span style={{ fontSize: 'var(--text-2xs)', color: active ? 'var(--text-strong)' : 'var(--text-muted)', whiteSpace: 'nowrap', fontWeight: active ? 'var(--weight-semibold)' : 'var(--weight-regular)' }}>
-                {s.name}
-              </span>
-            </button>
-          )
-        })}
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 32, alignItems: 'start' }}>
+      <div style={{ background: 'var(--cream-0)', border: '1px solid var(--border-hair)', borderRadius: 14, boxShadow: 'var(--shadow-sm)', padding: '26px 30px 18px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-faint)', marginBottom: 10 }}>
+          <span>↑ Higher risk</span>
+          <span>Each dot is a strategy</span>
+        </div>
+        <div style={{ position: 'relative', height: 380, borderLeft: '1.5px solid var(--border-soft)', borderBottom: '1.5px solid var(--border-soft)', marginBottom: 8 }}>
+          <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 1, background: 'var(--border-hair)' }} />
+          <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: 1, background: 'var(--border-hair)' }} />
+          {strategies.map((st, idx) => {
+            const selected = state.mapSelIdx === idx
+            return (
+              <div key={idx} style={{ position: 'absolute', left: `${14 + st.eff * 0.72}%`, top: `${14 + (100 - st.risk) * 0.72}%`, transform: 'translate(-50%,-50%)' }}>
+                <button
+                  onClick={() => dispatch({ type: 'SET_MAP_SEL', idx })}
+                  style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, borderRadius: '50%', border: '2px solid var(--cream-0)', background: 'var(--royal-600)', cursor: 'pointer', boxShadow: '0 2px 6px rgba(21,18,62,0.3)' }}
+                >
+                  {selected && <span style={{ position: 'absolute', inset: -7, borderRadius: '50%', border: '2px solid var(--royal-600)' }} />}
+                </button>
+                <span style={{ position: 'absolute', top: 22, left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)', fontSize: 11.5, fontWeight: 600, color: 'var(--ink-700)' }}>{st.name}</span>
+              </div>
+            )
+          })}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-faint)' }}>
+          <span>Gentle</span>
+          <span>More impact / directness →</span>
+        </div>
       </div>
 
       {sel && (
-        <aside
-          style={{
-            background: 'var(--surface-letter)',
-            border: '1px solid var(--border-hair)',
-            borderRadius: 'var(--radius-lg)',
-            boxShadow: 'var(--shadow-sm)',
-            padding: 'var(--space-5)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 'var(--space-3)',
-            position: 'sticky',
-            top: 'var(--space-6)',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <StanceBadge stance={sel.stance} />
-            {sel.recommended && <Recommended />}
+        <div style={{ background: 'var(--cream-0)', border: '1px solid var(--peri-400)', borderRadius: 14, boxShadow: 'var(--shadow-md)', padding: 26 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+            <Badge st={sel} />
+            {sel.recommended && <span style={REC_BADGE}>✦ Recommended</span>}
           </div>
-          <h2 className="bw-display" style={{ fontSize: 'var(--text-md)' }}>{sel.name}</h2>
-          <p className="bw-serif" style={{ color: 'var(--text-body)', fontSize: 'var(--text-sm)' }}>{sel.description}</p>
-          <ReactionBox>{sel.likelyReaction}</ReactionBox>
-          <Meter label="Risk" value={sel.risk} word={riskWord(sel.risk)} tone="risk" />
-          <Meter label="Impact" value={sel.impact} word={impactWord(sel.impact)} tone="impact" />
-          <Button variant="primary" block onClick={() => onOpen(sel)}>Open in composer →</Button>
-        </aside>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 26, lineHeight: 1.05, color: 'var(--ink-800)', margin: '0 0 12px' }}>{sel.name}</h3>
+          <p style={{ fontFamily: 'var(--font-serif)', fontSize: 16, lineHeight: 1.5, color: 'var(--text-body)', margin: '0 0 14px' }}>{sel.why}</p>
+          <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 5 }}>Likely reaction</div>
+          <p style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 15.5, lineHeight: 1.45, color: 'var(--ink-700)', margin: '0 0 22px' }}>{sel.reaction}</p>
+          <button
+            onClick={() => onOpen(state.mapSelIdx)}
+            style={{ width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 46, border: 'none', borderRadius: 999, background: 'var(--royal-600)', color: 'var(--cream-0)', fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 14, letterSpacing: '0.03em', cursor: 'pointer' }}
+            onMouseOver={(e) => (e.currentTarget.style.background = 'var(--royal-700)')}
+            onMouseOut={(e) => (e.currentTarget.style.background = 'var(--royal-600)')}
+          >
+            Open in composer →
+          </button>
+        </div>
       )}
     </div>
   )

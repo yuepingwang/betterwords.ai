@@ -1,48 +1,69 @@
 import React, { createContext, useContext, useMemo, useReducer } from 'react'
+import { getScenario } from './data/advocate'
 
 // ------------------------------------------------------------------
-// BetterWords app store — a single reducer holding the whole flow.
-// Routes: landing → home → clarify → generating → drafts → composer
-//         → send → next
+// BetterWords app store — mirrors the state model in Advocate.dc.html.
+// Screens: landing → home → clarify → generating → drafts → editor
+//          → send → next
 // ------------------------------------------------------------------
 
 const initialState = {
-  route: 'landing',
-  scenarioId: null, // 'rights' | 'personal' | 'circle'
-  answers: {}, // { [questionId]: value }
-  strategies: [], // generated drafts
-  selectedId: null, // chosen strategy id
-  tone: 45, // 0 Soft … 100 Strong
-  length: 50, // 0 Succinct … 100 Detailed
-  notes: [], // [{ snippet, note }]
-  inserts: [], // [{ after, label, text }]
-  edits: {}, // { [paragraphId]: revisedText }
+  screen: 'landing',
+  scenarioId: null,
+  clarifyStep: 0,
+  answers: {},
+  selectedIdx: 1,
+  draftMode: 'list',
+  mapSelIdx: 1,
+  tone: 50,
+  verbosity: 50,
+  replacements: [],
+  inserts: [],
+  comments: [],
+  sent: false,
 }
 
 function reducer(state, action) {
   switch (action.type) {
     case 'GOTO':
-      return { ...state, route: action.route }
-    case 'PICK_SCENARIO':
-      return { ...state, scenarioId: action.scenarioId, answers: {}, route: 'clarify' }
+      return { ...state, screen: action.screen }
+    case 'GO_LANDING':
+      return { ...state, screen: 'landing', scenarioId: null, clarifyStep: 0, answers: {}, sent: false }
+    case 'RESTART':
+      return { ...state, screen: 'home', scenarioId: null, clarifyStep: 0, answers: {}, sent: false }
+    case 'START_SCENARIO':
+      return { ...state, scenarioId: action.scenarioId, screen: 'clarify', clarifyStep: 0, answers: {} }
+    case 'SET_STEP':
+      return { ...state, clarifyStep: action.step }
     case 'ANSWER':
       return { ...state, answers: { ...state.answers, [action.id]: action.value } }
-    case 'SET_STRATEGIES':
-      return { ...state, strategies: action.strategies }
-    case 'SELECT_STRATEGY':
-      return { ...state, selectedId: action.id, notes: [], inserts: [], edits: {}, tone: action.tone ?? state.tone, length: action.length ?? state.length }
-    case 'SET_EDIT':
-      return { ...state, edits: { ...state.edits, [action.pid]: action.text } }
+    case 'SET_DRAFT_MODE':
+      return { ...state, draftMode: action.mode }
+    case 'SET_MAP_SEL':
+      return { ...state, mapSelIdx: action.idx }
+    case 'OPEN_COMPOSER':
+      return {
+        ...state,
+        selectedIdx: action.idx,
+        screen: 'editor',
+        tone: action.toneDefault,
+        verbosity: 50,
+        replacements: [],
+        inserts: [],
+        comments: [],
+      }
     case 'SET_TONE':
       return { ...state, tone: action.value }
-    case 'SET_LENGTH':
-      return { ...state, length: action.value }
-    case 'ADD_NOTE':
-      return { ...state, notes: [...state.notes, action.note] }
+    case 'SET_VERB':
+      return { ...state, verbosity: action.value }
+    case 'ADD_REPLACEMENT':
+      return { ...state, replacements: [...state.replacements, action.replacement] }
     case 'ADD_INSERT':
       return { ...state, inserts: [...state.inserts, action.insert] }
-    case 'RESTART':
-      return { ...initialState, route: 'home' }
+    case 'ADD_COMMENT':
+      return { ...state, comments: [...state.comments, action.comment] }
+    case 'SET_SENT':
+      return { ...state, sent: action.sent }
     default:
       return state
   }
@@ -54,12 +75,13 @@ export { reducer as _reducer, initialState as _initialState }
 export function StoreProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState)
   const value = useMemo(() => {
-    const go = (route) => dispatch({ type: 'GOTO', route })
+    const scenario = state.scenarioId ? getScenario(state.scenarioId) : null
     return {
       state,
       dispatch,
-      go,
-      selected: state.strategies.find((s) => s.id === state.selectedId) || null,
+      go: (screen) => dispatch({ type: 'GOTO', screen }),
+      scenario,
+      selected: scenario ? scenario.strategies[state.selectedIdx] : null,
     }
   }, [state])
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>

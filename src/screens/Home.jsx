@@ -1,78 +1,58 @@
 import React from 'react'
-import DS from '../ds'
-import { SCENARIOS } from '../data/scenarios'
+import { DATA, SCENARIO_IDS } from '../data/advocate'
 import { useStore } from '../store'
-import Illustration from '../components/Illustration'
 
 export default function Home() {
   const { dispatch } = useStore()
-  const { Tag } = DS
 
   return (
-    <main className="bw-container" style={{ paddingBlock: 'var(--space-10)' }}>
-      <p className="bw-kicker">Where it helps</p>
-      <h1 className="bw-display" style={{ fontSize: 'var(--text-3xl)', marginTop: 'var(--space-3)' }}>
-        Where does it hurt?
-      </h1>
-      <p
-        className="bw-serif"
-        style={{ fontSize: 'var(--text-md)', maxWidth: '52ch', marginTop: 'var(--space-3)', color: 'var(--text-muted)' }}
-      >
-        Pick the situation that fits. A few quick questions next — then a handful of honest drafts to choose from.
-      </p>
-
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: 'var(--space-5)',
-          marginTop: 'var(--space-8)',
-        }}
-      >
-        {SCENARIOS.map((s) => (
-          <button
-            key={s.id}
-            className="bw-lift"
-            onClick={() => dispatch({ type: 'PICK_SCENARIO', scenarioId: s.id })}
-            style={{
-              textAlign: 'left',
-              cursor: 'pointer',
-              background: 'var(--surface-letter)',
-              border: '1px solid var(--border-hair)',
-              borderRadius: 'var(--radius-lg)',
-              boxShadow: 'var(--shadow-sm)',
-              padding: 'var(--space-6)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 'var(--space-3)',
-            }}
-          >
-            <Illustration name={s.illustration} size={52} style={{ color: 'var(--pencil-600)' }} />
-            <p className="bw-kicker" style={{ marginTop: 'var(--space-2)' }}>{s.kicker}</p>
-            <h2 className="bw-display" style={{ fontSize: 'var(--text-lg)' }}>{s.title}</h2>
-            <p className="bw-serif" style={{ color: 'var(--text-body)' }}>{s.blurb}</p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
-              {s.examples.slice(0, 4).map((ex) => (
-                <Tag key={ex}>{ex}</Tag>
-              ))}
-            </div>
-            <span
-              style={{
-                marginTop: 'var(--space-3)',
-                color: 'var(--accent)',
-                fontWeight: 'var(--weight-semibold)',
-                fontSize: 'var(--text-sm)',
-              }}
-            >
-              Start here →
-            </span>
-          </button>
-        ))}
+    <main style={{ maxWidth: 1180, margin: '0 auto', padding: '72px 40px 96px' }}>
+      <div style={{ textAlign: 'center', maxWidth: 680, margin: '0 auto 56px' }}>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 46, lineHeight: 1.04, letterSpacing: '-0.015em', color: 'var(--ink-800)', margin: '0 0 20px' }}>
+          Where does it hurt?
+        </h1>
+        <p style={{ fontFamily: 'var(--font-serif)', fontSize: 22, lineHeight: 1.5, color: 'var(--text-muted)', margin: 0 }}>
+          Boundaries, disputes, speaking up. Tell us the situation and we’ll draft a few honest ways to send it — with the likely reaction for each.
+        </p>
       </div>
 
-      <p style={{ marginTop: 'var(--space-9)', color: 'var(--text-faint)', fontSize: 'var(--text-sm)' }}>
-        Private by design · Nothing is sent until you seal it
-      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
+        {SCENARIO_IDS.map((id) => {
+          const d = DATA[id]
+          return (
+            <div
+              key={id}
+              className="adv-card-hover bw-home-card"
+              onClick={() => dispatch({ type: 'START_SCENARIO', scenarioId: id })}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '42px 30px', background: 'var(--cream-0)', border: '1px solid var(--border-hair)', borderRadius: 14, boxShadow: 'var(--shadow-sm)', cursor: 'pointer' }}
+            >
+              <figure style={{ margin: '0 0 28px', width: 88, filter: 'drop-shadow(0 3px 8px rgba(21,18,62,0.18))' }}>
+                <div className="edge-perforated" style={{ padding: 7, background: 'var(--cream-0)' }}>
+                  <div style={{ aspectRatio: '5 / 6', background: d.home.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 10 }}>
+                    <div style={{ width: '84%', height: '84%', backgroundImage: `url(/ds/assets/illustrations/${d.illo}.svg)`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center' }} />
+                  </div>
+                </div>
+              </figure>
+              <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 10.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--royal-600)', marginBottom: 14 }}>
+                {d.kicker}
+              </div>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 26, lineHeight: 1.08, color: 'var(--ink-800)', margin: '0 0 16px' }}>
+                {d.label}
+              </h3>
+              <p style={{ fontFamily: 'var(--font-serif)', fontSize: 16.5, lineHeight: 1.5, color: 'var(--text-muted)', margin: '0 0 28px' }}>
+                {d.home.blurb}
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9, justifyContent: 'center', marginTop: 'auto' }}>
+                {d.home.examples.map((ex) => (
+                  <span key={ex} style={{ fontFamily: 'var(--font-sans)', fontSize: 11.5, fontWeight: 500, color: 'var(--ink-700)', background: 'var(--cream-2)', borderRadius: 999, padding: '5px 12px' }}>
+                    {ex}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )
+        })}
+      </div>
     </main>
   )
 }

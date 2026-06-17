@@ -1,61 +1,51 @@
 import React from 'react'
 import DS from '../ds'
 import { useStore } from '../store'
-import Illustration from '../components/Illustration'
 
 const CARDS = [
   {
-    illustration: 'pocketwatch',
-    title: 'No reply yet?',
-    body: 'When the wait stretches on, we’ll help you judge the right moment — and draft a follow-up that nudges without nagging.',
+    illo: 'pocketwatch', bg: 'var(--fog-1)', title: 'No reply yet?',
+    body: 'When the silence stretches, we’ll judge the timing and draft a follow-up — from a gentle nudge to a firmer note that leans on any rule or term being missed.',
   },
   {
-    illustration: 'envelope',
-    title: 'They replied?',
-    body: 'Paste what came back. We’ll read the tone, tell you whether your need was actually met, and draft your next move.',
+    illo: 'envelope', bg: 'var(--peri-200)', title: 'They replied?',
+    body: 'Paste their response and we’ll read the tone, tell you whether your need was actually met, and draft your next move — including how to escalate if it wasn’t.',
   },
 ]
 
 export default function Next() {
   const { dispatch } = useStore()
-  const { Button, Tag } = DS
+  const { Button } = DS
 
   return (
-    <main className="bw-container" style={{ paddingBlock: 'var(--space-10)', maxWidth: 'var(--container-md)', textAlign: 'center' }}>
-      <p className="bw-kicker">What happens next</p>
-      <h1 className="bw-display" style={{ fontSize: 'var(--text-2xl)', marginTop: 'var(--space-2)' }}>
-        We’ll be here for the reply.
-      </h1>
-      <p className="bw-serif" style={{ color: 'var(--text-muted)', marginTop: 'var(--space-3)', maxWidth: '54ch', marginInline: 'auto' }}>
-        The hardest message is often the first one. When the response comes — or doesn’t — BetterWords keeps your context and helps you take the next step.
-      </p>
+    <main style={{ maxWidth: 920, margin: '0 auto', padding: '56px 32px 90px' }}>
+      <div style={{ textAlign: 'center', marginBottom: 44 }}>
+        <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--royal-600)', marginBottom: 12 }}>After you send</div>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 46, lineHeight: 1.03, color: 'var(--ink-800)', margin: '0 0 14px' }}>We’ll be here for what comes next.</h1>
+        <p style={{ fontFamily: 'var(--font-serif)', fontSize: 19, color: 'var(--text-muted)', margin: '0 auto', maxWidth: 520 }}>
+          A conversation rarely ends with one message. Here’s how BetterWords will help once you’ve sent yours.
+        </p>
+      </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 'var(--space-5)', marginTop: 'var(--space-8)', textAlign: 'left' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 22 }}>
         {CARDS.map((c) => (
-          <article
-            key={c.title}
-            style={{
-              background: 'var(--surface-letter)',
-              border: '1px solid var(--border-hair)',
-              borderRadius: 'var(--radius-lg)',
-              boxShadow: 'var(--shadow-sm)',
-              padding: 'var(--space-6)',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <Illustration name={c.illustration} size={48} />
-              <Tag>Coming soon</Tag>
-            </div>
-            <h2 className="bw-display" style={{ fontSize: 'var(--text-lg)', marginTop: 'var(--space-4)' }}>{c.title}</h2>
-            <p className="bw-serif" style={{ color: 'var(--text-body)', marginTop: 'var(--space-2)' }}>{c.body}</p>
-          </article>
+          <div key={c.title} style={{ position: 'relative', background: 'var(--cream-0)', border: '1px solid var(--border-hair)', borderRadius: 14, boxShadow: 'var(--shadow-sm)', padding: '30px 28px' }}>
+            <span style={{ position: 'absolute', top: 18, right: 18, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '4px 10px', borderRadius: 999, background: 'var(--fog-1)', color: 'var(--text-muted)' }}>Coming soon</span>
+            <figure style={{ margin: '0 0 16px', width: 76, filter: 'drop-shadow(0 3px 8px rgba(21,18,62,0.2))' }}>
+              <div className="edge-perforated" style={{ padding: 6, background: 'var(--cream-0)' }}>
+                <div style={{ aspectRatio: '5/6', background: c.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 7 }}>
+                  <img src={`/ds/assets/illustrations/${c.illo}.svg`} alt="" style={{ width: '86%', height: '86%', objectFit: 'contain' }} />
+                </div>
+              </div>
+            </figure>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 24, color: 'var(--ink-800)', margin: '0 0 10px' }}>{c.title}</h3>
+            <p style={{ fontFamily: 'var(--font-serif)', fontSize: 16, lineHeight: 1.5, color: 'var(--text-body)', margin: 0 }}>{c.body}</p>
+          </div>
         ))}
       </div>
 
-      <div style={{ marginTop: 'var(--space-8)' }}>
-        <Button variant="outline" size="lg" onClick={() => dispatch({ type: 'RESTART' })}>
-          Start another message
-        </Button>
+      <div style={{ textAlign: 'center', marginTop: 44 }}>
+        <Button variant="outline" size="lg" onClick={() => dispatch({ type: 'RESTART' })}>Start another message</Button>
       </div>
     </main>
   )

@@ -1,6 +1,6 @@
 import React from 'react'
-import DS from './ds'
 import { StoreProvider, useStore } from './store'
+import BrandMark, { Wordmark } from './components/BrandMark'
 import Landing from './screens/Landing'
 import Home from './screens/Home'
 import Clarify from './screens/Clarify'
@@ -15,63 +15,109 @@ const SCREENS = {
   clarify: Clarify,
   generating: Generating,
   drafts: Drafts,
-  composer: Composer,
+  editor: Composer,
   send: Send,
   next: Next,
 }
 
-function AppChrome() {
-  const { state, go, dispatch } = useStore()
-  const { Logo } = DS
-  const Screen = SCREENS[state.route] || Home
-
+function TopBar() {
+  const { state, dispatch } = useStore()
+  const showStartBtn = state.screen === 'next'
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <header
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 10,
-          background: 'color-mix(in srgb, var(--bg-base) 88%, transparent)',
-          backdropFilter: 'saturate(140%) blur(8px)',
-          borderBottom: '1px solid var(--border-hair)',
-        }}
+    <header
+      style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 30,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 24,
+        height: 64,
+        padding: '0 32px',
+        background: 'rgba(248,244,233,0.88)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        borderBottom: '1px solid var(--border-hair)',
+      }}
+    >
+      <div
+        style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--ink-800)', cursor: 'pointer' }}
+        onClick={() => dispatch({ type: 'GO_LANDING' })}
       >
-        <div
-          className="bw-container"
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64 }}
-        >
-          <button
-            onClick={() => go('home')}
-            style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', background: 'none', border: 'none', cursor: 'pointer' }}
-          >
-            <Logo variant="lockup" size={24} />
-            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 'var(--weight-semibold)', fontSize: 'var(--text-md)', color: 'var(--text-strong)' }}>
-              BetterWords
-            </span>
-          </button>
-          <button
-            onClick={() => dispatch({ type: 'RESTART' })}
-            className="bw-link"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 'var(--text-sm)' }}
-          >
-            Start over
-          </button>
-        </div>
-      </header>
-      <div style={{ flex: 1 }}>
-        <Screen />
+        <BrandMark size={26} />
+        <Wordmark size={19} />
       </div>
-    </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 30 }}>
+        {showStartBtn && (
+          <a
+            onClick={() => dispatch({ type: 'RESTART' })}
+            style={{
+              whiteSpace: 'nowrap',
+              fontFamily: 'var(--font-sans)',
+              fontWeight: 600,
+              fontSize: 14,
+              color: 'var(--cream-0)',
+              background: 'var(--royal-600)',
+              padding: '10px 20px',
+              borderRadius: 999,
+              cursor: 'pointer',
+            }}
+            onMouseOver={(e) => (e.currentTarget.style.background = 'var(--royal-700)')}
+            onMouseOut={(e) => (e.currentTarget.style.background = 'var(--royal-600)')}
+          >
+            Start writing
+          </a>
+        )}
+      </div>
+    </header>
+  )
+}
+
+function Footer() {
+  const { dispatch } = useStore()
+  const links = ['How it works', 'Situations', 'Privacy']
+  return (
+    <footer style={{ marginTop: 'auto', background: 'var(--cream-1)', padding: '36px 32px', borderTop: '1px solid var(--border-hair)' }}>
+      <div style={{ maxWidth: 1180, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => dispatch({ type: 'RESTART' })}>
+          <BrandMark size={26} />
+          <Wordmark size={18} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
+          {links.map((l) => (
+            <span key={l} style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 13.5, color: 'var(--text-muted)', cursor: 'pointer' }}>
+              {l}
+            </span>
+          ))}
+        </div>
+        <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--text-faint)' }}>© 2026 BetterWords</div>
+      </div>
+    </footer>
   )
 }
 
 function Router() {
   const { state, dispatch } = useStore()
-  if (state.route === 'landing') {
-    return <Landing onStart={() => dispatch({ type: 'GOTO', route: 'home' })} />
+  if (state.screen === 'landing') {
+    // The landing emits an optional scenario key: a scenario card sends the
+    // user straight into that clarify flow; a generic CTA goes to home.
+    return (
+      <Landing
+        onStart={(key) =>
+          key ? dispatch({ type: 'START_SCENARIO', scenarioId: key }) : dispatch({ type: 'RESTART' })
+        }
+      />
+    )
   }
-  return <AppChrome />
+  const Screen = SCREENS[state.screen] || Home
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--cream-1)', fontFamily: 'var(--font-sans)', color: 'var(--text-body)', position: 'relative' }}>
+      <TopBar />
+      <Screen />
+      <Footer />
+    </div>
+  )
 }
 
 export default function App() {

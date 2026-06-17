@@ -1,6 +1,7 @@
 /* ============================================================
    BetterWords — application styles
-   Authored against Messenger design-system tokens only.
+   Authored against Messenger design-system tokens, matching the
+   inline styles in Advocate.dc.html.
    ============================================================ */
 
 *,
@@ -16,17 +17,20 @@ body {
 }
 
 body {
-  background: var(--bg-base);
+  background: var(--cream-1);
   color: var(--text-body);
   font-family: var(--font-sans);
-  font-size: var(--text-base);
-  line-height: var(--leading-relaxed);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
 #root {
   min-height: 100vh;
+}
+
+::selection {
+  background: var(--peri-300);
+  color: var(--ink-800);
 }
 
 a {
@@ -38,8 +42,14 @@ button {
   font-family: inherit;
 }
 
-/* --- shared helpers ------------------------------------------------ */
+/* --- shared helpers (used by the Landing page) -------------------- */
 
+.bw-container {
+  width: 100%;
+  max-width: var(--container-lg);
+  margin-inline: auto;
+  padding-inline: var(--space-5);
+}
 .bw-kicker {
   font-family: var(--font-sans);
   font-size: var(--text-2xs);
@@ -48,7 +58,6 @@ button {
   text-transform: uppercase;
   color: var(--text-muted);
 }
-
 .bw-display {
   font-family: var(--font-display);
   font-weight: var(--weight-semibold);
@@ -57,19 +66,10 @@ button {
   color: var(--text-strong);
   margin: 0;
 }
-
 .bw-serif {
   font-family: var(--font-serif);
   color: var(--text-body);
 }
-
-.bw-container {
-  width: 100%;
-  max-width: var(--container-lg);
-  margin-inline: auto;
-  padding-inline: var(--space-5);
-}
-
 .bw-link {
   color: var(--text-muted);
   transition: color var(--dur-fast) var(--ease-quiet);
@@ -77,42 +77,45 @@ button {
 .bw-link:hover {
   color: var(--text-strong);
 }
+.bw-lift {
+  transition: transform var(--dur-base) var(--ease-quiet),
+    box-shadow var(--dur-base) var(--ease-quiet), border-color var(--dur-base) var(--ease-quiet);
+}
+.bw-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
 
-/* --- risk / impact meters ----------------------------------------- */
+/* --- animations (verbatim from the design) ------------------------ */
 
-.bw-meter {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+@keyframes adv-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
-.bw-meter-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
+@keyframes adv-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
-.bw-meter-label {
-  font-size: var(--text-2xs);
-  font-weight: var(--weight-semibold);
-  letter-spacing: var(--tracking-wide);
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-.bw-meter-value {
-  font-size: var(--text-2xs);
-  font-weight: var(--weight-semibold);
-  letter-spacing: var(--tracking-wide);
-  text-transform: uppercase;
-}
-.bw-meter-track {
-  height: 6px;
-  border-radius: var(--radius-pill);
-  background: var(--cream-2);
-  overflow: hidden;
-}
-.bw-meter-fill {
-  height: 100%;
-  border-radius: var(--radius-pill);
-  transition: width var(--dur-base) var(--ease-quiet);
+@keyframes adv-seal {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  55% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /* --- range sliders (tone / length) -------------------------------- */
@@ -121,10 +124,11 @@ button {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 4px;
-  border-radius: var(--radius-pill);
-  background: var(--cream-2);
+  height: 5px;
+  border-radius: 999px;
+  background: var(--fog-2);
   outline: none;
+  cursor: pointer;
 }
 .adv-range::-webkit-slider-thumb {
   -webkit-appearance: none;
@@ -133,96 +137,38 @@ button {
   height: 20px;
   border-radius: 50%;
   background: var(--royal-600);
-  border: 2px solid var(--cream-0);
-  box-shadow: var(--shadow-sm);
+  border: 3px solid var(--cream-0);
+  box-shadow: 0 1px 5px rgba(21, 18, 62, 0.35);
   cursor: pointer;
-  transition: transform var(--dur-fast) var(--ease-quiet);
-}
-.adv-range::-webkit-slider-thumb:hover {
-  transform: scale(1.08);
 }
 .adv-range::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: var(--royal-600);
-  border: 2px solid var(--cream-0);
-  box-shadow: var(--shadow-sm);
+  border: 3px solid var(--cream-0);
+  box-shadow: 0 1px 5px rgba(21, 18, 62, 0.35);
   cursor: pointer;
 }
-.adv-range:focus-visible {
-  box-shadow: var(--focus-shadow);
-}
-.adv-range-ends {
-  display: flex;
-  justify-content: space-between;
-  margin-top: var(--space-2);
-  font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-wide);
-  text-transform: uppercase;
-  color: var(--text-faint);
-}
 
-/* --- cards with a gentle hover lift -------------------------------- */
+/* --- card hover transitions --------------------------------------- */
 
-.bw-lift {
-  transition: transform var(--dur-base) var(--ease-quiet),
-    box-shadow var(--dur-base) var(--ease-quiet),
-    border-color var(--dur-base) var(--ease-quiet);
+.adv-card-hover {
+  transition: transform 0.2s var(--ease-quiet), box-shadow 0.2s var(--ease-quiet),
+    border-color 0.2s var(--ease-quiet);
 }
-.bw-lift:hover {
-  transform: translateY(-3px);
+.bw-home-card:hover {
+  transform: translateY(-4px);
   box-shadow: var(--shadow-md);
+  border-color: var(--peri-400);
 }
-
-/* --- chips (selectable options) ----------------------------------- */
-
-.bw-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--border-soft);
-  background: var(--cream-0);
-  color: var(--text-body);
-  font-size: var(--text-sm);
-  font-family: var(--font-sans);
-  cursor: pointer;
-  transition: all var(--dur-fast) var(--ease-quiet);
+.bw-list-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--peri-400);
 }
-.bw-chip:hover {
-  border-color: var(--accent);
-  background: var(--peri-100);
-}
-.bw-chip[aria-pressed='true'] {
-  background: var(--royal-600);
-  border-color: var(--royal-600);
-  color: var(--cream-0);
-}
-
-/* --- a fading rise used by popups / inserts ----------------------- */
-
-@keyframes adv-up {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-@keyframes bw-twinkle {
-  0%, 100% { opacity: 0.55; transform: scale(0.92); }
-  50% { opacity: 1; transform: scale(1.06); }
-}
-@keyframes bw-spin {
-  to { transform: rotate(360deg); }
-}
-
-.bw-fade-up {
-  animation: adv-up 0.32s var(--ease-quiet) both;
+.bw-add-sug:hover {
+  border-color: var(--peri-400);
+  box-shadow: var(--shadow-sm);
 }
 
 @media (prefers-reduced-motion: reduce) {
