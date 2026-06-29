@@ -17,7 +17,7 @@ export const DATA = {
       bg: 'var(--peri-200)',
     },
     questions: [
-      { id: 'harm', type: 'chips', title: 'What’s being withheld or harmed?', helper: 'Pick the closest.', options: ['My security deposit', 'Repairs aren’t done', 'I was overcharged', 'My lease terms aren’t honored'] },
+      { id: 'harm', type: 'chips', title: 'What’s being withheld or harmed?', helper: 'Pick the closest.', options: ['My security deposit', 'Repairs aren’t done', 'I was overcharged', 'My lease terms aren’t honored'], allowCustom: true, customPlaceholder: 'Describe what’s being withheld or harmed…' },
       { id: 'urgency', type: 'chips', title: 'How time-sensitive is it?', options: ['I have time', 'Within a few weeks', 'It’s urgent'] },
       { id: 'goal', type: 'text', title: 'What outcome would resolve this for you?', helper: 'Your ideal result, in a line.', placeholder: 'e.g. my full $1,850 deposit returned within two weeks' },
       { id: 'rel', type: 'chips', title: 'How have things been with them so far?', options: ['Cordial', 'Neutral / formal', 'Already strained'] },
@@ -106,7 +106,7 @@ export const DATA = {
       bg: 'var(--cream-2)',
     },
     questions: [
-      { id: 'who', type: 'chips', title: 'Who is this for?', options: ['A parent', 'A sibling', 'A close friend', 'My partner'] },
+      { id: 'who', type: 'chips', title: 'Who is this for?', options: ['A parent', 'A sibling', 'A close friend', 'My partner'], allowCustom: true, customPlaceholder: 'Tell us who this is for…' },
       { id: 'say', type: 'chips', title: 'What do you need to say?', options: ['I can’t keep lending money', 'I need more space', 'I can’t make it', 'Something they did hurt me'] },
       { id: 'understand', type: 'text', title: 'What do you most want them to understand?', helper: 'The heart of it, in your words.', placeholder: 'e.g. that this isn’t about loving them less' },
       { id: 'fear', type: 'chips', title: 'What are you most afraid of?', options: ['Hurting them', 'Their anger', 'Guilt — feeling selfish', 'Damaging the relationship'] },
@@ -195,7 +195,7 @@ export const DATA = {
       bg: 'var(--fog-1)',
     },
     questions: [
-      { id: 'what', type: 'chips', title: 'What happened?', options: ['A coworker took credit for my work', 'I was blamed unfairly', 'I feel underpaid', 'My contribution was overlooked'] },
+      { id: 'what', type: 'chips', title: 'What happened?', options: ['A coworker took credit for my work', 'I was blamed unfairly', 'I feel underpaid', 'My contribution was overlooked'], allowCustom: true, customPlaceholder: 'Describe what happened…' },
       { id: 'to', type: 'chips', title: 'Who will receive this?', options: ['My manager', 'The coworker', 'Both / a group'] },
       { id: 'seek', type: 'text', title: 'What recognition or change are you seeking?', helper: 'Be concrete if you can.', placeholder: 'e.g. my authorship noted, and to present it next time' },
       { id: 'power', type: 'chips', title: 'What’s the power dynamic?', options: ['They’re senior to me', 'We’re peers', 'I’m senior'] },

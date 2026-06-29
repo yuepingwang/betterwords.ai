@@ -1,6 +1,8 @@
-import React from 'react'
+import React, { useState } from 'react'
 import DS from '../ds'
 import { useStore } from '../store'
+
+const SOMETHING_ELSE = 'Something else'
 
 export default function Clarify() {
   const { state, dispatch, scenario } = useStore()
@@ -85,27 +87,7 @@ export default function Clarify() {
         )}
 
         {isChips && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 40 }}>
-            {q.options.map((label) => {
-              const selected = ans === label
-              return (
-                <button
-                  key={label}
-                  onClick={() => dispatch({ type: 'ANSWER', id: q.id, value: label })}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 18px', cursor: 'pointer',
-                    fontFamily: 'var(--font-sans)', fontSize: 15, fontWeight: 500, textAlign: 'left', borderRadius: 999,
-                    border: selected ? '1.5px solid var(--royal-600)' : '1.5px solid var(--border-soft)',
-                    background: selected ? 'var(--peri-100)' : 'var(--cream-0)',
-                    color: selected ? 'var(--royal-700)' : 'var(--text-body)',
-                    boxShadow: selected ? '0 1px 3px rgba(43,69,212,0.12)' : 'none',
-                  }}
-                >
-                  {label}
-                </button>
-              )
-            })}
-          </div>
+          <ChipsQuestion key={q.id} q={q} ans={ans} onAnswer={(value) => dispatch({ type: 'ANSWER', id: q.id, value })} />
         )}
 
         {isText && (
@@ -131,5 +113,62 @@ export default function Clarify() {
         </div>
       </section>
     </main>
+  )
+}
+
+// Chips with an optional "Something else" escape hatch that opens a free-text
+// field. Keyed by question id in the parent so customMode resets per question.
+function ChipsQuestion({ q, ans, onAnswer }) {
+  const isPreset = q.options.includes(ans)
+  // Start in custom mode if this question's saved answer is a custom string.
+  const [customMode, setCustomMode] = useState(q.allowCustom && !!ans && !isPreset)
+
+  const pickPreset = (label) => {
+    setCustomMode(false)
+    onAnswer(label)
+  }
+  const openCustom = () => {
+    setCustomMode(true)
+    if (isPreset || !ans) onAnswer('') // clear a previous preset; await their text
+  }
+
+  const chip = (label, selected, onClick) => (
+    <button
+      key={label}
+      onClick={onClick}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 18px', cursor: 'pointer',
+        fontFamily: 'var(--font-sans)', fontSize: 15, fontWeight: 500, textAlign: 'left', borderRadius: 999,
+        border: selected ? '1.5px solid var(--royal-600)' : '1.5px solid var(--border-soft)',
+        background: selected ? 'var(--peri-100)' : 'var(--cream-0)',
+        color: selected ? 'var(--royal-700)' : 'var(--text-body)',
+        boxShadow: selected ? '0 1px 3px rgba(43,69,212,0.12)' : 'none',
+      }}
+    >
+      {label}
+    </button>
+  )
+
+  return (
+    <div style={{ marginBottom: 40 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+        {q.options.map((label) => chip(label, !customMode && ans === label, () => pickPreset(label)))}
+        {q.allowCustom && chip(SOMETHING_ELSE, customMode, openCustom)}
+      </div>
+      {customMode && (
+        <input
+          autoFocus
+          value={typeof ans === 'string' ? ans : ''}
+          onChange={(e) => onAnswer(e.target.value)}
+          placeholder={q.customPlaceholder || 'Describe it in your own words…'}
+          style={{
+            width: '100%', boxSizing: 'border-box', marginTop: 16,
+            background: 'var(--cream-0)', border: '1px solid var(--border-soft)', borderRadius: 8,
+            padding: '14px 16px', fontFamily: 'var(--font-serif)', fontSize: 17, lineHeight: 1.5,
+            color: 'var(--text-body)', boxShadow: 'var(--shadow-xs)', outline: 'none',
+          }}
+        />
+      )}
+    </div>
   )
 }

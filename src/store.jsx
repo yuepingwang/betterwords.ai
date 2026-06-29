@@ -12,11 +12,15 @@ const initialState = {
   scenarioId: null,
   clarifyStep: 0,
   answers: {},
+  strategies: null, // AI-generated drafts; null → fall back to static DATA
+  genLoading: false,
   selectedIdx: 1,
   draftMode: 'list',
   mapSelIdx: 1,
   tone: 50,
   verbosity: 50,
+  letterParas: null, // AI working copy of the open letter; null → derive from mock
+  letterLoading: false,
   replacements: [],
   inserts: [],
   comments: [],
@@ -28,11 +32,15 @@ function reducer(state, action) {
     case 'GOTO':
       return { ...state, screen: action.screen }
     case 'GO_LANDING':
-      return { ...state, screen: 'landing', scenarioId: null, clarifyStep: 0, answers: {}, sent: false }
+      return { ...state, screen: 'landing', scenarioId: null, clarifyStep: 0, answers: {}, strategies: null, sent: false }
     case 'RESTART':
-      return { ...state, screen: 'home', scenarioId: null, clarifyStep: 0, answers: {}, sent: false }
+      return { ...state, screen: 'home', scenarioId: null, clarifyStep: 0, answers: {}, strategies: null, sent: false }
     case 'START_SCENARIO':
-      return { ...state, scenarioId: action.scenarioId, screen: 'clarify', clarifyStep: 0, answers: {} }
+      return { ...state, scenarioId: action.scenarioId, screen: 'clarify', clarifyStep: 0, answers: {}, strategies: null }
+    case 'SET_GEN_LOADING':
+      return { ...state, genLoading: action.value }
+    case 'SET_STRATEGIES':
+      return { ...state, strategies: action.strategies, genLoading: false }
     case 'SET_STEP':
       return { ...state, clarifyStep: action.step }
     case 'ANSWER':
@@ -48,10 +56,16 @@ function reducer(state, action) {
         screen: 'editor',
         tone: action.toneDefault,
         verbosity: 50,
+        letterParas: action.paras ?? null,
+        letterLoading: false,
         replacements: [],
         inserts: [],
         comments: [],
       }
+    case 'SET_LETTER':
+      return { ...state, letterParas: action.paras, letterLoading: false }
+    case 'SET_LETTER_LOADING':
+      return { ...state, letterLoading: action.value }
     case 'SET_TONE':
       return { ...state, tone: action.value }
     case 'SET_VERB':
@@ -76,12 +90,15 @@ export function StoreProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState)
   const value = useMemo(() => {
     const scenario = state.scenarioId ? getScenario(state.scenarioId) : null
+    // AI-generated strategies take precedence; the static DATA is the fallback.
+    const strategies = state.strategies || (scenario ? scenario.strategies : [])
     return {
       state,
       dispatch,
       go: (screen) => dispatch({ type: 'GOTO', screen }),
       scenario,
-      selected: scenario ? scenario.strategies[state.selectedIdx] : null,
+      strategies,
+      selected: strategies[state.selectedIdx] || null,
     }
   }, [state])
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>

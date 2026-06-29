@@ -1,16 +1,16 @@
 import React from 'react'
 import DS from '../ds'
 import { useStore } from '../store'
-import { buildParas } from '../lib/advisor'
+import { composeLetter, recipientLabel } from '../lib/advisor'
 
 export default function Send() {
   const { state, dispatch, scenario, selected } = useStore()
   const { Button, Postmark } = DS
 
-  const paras = buildParas(state.scenarioId, state.selectedIdx, state.tone, state.verbosity, state.replacements, state.inserts)
+  const paras = composeLetter(selected, state)
 
   const doSend = () => {
-    const full = `To: ${scenario.recipient}\nRe: ${selected.subject}\n\n${paras.join('\n\n')}`
+    const full = `To: ${recipientLabel(scenario)}\nRe: ${selected.subject}\n\n${paras.join('\n\n')}`
     if (navigator.clipboard) navigator.clipboard.writeText(full).catch(() => {})
     dispatch({ type: 'SET_SENT', sent: true })
   }
@@ -26,12 +26,13 @@ export default function Send() {
           <div style={{ background: 'var(--surface-letter)', border: '1px solid rgba(11,22,38,0.07)', borderRadius: 8, boxShadow: 'var(--shadow-letter)', padding: '32px 34px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '46px 1fr', gap: '7px 14px', alignItems: 'baseline', borderBottom: '1px solid var(--border-hair)', paddingBottom: 14, marginBottom: 18, fontFamily: 'var(--font-sans)', fontSize: 13 }}>
               <span style={{ color: 'var(--text-faint)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>To</span>
-              <span style={{ color: 'var(--ink-800)', fontWeight: 500 }}>{scenario.recipient}</span>
+              <span style={{ color: 'var(--ink-800)', fontWeight: 500 }}>{recipientLabel(scenario)}</span>
               <span style={{ color: 'var(--text-faint)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Re</span>
               <span style={{ color: 'var(--ink-800)', fontWeight: 500 }}>{selected.subject}</span>
             </div>
-            <p style={{ fontFamily: 'var(--font-serif)', fontSize: 17, lineHeight: 1.65, color: 'var(--ink-700)', margin: 0 }}>{paras[0] || ''}</p>
-            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--text-faint)', margin: '14px 0 0', fontStyle: 'italic' }}>…your full message, tuned the way you left it.</p>
+            {paras.map((text, i) => (
+              <p key={i} style={{ fontFamily: 'var(--font-serif)', fontSize: 17, lineHeight: 1.65, color: 'var(--ink-700)', margin: i === 0 ? 0 : '14px 0 0' }}>{text}</p>
+            ))}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginTop: 28 }}>
             <button onClick={() => dispatch({ type: 'GOTO', screen: 'editor' })} style={{ border: 'none', background: 'transparent', color: 'var(--text-muted)', fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 14, cursor: 'pointer', padding: '12px 8px' }}>

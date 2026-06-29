@@ -5,16 +5,22 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently -k -n server,vite -c magenta,cyan \"npm:server\" \"npm:web\"",
+    "web": "vite",
+    "server": "node server/index.js",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "openai": "^4.77.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.2",
     "vite": "^5.4.11"
   }
 }

@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react'
 import DS from '../ds'
 import { useStore } from '../store'
-import { buildParas, rephrase, liveRisk, liveEff, lvl, bucket } from '../lib/advisor'
+import { composeLetter, rewritePassage, retuneLetter, recipientLabel, liveRisk, liveEff, lvl, bucket } from '../lib/advisor'
 
 const QUICK_CHIPS = [
   { mode: 'soften', label: 'Soften' },
@@ -20,9 +20,13 @@ export default function Composer() {
   const [popupNote, setPopupNote] = useState('')
   const [addOpen, setAddOpen] = useState(false)
   const [flashText, setFlashText] = useState(null)
+  const [busy, setBusy] = useState(false) // an inline rewrite is in flight
 
   const strat = selected
-  const paras = buildParas(state.scenarioId, state.selectedIdx, state.tone, state.verbosity, state.replacements, state.inserts)
+  // When the strategy carries AI paragraphs, tone/length are retuned by the
+  // model; otherwise composeLetter derives them from the mock's tone variants.
+  const aiMode = Boolean(strat?.paragraphs?.length)
+  const paras = composeLetter(strat, state)
   const flashIdx = flashText ? paras.findIndex((p) => p.includes(flashText)) : -1
 
   const lr = liveRisk(strat, state.tone, state.verbosity)
@@ -57,30 +61,46 @@ export default function Composer() {
     setAddOpen(false)
   }
 
-  const applyQuick = (mode) => {
-    if (!popup) return
-    const rep = rephrase(popup.text, mode)
-    dispatch({ type: 'ADD_REPLACEMENT', replacement: { find: popup.text, replace: rep } })
-    setPopup(null)
-    setPopupNote('')
-    flash(rep)
-    window.getSelection()?.removeAllRanges()
+  // One inline-rewrite path for both the quick chips and the free-text note.
+  const runRewrite = async ({ mode, instruction }) => {
+    if (!popup || busy) return
+    setBusy(true)
+    try {
+      const rep = await rewritePassage({ text: popup.text, mode, instruction, context: paras.join('\n\n') })
+      dispatch({ type: 'ADD_REPLACEMENT', replacement: { find: popup.text, replace: rep } })
+      if (instruction) {
+        const snippet = popup.text.length > 60 ? popup.text.slice(0, 57) + '…' : popup.text
+        dispatch({ type: 'ADD_COMMENT', comment: { snippet, note: instruction } })
+      }
+      flash(rep)
+    } finally {
+      setBusy(false)
+      setPopup(null)
+      setPopupNote('')
+      window.getSelection()?.removeAllRanges()
+    }
   }
 
+  const applyQuick = (mode) => runRewrite({ mode })
   const applyNote = () => {
     const note = popupNote.trim()
-    if (!popup || !note) return
-    const snippet = popup.text.length > 60 ? popup.text.slice(0, 57) + '…' : popup.text
-    dispatch({ type: 'ADD_COMMENT', comment: { snippet, note } })
-    setPopup(null)
-    setPopupNote('')
-    window.getSelection()?.removeAllRanges()
+    if (note) runRewrite({ instruction: note })
   }
 
   const pickAdd = (sug) => {
     dispatch({ type: 'ADD_INSERT', insert: { after: sug.after, text: sug.text } })
     setAddOpen(false)
     flash(sug.text)
+  }
+
+  // Slider commit → in AI mode, ask the model to rewrite the letter at the new
+  // tone/length. In mock mode the change is already reflected synchronously.
+  const retune = async (nextTone, nextVerb) => {
+    if (!aiMode) return
+    dispatch({ type: 'SET_LETTER_LOADING', value: true })
+    const base = state.letterParas || strat.paragraphs
+    const next = await retuneLetter({ scenarioId: state.scenarioId, strategy: strat, paras: base, tone: nextTone, verbosity: nextVerb })
+    dispatch({ type: 'SET_LETTER', paras: next })
   }
 
   return (
@@ -99,12 +119,12 @@ export default function Composer() {
         <div ref={letterRef} onMouseUp={onLetterUp} style={{ position: 'relative', background: 'var(--surface-letter)', border: '1px solid rgba(11,22,38,0.07)', borderRadius: 8, boxShadow: 'var(--shadow-letter)', padding: '44px 48px 36px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '46px 1fr', gap: '8px 14px', alignItems: 'baseline', borderBottom: '1px solid var(--border-hair)', paddingBottom: 18, marginBottom: 26, fontFamily: 'var(--font-sans)', fontSize: 13 }}>
             <span style={{ color: 'var(--text-faint)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>To</span>
-            <span style={{ color: 'var(--ink-800)', fontWeight: 500 }}>{scenario.recipient}</span>
+            <span style={{ color: 'var(--ink-800)', fontWeight: 500 }}>{recipientLabel(scenario)}</span>
             <span style={{ color: 'var(--text-faint)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Re</span>
             <span style={{ color: 'var(--ink-800)', fontWeight: 500 }}>{strat.subject}</span>
           </div>
 
-          <div style={{ userSelect: 'text', cursor: 'text' }}>
+          <div style={{ userSelect: 'text', cursor: 'text', opacity: state.letterLoading ? 0.5 : 1, transition: 'opacity .25s var(--ease-quiet)' }}>
             {paras.map((text, i) => (
               <p key={i} style={{ margin: '0 0 18px', fontFamily: 'var(--font-serif)', fontSize: 18, lineHeight: 1.72, color: 'var(--ink-700)', background: i === flashIdx ? 'rgba(224,174,69,0.28)' : 'transparent', borderRadius: 3, transition: 'background .8s var(--ease-quiet)', padding: i === flashIdx ? '2px 4px' : 0 }}>
                 {text}
@@ -116,9 +136,16 @@ export default function Composer() {
             Select any line to revise it · or add a passage below.
           </p>
 
+          {(state.letterLoading || busy) && (
+            <div style={{ position: 'absolute', top: 14, right: 16, display: 'inline-flex', alignItems: 'center', gap: 7, padding: '5px 11px', borderRadius: 999, background: 'var(--ink-800)', color: 'var(--cream-0)', fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 11, letterSpacing: '0.04em' }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--peri-300)', animation: 'adv-spin 1s linear infinite' }} />
+              {busy ? 'Revising…' : 'Retuning…'}
+            </div>
+          )}
+
           {popup && (
             <div style={{ position: 'absolute', left: popup.x, top: popup.y, transform: 'translateX(-50%)', zIndex: 40, width: 300 }}>
-              <div style={{ background: 'var(--ink-800)', borderRadius: 10, boxShadow: 'var(--shadow-lg)', padding: 14, color: 'var(--cream-0)' }}>
+              <div style={{ background: 'var(--ink-800)', borderRadius: 10, boxShadow: 'var(--shadow-lg)', padding: 14, color: 'var(--cream-0)', opacity: busy ? 0.7 : 1 }}>
                 <div style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 13, lineHeight: 1.4, color: 'var(--peri-200)', marginBottom: 10 }}>
                   “{popup.text.length > 70 ? popup.text.slice(0, 67) + '…' : popup.text}”
                 </div>
@@ -127,8 +154,9 @@ export default function Composer() {
                     <button
                       key={c.mode}
                       onClick={() => applyQuick(c.mode)}
-                      style={{ border: '1px solid var(--border-night)', background: 'rgba(255,255,255,0.06)', color: 'var(--cream-0)', borderRadius: 999, padding: '6px 12px', fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}
-                      onMouseOver={(e) => { e.currentTarget.style.background = 'var(--royal-600)'; e.currentTarget.style.borderColor = 'var(--royal-600)' }}
+                      disabled={busy}
+                      style={{ border: '1px solid var(--border-night)', background: 'rgba(255,255,255,0.06)', color: 'var(--cream-0)', borderRadius: 999, padding: '6px 12px', fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 12, cursor: busy ? 'default' : 'pointer' }}
+                      onMouseOver={(e) => { if (busy) return; e.currentTarget.style.background = 'var(--royal-600)'; e.currentTarget.style.borderColor = 'var(--royal-600)' }}
                       onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.borderColor = 'var(--border-night)' }}
                     >
                       {c.label}
@@ -141,10 +169,11 @@ export default function Composer() {
                     onChange={(e) => setPopupNote(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && applyNote()}
                     placeholder="Describe a change…"
+                    disabled={busy}
                     style={{ flex: 1, minWidth: 0, background: 'rgba(255,255,255,0.08)', border: '1px solid var(--border-night)', borderRadius: 7, padding: '8px 10px', fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--cream-0)', outline: 'none' }}
                   />
-                  <button onClick={applyNote} style={{ border: 'none', background: 'var(--peri-300)', color: 'var(--ink-800)', borderRadius: 7, padding: '8px 13px', fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
-                    Note
+                  <button onClick={applyNote} disabled={busy} style={{ border: 'none', background: 'var(--peri-300)', color: 'var(--ink-800)', borderRadius: 7, padding: '8px 13px', fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 12, cursor: busy ? 'default' : 'pointer' }}>
+                    {busy ? '…' : 'Rewrite'}
                   </button>
                 </div>
               </div>
@@ -167,7 +196,7 @@ export default function Composer() {
               <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 10.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
                 Where would you like to add something?
               </div>
-              {strat.add.map((sug, i) => (
+              {(strat.add || []).map((sug, i) => (
                 <button key={i} onClick={() => pickAdd(sug)} className="bw-add-sug" style={{ textAlign: 'left', background: 'var(--cream-0)', border: '1px solid var(--border-hair)', borderRadius: 10, padding: '14px 16px', cursor: 'pointer', transition: 'border-color .2s var(--ease-quiet), box-shadow .2s var(--ease-quiet)' }}>
                   <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--royal-600)', marginBottom: 5 }}>{sug.label}</div>
                   <div style={{ fontFamily: 'var(--font-serif)', fontSize: 15.5, lineHeight: 1.45, color: 'var(--ink-700)' }}>“{sug.text}”</div>
@@ -183,8 +212,8 @@ export default function Composer() {
         {/* tune */}
         <div style={{ background: 'var(--cream-0)', border: '1px solid var(--border-hair)', borderRadius: 14, boxShadow: 'var(--shadow-sm)', padding: 22 }}>
           <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-800)', marginBottom: 20 }}>Tune the message</div>
-          <SliderRow label="Tone" valueLabel={toneLbl} ends={['Soft', 'Strong']} value={state.tone} onChange={(v) => dispatch({ type: 'SET_TONE', value: v })} marginBottom={22} />
-          <SliderRow label="Length" valueLabel={verbLbl} ends={['Succinct', 'Detailed']} value={state.verbosity} onChange={(v) => dispatch({ type: 'SET_VERB', value: v })} />
+          <SliderRow label="Tone" valueLabel={toneLbl} ends={['Soft', 'Strong']} value={state.tone} onChange={(v) => dispatch({ type: 'SET_TONE', value: v })} onCommit={(v) => retune(v, state.verbosity)} marginBottom={22} />
+          <SliderRow label="Length" valueLabel={verbLbl} ends={['Succinct', 'Detailed']} value={state.verbosity} onChange={(v) => dispatch({ type: 'SET_VERB', value: v })} onCommit={(v) => retune(state.tone, v)} />
         </div>
 
         {/* why + meters */}
@@ -202,7 +231,7 @@ export default function Composer() {
         {/* notes */}
         {state.comments.length > 0 && (
           <div style={{ background: 'var(--cream-0)', border: '1px solid var(--border-hair)', borderRadius: 14, boxShadow: 'var(--shadow-sm)', padding: 22 }}>
-            <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-800)', marginBottom: 14 }}>Your notes</div>
+            <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-800)', marginBottom: 14 }}>Your edits</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {state.comments.map((cm, i) => (
                 <div key={i} style={{ borderLeft: '2px solid var(--peri-400)', paddingLeft: 12 }}>
@@ -222,14 +251,25 @@ export default function Composer() {
   )
 }
 
-function SliderRow({ label, valueLabel, ends, value, onChange, marginBottom = 0 }) {
+function SliderRow({ label, valueLabel, ends, value, onChange, onCommit, marginBottom = 0 }) {
+  const commit = (e) => onCommit && onCommit(+e.target.value)
   return (
     <div style={{ marginBottom }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
         <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>{label}</span>
         <span style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 16, color: 'var(--royal-700)' }}>{valueLabel}</span>
       </div>
-      <input type="range" className="adv-range" min="0" max="100" value={value} onChange={(e) => onChange(+e.target.value)} />
+      <input
+        type="range"
+        className="adv-range"
+        min="0"
+        max="100"
+        value={value}
+        onChange={(e) => onChange(+e.target.value)}
+        onMouseUp={commit}
+        onTouchEnd={commit}
+        onKeyUp={commit}
+      />
       <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--text-faint)', marginTop: 6 }}>
         <span>{ends[0]}</span>
         <span>{ends[1]}</span>

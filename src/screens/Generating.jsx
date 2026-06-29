@@ -1,20 +1,28 @@
 import React, { useEffect } from 'react'
 import DS from '../ds'
 import { useStore } from '../store'
-import { DATA } from '../data/advocate'
+import { generateStrategies } from '../lib/advisor'
 
 export default function Generating() {
   const { state, dispatch } = useStore()
   const { Sparkle } = DS
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      const recIdx = DATA[state.scenarioId].strategies.findIndex((x) => x.recommended)
+    let alive = true
+    dispatch({ type: 'SET_GEN_LOADING', value: true })
+    // Real AI generation (falls back to the mock internally if the key is
+    // missing or the call fails), tailored to the clarify-step answers.
+    generateStrategies(state.scenarioId, state.answers).then((strategies) => {
+      if (!alive) return
+      dispatch({ type: 'SET_STRATEGIES', strategies })
+      const recIdx = strategies.findIndex((x) => x.recommended)
       dispatch({ type: 'SET_MAP_SEL', idx: recIdx < 0 ? 1 : recIdx })
       dispatch({ type: 'SET_DRAFT_MODE', mode: 'list' })
       dispatch({ type: 'GOTO', screen: 'drafts' })
-    }, 1600)
-    return () => clearTimeout(t)
+    })
+    return () => {
+      alive = false
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

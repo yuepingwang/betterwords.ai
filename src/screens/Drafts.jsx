@@ -1,6 +1,6 @@
 import React from 'react'
 import { useStore } from '../store'
-import { badgeColors, stanceLabel, lvl } from '../lib/advisor'
+import { badgeColors, stanceLabel, lvl, initialParas } from '../lib/advisor'
 
 const BADGE_BASE = {
   fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 10, letterSpacing: '0.12em',
@@ -57,18 +57,25 @@ const SEGS = [
 ]
 
 export default function Drafts() {
-  const { state, dispatch, scenario } = useStore()
-  const strategies = scenario.strategies
+  const { state, dispatch, scenario, strategies } = useStore()
   const mode = state.draftMode
 
-  const open = (idx) => dispatch({ type: 'OPEN_COMPOSER', idx, toneDefault: strategies[idx].toneDefault })
+  const open = (idx) => {
+    const strat = strategies[idx]
+    dispatch({
+      type: 'OPEN_COMPOSER',
+      idx,
+      toneDefault: strat.toneDefault,
+      paras: initialParas(strat),
+    })
+  }
 
   return (
     <main style={{ maxWidth: 1160, margin: '0 auto', padding: '44px 32px 90px' }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', marginBottom: 28 }}>
         <div>
           <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--royal-600)', marginBottom: 8 }}>
-            {scenario.draftContext}
+            {scenario.draftContext.split('·')[0].trim()}
           </div>
           <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 44, lineHeight: 1.02, color: 'var(--ink-800)', margin: 0 }}>
             A few ways to say it
