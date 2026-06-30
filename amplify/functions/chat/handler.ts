@@ -15,21 +15,17 @@
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini'
 const KEY = process.env.OPENAI_API_KEY
 
-const cors: Record<string, string> = {
-  'access-control-allow-origin': '*',
-  'access-control-allow-headers': 'content-type',
-  'access-control-allow-methods': 'GET,POST,OPTIONS',
-}
-
+// CORS is handled entirely by the Function URL's CORS config (see
+// ../../backend.ts). The handler must NOT also emit Access-Control-* headers,
+// or responses carry duplicate Access-Control-Allow-Origin and browsers
+// reject them.
 function reply(statusCode: number, obj: unknown) {
-  return { statusCode, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify(obj) }
+  return { statusCode, headers: { 'content-type': 'application/json' }, body: JSON.stringify(obj) }
 }
 
 export const handler = async (event: any) => {
   const method = event?.requestContext?.http?.method || 'GET'
   const path = event?.rawPath || event?.requestContext?.http?.path || '/'
-
-  if (method === 'OPTIONS') return { statusCode: 204, headers: cors, body: '' }
 
   // Health check — lets the UI show "AI on" vs. the deterministic fallback.
   if (path.endsWith('/api/health')) {
