@@ -23,11 +23,17 @@ export const verbLabel = (v) => (v >= 50 ? 'Detailed' : 'Succinct')
 // Transport — the only place that talks to the proxy.
 // ==================================================================
 
+// Where the AI relay lives. Empty in dev → relative /api/* → the Vite proxy
+// forwards to the local Express server (server/index.js). In the deployed
+// app, the Amplify build injects the Lambda Function URL via VITE_API_BASE
+// (see amplify/backend.ts + amplify.yml).
+const API_BASE = (import.meta.env.VITE_API_BASE || '').replace(/\/+$/, '')
+
 let _healthPromise = null
 // Cached one-shot check: is a real key configured server-side?
 export function aiAvailable() {
   if (!_healthPromise) {
-    _healthPromise = fetch('/api/health')
+    _healthPromise = fetch(`${API_BASE}/api/health`)
       .then((r) => (r.ok ? r.json() : { ai: false }))
       .then((d) => Boolean(d.ai))
       .catch(() => false)
@@ -36,7 +42,7 @@ export function aiAvailable() {
 }
 
 async function chat(messages, { json = false } = {}) {
-  const res = await fetch('/api/chat', {
+  const res = await fetch(`${API_BASE}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ messages, json }),

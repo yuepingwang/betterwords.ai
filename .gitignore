@@ -3,4 +3,10 @@ dist
 .DS_Store
 *.log
 .idea/
+.env
 .env.local
+
+# Amplify Gen 2 generated artifacts
+.amplify
+amplify_outputs*
+.npm
