@@ -70,7 +70,7 @@ export default function Landing({ onStart }) {
   useEffect(() => {
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
     if (reduce) return
-    timer.current = setInterval(() => setCard((c) => (c + 1) % HERO_CARDS.length), 5400)
+    timer.current = setInterval(() => setCard((c) => (c + 1) % HERO_CARDS.length), 4400)
     return () => clearInterval(timer.current)
   }, [])
 
@@ -78,7 +78,7 @@ export default function Landing({ onStart }) {
     if (i === card) return
     clearInterval(timer.current)
     setCard(i)
-    timer.current = setInterval(() => setCard((c) => (c + 1) % HERO_CARDS.length), 5400)
+    timer.current = setInterval(() => setCard((c) => (c + 1) % HERO_CARDS.length), 4400)
   }
 
   const scrollToHow = () => {
@@ -101,7 +101,6 @@ export default function Landing({ onStart }) {
         <div className="bw-lnav-actions" style={{ display: 'flex', alignItems: 'center', gap: 30 }}>
           <a className="lp-link" style={navLink} onClick={scrollToHow}>How it works</a>
           <a className="lp-link" style={navLink} onClick={() => onStart(null)}>Situations</a>
-          <a className="lp-link" style={navLink} onClick={() => onStart(null)}>Privacy</a>
           <a className="lp-cta" style={{ whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 14, color: 'var(--cream-0)', background: 'var(--royal-600)', padding: '10px 20px', borderRadius: 999, cursor: 'pointer' }} onClick={() => onStart(null)}>Start writing</a>
         </div>
       </nav>
@@ -296,7 +295,6 @@ export default function Landing({ onStart }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
             <a className="lp-link" style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 13.5 }} onClick={scrollToHow}>How it works</a>
             <a className="lp-link" style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 13.5 }} onClick={() => onStart(null)}>Situations</a>
-            <a className="lp-link" style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 13.5 }} onClick={() => onStart(null)}>Privacy</a>
           </div>
           <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--text-faint)' }}>© 2026 BetterWords</div>
         </div>

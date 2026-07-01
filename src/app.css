@@ -310,9 +310,18 @@ button {
   .bw-mc-copy > div:last-child > div {
     justify-content: center !important;
   }
+  /* Center the hero copy (kicker, headline, paragraph) once it stacks
+     into one column on small screens. */
+  .bw-hero-copy {
+    text-align: center !important;
+  }
   /* Loosen the hero copy's vertical rhythm so the headline, paragraph,
-     buttons and tag row breathe on small screens. */
+     buttons and tag row breathe on small screens. Stack the star sign
+     above the "Written with care…" kicker and center it. */
   .bw-hero-copy > div:first-child {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 12px !important;
     margin-bottom: 28px !important;
   }
   .bw-hero-copy > .bw-hero-h1 {
@@ -320,6 +329,8 @@ button {
   }
   .bw-hero-copy > p {
     margin-bottom: 44px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
   }
   /* Hero "Boundaries ✦ Disputes ✦ Speaking up" row. */
   .bw-hero-tags {
