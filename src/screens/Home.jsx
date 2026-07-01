@@ -6,9 +6,9 @@ export default function Home() {
   const { dispatch } = useStore()
 
   return (
-    <main style={{ maxWidth: 1180, margin: '0 auto', padding: '72px 40px 96px' }}>
+    <main className="bw-sec-pad" style={{ maxWidth: 1180, margin: '0 auto', padding: '72px 40px 96px' }}>
       <div style={{ textAlign: 'center', maxWidth: 680, margin: '0 auto 56px' }}>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 46, lineHeight: 1.04, letterSpacing: '-0.015em', color: 'var(--ink-800)', margin: '0 0 20px' }}>
+        <h1 className="bw-page-h1" style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 46, lineHeight: 1.04, letterSpacing: '-0.015em', color: 'var(--ink-800)', margin: '0 0 20px' }}>
           Where does it hurt?
         </h1>
         <p style={{ fontFamily: 'var(--font-serif)', fontSize: 22, lineHeight: 1.5, color: 'var(--text-muted)', margin: 0 }}>
@@ -16,7 +16,7 @@ export default function Home() {
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
+      <div className="bw-grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
         {SCENARIO_IDS.map((id) => {
           const d = DATA[id]
           return (

@@ -26,9 +26,9 @@ export default function Clarify() {
   }
 
   return (
-    <main style={{ maxWidth: 1060, margin: '0 auto', padding: '44px 32px 80px', display: 'grid', gridTemplateColumns: '280px 1fr', gap: 48, alignItems: 'start' }}>
+    <main className="bw-clarify" style={{ maxWidth: 1060, margin: '0 auto', padding: '44px 32px 80px', display: 'grid', gridTemplateColumns: '280px 1fr', gap: 48, alignItems: 'start' }}>
       {/* rail */}
-      <aside style={{ position: 'sticky', top: 96 }}>
+      <aside className="bw-clarify-rail" style={{ position: 'sticky', top: 96 }}>
         <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--royal-600)', marginBottom: 6 }}>
           {scenario.kicker}
         </div>
@@ -79,7 +79,7 @@ export default function Clarify() {
           </span>
         </div>
 
-        <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 40, lineHeight: 1.08, color: 'var(--ink-800)', margin: '0 0 10px' }}>
+        <h1 className="bw-q-h1" style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 40, lineHeight: 1.08, color: 'var(--ink-800)', margin: '0 0 10px' }}>
           {q.title}
         </h1>
         {q.helper && (

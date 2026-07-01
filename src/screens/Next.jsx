@@ -18,16 +18,16 @@ export default function Next() {
   const { Button } = DS
 
   return (
-    <main style={{ maxWidth: 920, margin: '0 auto', padding: '56px 32px 90px' }}>
+    <main className="bw-sec-pad" style={{ maxWidth: 920, margin: '0 auto', padding: '56px 32px 90px' }}>
       <div style={{ textAlign: 'center', marginBottom: 44 }}>
         <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--royal-600)', marginBottom: 12 }}>After you send</div>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 46, lineHeight: 1.03, color: 'var(--ink-800)', margin: '0 0 14px' }}>We’ll be here for what comes next.</h1>
+        <h1 className="bw-page-h1" style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 46, lineHeight: 1.03, color: 'var(--ink-800)', margin: '0 0 14px' }}>We’ll be here for what comes next.</h1>
         <p style={{ fontFamily: 'var(--font-serif)', fontSize: 19, color: 'var(--text-muted)', margin: '0 auto', maxWidth: 520 }}>
           A conversation rarely ends with one message. Here’s how BetterWords will help once you’ve sent yours.
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 22 }}>
+      <div className="bw-next-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 22 }}>
         {CARDS.map((c) => (
           <div key={c.title} style={{ position: 'relative', background: 'var(--cream-0)', border: '1px solid var(--border-hair)', borderRadius: 14, boxShadow: 'var(--shadow-sm)', padding: '30px 28px' }}>
             <span style={{ position: 'absolute', top: 18, right: 18, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '4px 10px', borderRadius: 999, background: 'var(--fog-1)', color: 'var(--text-muted)' }}>Coming soon</span>

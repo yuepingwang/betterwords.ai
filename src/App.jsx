@@ -25,6 +25,7 @@ function TopBar() {
   const showStartBtn = state.screen === 'next'
   return (
     <header
+      className="bw-topbar"
       style={{
         position: 'sticky',
         top: 0,

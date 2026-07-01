@@ -104,7 +104,7 @@ export default function Composer() {
   }
 
   return (
-    <main style={{ maxWidth: 1200, margin: '0 auto', padding: '36px 32px 80px', display: 'grid', gridTemplateColumns: '1fr 340px', gap: 36, alignItems: 'start' }}>
+    <main className="bw-composer bw-sec-pad" style={{ maxWidth: 1200, margin: '0 auto', padding: '36px 32px 80px', display: 'grid', gridTemplateColumns: '1fr 340px', gap: 36, alignItems: 'start' }}>
       {/* letter */}
       <section>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -116,7 +116,7 @@ export default function Composer() {
           </span>
         </div>
 
-        <div ref={letterRef} onMouseUp={onLetterUp} style={{ position: 'relative', background: 'var(--surface-letter)', border: '1px solid rgba(11,22,38,0.07)', borderRadius: 8, boxShadow: 'var(--shadow-letter)', padding: '44px 48px 36px' }}>
+        <div ref={letterRef} onMouseUp={onLetterUp} className="bw-letter" style={{ position: 'relative', background: 'var(--surface-letter)', border: '1px solid rgba(11,22,38,0.07)', borderRadius: 8, boxShadow: 'var(--shadow-letter)', padding: '44px 48px 36px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '46px 1fr', gap: '8px 14px', alignItems: 'baseline', borderBottom: '1px solid var(--border-hair)', paddingBottom: 18, marginBottom: 26, fontFamily: 'var(--font-sans)', fontSize: 13 }}>
             <span style={{ color: 'var(--text-faint)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>To</span>
             <span style={{ color: 'var(--ink-800)', fontWeight: 500 }}>{recipientLabel(scenario)}</span>
@@ -208,7 +208,7 @@ export default function Composer() {
       </section>
 
       {/* right rail */}
-      <aside style={{ position: 'sticky', top: 96, display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <aside className="bw-composer-rail" style={{ position: 'sticky', top: 96, display: 'flex', flexDirection: 'column', gap: 18 }}>
         {/* tune */}
         <div style={{ background: 'var(--cream-0)', border: '1px solid var(--border-hair)', borderRadius: 14, boxShadow: 'var(--shadow-sm)', padding: 22 }}>
           <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-800)', marginBottom: 20 }}>Tune the message</div>

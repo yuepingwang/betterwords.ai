@@ -14,6 +14,7 @@ html,
 body {
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
 }
 
 body {
@@ -179,5 +180,181 @@ button {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* ============================================================
+   Responsive / mobile
+   The screens are authored with inline styles (fixed multi-column
+   grids, large type, wide gutters). These class hooks let the
+   media queries below collapse those layouts on small screens.
+   Every rule lives inside a max-width media query, so the desktop
+   layout is untouched; `!important` is only needed to win over the
+   inline styles within the breakpoint.
+   ============================================================ */
+
+/* Collapse the 2-up marketing/app layouts (hero, composer preview,
+   editor, risk map, "what's next"). */
+@media (max-width: 960px) {
+  .bw-hero {
+    grid-template-columns: 1fr !important;
+    padding: 64px 24px 84px !important;
+    gap: 48px !important;
+  }
+  /* Cap the animated letter deck at its desktop width (~500px, the
+     hero's right column) and center it, so it never stretches wider
+     than in the landscape view. aspect-ratio keeps the box in the same
+     proportion as desktop (500x446) as it scales down on phones. */
+  .bw-hero-deck {
+    width: 100% !important;
+    max-width: 500px !important;
+    height: auto !important;
+    aspect-ratio: 500 / 446 !important;
+    margin: 8px auto 0 !important;
+  }
+  .bw-hero-h1 {
+    font-size: 46px !important;
+  }
+  .bw-preview-grid,
+  .bw-composer,
+  .bw-map-grid,
+  .bw-next-grid {
+    grid-template-columns: 1fr !important;
+  }
+  /* Right rails stop sticking once they stack under the main column. */
+  .bw-composer-rail,
+  .bw-clarify-rail {
+    position: static !important;
+  }
+}
+
+/* Phone / small-tablet: single column everywhere, tighter gutters,
+   smaller display type. */
+@media (max-width: 768px) {
+  .bw-grid-3 {
+    grid-template-columns: 1fr !important;
+  }
+  .bw-clarify {
+    grid-template-columns: 1fr !important;
+    gap: 28px !important;
+    padding: 28px 22px 64px !important;
+  }
+  /* Stacked "ranked" draft cards: drop the side divider, flow the
+     meters below the copy. */
+  .bw-list-card {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+  .bw-list-side {
+    border-left: none !important;
+    padding-left: 0 !important;
+    border-top: 1px solid var(--border-hair) !important;
+    padding-top: 18px !important;
+  }
+
+  /* Section gutters + vertical rhythm. Generous top/bottom padding so
+     the stacked sections breathe on small screens. */
+  .bw-sec {
+    padding-top: 92px !important;
+    padding-bottom: 92px !important;
+    padding-left: 22px !important;
+    padding-right: 22px !important;
+  }
+  .bw-sec-pad {
+    padding-left: 22px !important;
+    padding-right: 22px !important;
+  }
+  .bw-topbar {
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+  }
+  .bw-letter {
+    padding: 30px 22px 26px !important;
+  }
+
+  /* Display type scales down so headlines don't overflow. */
+  .bw-hero-h1 {
+    font-size: 40px !important;
+  }
+  .bw-sec-h2 {
+    font-size: 32px !important;
+  }
+  .bw-cta-h2 {
+    font-size: 38px !important;
+  }
+  .bw-q-h1 {
+    font-size: 30px !important;
+  }
+  .bw-page-h1 {
+    font-size: 34px !important;
+  }
+
+  /* Center the copy in the "How it works", "Where it helps" and
+     "The composer" sections once they stack into one column. */
+  .bw-mc-steps > div {
+    text-align: center !important;
+  }
+  .bw-mc-steps > div > div:first-child {
+    justify-content: center !important;
+  }
+  .bw-mc-steps .rule-dotted {
+    display: none !important;
+  }
+  .bw-mc-head {
+    text-align: center !important;
+    justify-content: center !important;
+  }
+  .bw-mc-copy {
+    text-align: center !important;
+  }
+  .bw-mc-copy > div:last-child > div {
+    justify-content: center !important;
+  }
+  /* Loosen the hero copy's vertical rhythm so the headline, paragraph,
+     buttons and tag row breathe on small screens. */
+  .bw-hero-copy > div:first-child {
+    margin-bottom: 28px !important;
+  }
+  .bw-hero-copy > .bw-hero-h1 {
+    margin-bottom: 28px !important;
+  }
+  .bw-hero-copy > p {
+    margin-bottom: 44px !important;
+  }
+  /* Hero "Boundaries ✦ Disputes ✦ Speaking up" row. */
+  .bw-hero-tags {
+    justify-content: center !important;
+    margin-top: 48px !important;
+  }
+  /* Hero CTA row ("Compose a message" / "See how it works") — stack
+     the secondary link under the primary button, centered. */
+  .bw-hero-cta {
+    flex-direction: column !important;
+    justify-content: center !important;
+    gap: 20px !important;
+  }
+
+  /* Landing top nav: hide the text links (keep the CTA), tighten it. */
+  .bw-lnav {
+    padding: 12px 18px !important;
+  }
+  .bw-lnav-actions {
+    gap: 14px !important;
+  }
+  .bw-lnav-actions .lp-link {
+    display: none !important;
+  }
+}
+
+/* Very small phones: trim the largest headline further. */
+@media (max-width: 420px) {
+  .bw-hero-h1 {
+    font-size: 34px !important;
+  }
+  .bw-cta-h2 {
+    font-size: 32px !important;
+  }
+  .bw-sec-h2 {
+    font-size: 28px !important;
   }
 }

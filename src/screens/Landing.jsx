@@ -93,12 +93,12 @@ export default function Landing({ onStart }) {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--cream-1)', fontFamily: 'var(--font-sans)' }}>
       {/* nav */}
-      <nav style={{ position: 'sticky', top: 0, zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, padding: '18px 40px', borderBottom: '1px solid var(--border-hair)', background: 'rgba(248,244,233,0.9)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
+      <nav className="bw-lnav" style={{ position: 'sticky', top: 0, zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, padding: '18px 40px', borderBottom: '1px solid var(--border-hair)', background: 'rgba(248,244,233,0.9)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, color: 'var(--ink-800)', cursor: 'pointer' }} onClick={() => onStart(null)}>
           <BrandMark size={34} />
           <Wordmark size={22} />
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 30 }}>
+        <div className="bw-lnav-actions" style={{ display: 'flex', alignItems: 'center', gap: 30 }}>
           <a className="lp-link" style={navLink} onClick={scrollToHow}>How it works</a>
           <a className="lp-link" style={navLink} onClick={() => onStart(null)}>Situations</a>
           <a className="lp-link" style={navLink} onClick={() => onStart(null)}>Privacy</a>
@@ -107,27 +107,27 @@ export default function Landing({ onStart }) {
       </nav>
 
       {/* hero */}
-      <header style={{ display: 'grid', gridTemplateColumns: '1.05fr 0.95fr', gap: 48, alignItems: 'center', padding: '96px 40px 104px', maxWidth: 1180, margin: '0 auto' }}>
-        <div>
+      <header className="bw-hero" style={{ display: 'grid', gridTemplateColumns: '1.05fr 0.95fr', gap: 48, alignItems: 'center', padding: '96px 40px 104px', maxWidth: 1180, margin: '0 auto' }}>
+        <div className="bw-hero-copy">
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 9, color: 'var(--royal-600)', fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 12, letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: 22 }}>
             <Spark size={15} />
             Written with care, sent with confidence
           </div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 66, lineHeight: 1.0, letterSpacing: '-0.02em', color: 'var(--ink-800)', margin: '0 0 22px' }}>Say the hard thing — well.</h1>
+          <h1 className="bw-hero-h1" style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 66, lineHeight: 1.0, letterSpacing: '-0.02em', color: 'var(--ink-800)', margin: '0 0 22px' }}>Say the hard thing — well.</h1>
           <p style={{ fontFamily: 'var(--font-serif)', fontSize: 21, lineHeight: 1.5, color: 'var(--text-muted)', margin: '0 0 32px', maxWidth: 480 }}>
             BetterWords helps you write the messages that matter most — setting a boundary, disputing a charge, speaking up — and shows you how each way of saying it is likely to land.
           </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          <div className="bw-hero-cta" style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <a className="lp-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 9, whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 16, color: 'var(--cream-0)', background: 'var(--royal-600)', padding: '15px 28px', borderRadius: 999, boxShadow: 'var(--shadow-md)', cursor: 'pointer' }} onClick={() => onStart(null)}>Compose a message →</a>
             <a className="lp-link" style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 15, color: 'var(--ink-700)', cursor: 'pointer' }} onClick={scrollToHow}>See how it works</a>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 40, fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-faint)' }}>
+          <div className="bw-hero-tags" style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 40, fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-faint)' }}>
             <span>Boundaries</span><span style={{ color: 'var(--peri-400)' }}>✦</span><span>Disputes</span><span style={{ color: 'var(--peri-400)' }}>✦</span><span>Speaking up</span>
           </div>
         </div>
 
         {/* shuffling letter deck */}
-        <div style={{ position: 'relative', perspective: '1700px', height: 446, marginTop: 48 }}>
+        <div className="bw-hero-deck" style={{ position: 'relative', perspective: '1700px', height: 446, marginTop: 48 }}>
           {HERO_CARDS.map((cardData, i) => {
             const depth = (i - card + n) % n
             const offX = [0, -20, 16][depth]
@@ -179,13 +179,13 @@ export default function Landing({ onStart }) {
       </header>
 
       {/* how it works */}
-      <section ref={howRef} style={{ background: 'var(--cream-0)', borderTop: '1px solid var(--border-hair)', borderBottom: '1px solid var(--border-hair)', padding: '124px 40px' }}>
+      <section ref={howRef} className="bw-sec" style={{ background: 'var(--cream-0)', borderTop: '1px solid var(--border-hair)', borderBottom: '1px solid var(--border-hair)', padding: '124px 40px' }}>
         <div style={{ maxWidth: 1180, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 52 }}>
             <div style={sectionKicker}>How it works</div>
-            <h2 style={sectionH2}>Three steps from stumped to sent.</h2>
+            <h2 className="bw-sec-h2" style={sectionH2}>Three steps from stumped to sent.</h2>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 30 }}>
+          <div className="bw-grid-3 bw-mc-steps" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 30 }}>
             {STEPS.map((st, i) => {
               const col = STEP_COLORS[i]
               return (
@@ -212,15 +212,15 @@ export default function Landing({ onStart }) {
       </section>
 
       {/* scenarios */}
-      <section style={{ padding: '124px 40px', maxWidth: 1180, margin: '0 auto' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', marginBottom: 40 }}>
+      <section className="bw-sec" style={{ padding: '124px 40px', maxWidth: 1180, margin: '0 auto' }}>
+        <div className="bw-mc-head" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', marginBottom: 40 }}>
           <div>
             <div style={sectionKicker}>Where it helps</div>
-            <h2 style={sectionH2}>For the messages you rewrite five times.</h2>
+            <h2 className="bw-sec-h2" style={sectionH2}>For the messages you rewrite five times.</h2>
           </div>
           <p style={{ fontFamily: 'var(--font-serif)', fontSize: 18, lineHeight: 1.5, color: 'var(--text-muted)', margin: 0, maxWidth: 320 }}>The high-stakes notes where tone is everything and the cost of getting it wrong is real.</p>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
+        <div className="bw-grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
           {SCENARIOS.map((sc) => (
             <div key={sc.key} className="lp-scenario" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '42px 30px', border: '1px solid var(--border-hair)', borderRadius: 14, boxShadow: 'var(--shadow-sm)', cursor: 'pointer', backgroundColor: 'var(--cream-0)' }} onClick={() => onStart(sc.key)}>
               <figure style={{ margin: '0 0 28px', width: 88, filter: 'drop-shadow(0 3px 8px rgba(21,18,62,0.18))' }}>
@@ -244,11 +244,11 @@ export default function Landing({ onStart }) {
       </section>
 
       {/* composer preview */}
-      <section style={{ background: 'var(--cream-0)', borderTop: '1px solid var(--border-hair)', padding: '124px 40px' }}>
-        <div style={{ maxWidth: 1180, margin: '0 auto', display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: 48, alignItems: 'center' }}>
-          <div>
+      <section className="bw-sec" style={{ background: 'var(--cream-0)', borderTop: '1px solid var(--border-hair)', padding: '124px 40px' }}>
+        <div className="bw-preview-grid" style={{ maxWidth: 1180, margin: '0 auto', display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: 48, alignItems: 'center' }}>
+          <div className="bw-mc-copy">
             <div style={{ ...sectionKicker, marginBottom: 14 }}>The composer</div>
-            <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 44, lineHeight: 1.05, letterSpacing: '-0.015em', color: 'var(--ink-800)', margin: '0 0 18px' }}>Tune every word until it sounds like you — at your best.</h2>
+            <h2 className="bw-sec-h2" style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 44, lineHeight: 1.05, letterSpacing: '-0.015em', color: 'var(--ink-800)', margin: '0 0 18px' }}>Tune every word until it sounds like you — at your best.</h2>
             <p style={{ fontFamily: 'var(--font-serif)', fontSize: 19, lineHeight: 1.5, color: 'var(--text-muted)', margin: '0 0 28px' }}>Slide from soft to strong, succinct to detailed, and watch the draft rewrite itself. Select any line to revise it. See the likely reaction and risk before you commit.</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {['Tone & length sliders that rewrite live', 'Select-to-revise: soften, sharpen, shorten any line', 'A read on how it’s likely to land'].map((t) => (
@@ -271,7 +271,7 @@ export default function Landing({ onStart }) {
       </section>
 
       {/* closing CTA (night) */}
-      <section className="bg-night-sky" style={{ padding: '112px 40px', textAlign: 'center' }}>
+      <section className="bg-night-sky bw-sec" style={{ padding: '112px 40px', textAlign: 'center' }}>
         <div style={{ maxWidth: 720, margin: '0 auto' }}>
           <div style={{ display: 'inline-flex', marginBottom: 24, color: 'var(--honey-500)' }}>
             <svg width="40" height="40" viewBox="0 0 100 100" style={{ animation: 'bw-twinkle 5s var(--ease-in-out) infinite' }}>
@@ -279,7 +279,7 @@ export default function Landing({ onStart }) {
               <path d="M50 22 L54 46 L78 50 L54 54 L50 78 L46 54 L22 50 L46 46 Z" fill="var(--ink-800)" opacity="0.4" />
             </svg>
           </div>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 56, lineHeight: 1.02, letterSpacing: '-0.02em', color: 'var(--cream-0)', margin: '0 0 18px' }}>The words you can’t find — found.</h2>
+          <h2 className="bw-cta-h2" style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 56, lineHeight: 1.02, letterSpacing: '-0.02em', color: 'var(--cream-0)', margin: '0 0 18px' }}>The words you can’t find — found.</h2>
           <p style={{ fontFamily: 'var(--font-serif)', fontSize: 21, lineHeight: 1.5, color: 'var(--peri-200)', margin: '0 auto 34px', maxWidth: 520 }}>Stop drafting the same hard message at midnight. Tell BetterWords the situation, and send something you’re proud of.</p>
           <a className="lp-cta" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 17, color: 'var(--ink-800)', background: 'var(--cream-0)', padding: '16px 32px', borderRadius: 999, boxShadow: 'var(--shadow-lg)', cursor: 'pointer' }} onClick={() => onStart(null)}>Compose a message →</a>
           <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--text-faint)', marginTop: 22, letterSpacing: '0.04em' }}>Rehearse your approach as many times as you need · Till it feels right</div>

@@ -71,13 +71,13 @@ export default function Drafts() {
   }
 
   return (
-    <main style={{ maxWidth: 1160, margin: '0 auto', padding: '44px 32px 90px' }}>
+    <main className="bw-sec-pad" style={{ maxWidth: 1160, margin: '0 auto', padding: '44px 32px 90px' }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', marginBottom: 28 }}>
         <div>
           <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--royal-600)', marginBottom: 8 }}>
             {scenario.draftContext.split('·')[0].trim()}
           </div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 44, lineHeight: 1.02, color: 'var(--ink-800)', margin: 0 }}>
+          <h1 className="bw-page-h1" style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 44, lineHeight: 1.02, color: 'var(--ink-800)', margin: 0 }}>
             A few ways to say it
           </h1>
         </div>
@@ -121,7 +121,7 @@ function ListMode({ strategies, onOpen }) {
             <p style={{ fontFamily: 'var(--font-serif)', fontSize: 17, lineHeight: 1.5, color: 'var(--text-body)', margin: '0 0 14px' }}>{st.why}</p>
             <ReactionBox text={st.reaction} />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, justifyContent: 'center', borderLeft: '1px solid var(--border-hair)', paddingLeft: 26 }}>
+          <div className="bw-list-side" style={{ display: 'flex', flexDirection: 'column', gap: 16, justifyContent: 'center', borderLeft: '1px solid var(--border-hair)', paddingLeft: 26 }}>
             <Bars st={st} />
             <button
               onClick={() => onOpen(idx)}
@@ -140,7 +140,7 @@ function ListMode({ strategies, onOpen }) {
 
 function CompareMode({ strategies, onOpen }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 18 }}>
+    <div className="bw-grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 18 }}>
       {strategies.map((st, idx) => (
         <div key={idx} style={{ display: 'flex', flexDirection: 'column', padding: '24px 22px', background: 'var(--cream-0)', border: '1px solid var(--border-hair)', borderRadius: 14, boxShadow: 'var(--shadow-sm)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
@@ -172,7 +172,7 @@ function MapMode({ strategies, onOpen }) {
   const { state, dispatch } = useStore()
   const sel = strategies[state.mapSelIdx] || null
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 32, alignItems: 'start' }}>
+    <div className="bw-map-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 32, alignItems: 'start' }}>
       <div style={{ background: 'var(--cream-0)', border: '1px solid var(--border-hair)', borderRadius: 14, boxShadow: 'var(--shadow-sm)', padding: '26px 30px 18px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-faint)', marginBottom: 10 }}>
           <span>↑ Higher risk</span>
