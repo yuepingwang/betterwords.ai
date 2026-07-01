@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { StoreProvider, useStore } from './store'
 import BrandMark, { Wordmark } from './components/BrandMark'
 import Landing from './screens/Landing'
@@ -77,7 +77,7 @@ function TopBar() {
 
 function Footer() {
   const { dispatch } = useStore()
-  const links = ['How it works', 'Situations', 'Privacy']
+  const links = ['How it works', 'Situations']
   return (
     <footer style={{ marginTop: 'auto', background: 'var(--cream-1)', padding: '36px 32px', borderTop: '1px solid var(--border-hair)' }}>
       <div style={{ maxWidth: 1180, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
@@ -100,6 +100,12 @@ function Footer() {
 
 function Router() {
   const { state, dispatch } = useStore()
+
+  // Scroll back to the top whenever the screen changes.
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [state.screen])
+
   if (state.screen === 'landing') {
     // The landing emits an optional scenario key: a scenario card sends the
     // user straight into that clarify flow; a generic CTA goes to home.

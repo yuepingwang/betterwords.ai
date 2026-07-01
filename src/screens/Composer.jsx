@@ -1,7 +1,10 @@
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import DS from '../ds'
 import { useStore } from '../store'
-import { composeLetter, rewritePassage, retuneLetter, recipientLabel, liveRisk, liveEff, lvl, bucket } from '../lib/advisor'
+import { composeLetter, rewritePassage, retuneLetter, recipientLabel, liveRisk, liveEff, lvl, bucket, badgeColors, stanceLabel } from '../lib/advisor'
+import Onboarding from '../components/Onboarding'
+
+const ONBOARD_KEY = 'bw_onboarded'
 
 const QUICK_CHIPS = [
   { mode: 'soften', label: 'Soften' },
@@ -10,10 +13,29 @@ const QUICK_CHIPS = [
   { mode: 'detail', label: 'Add detail' },
 ]
 
+// Tag styling shared with the Drafts screen ("A few ways to say it").
+const BADGE_BASE = {
+  fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 10, letterSpacing: '0.12em',
+  textTransform: 'uppercase', padding: '4px 10px', borderRadius: 999,
+}
+const REC_BADGE = {
+  display: 'inline-flex', alignItems: 'center', gap: 5, ...BADGE_BASE,
+  background: '#F3E6C2', color: 'var(--honey-600)',
+}
+
+function StanceBadge({ st }) {
+  const bc = badgeColors(st.level)
+  return <span style={{ ...BADGE_BASE, background: bc.bg, color: bc.fg }}>{stanceLabel(st.level)}</span>
+}
+
 export default function Composer() {
   const { state, dispatch, scenario, selected } = useStore()
   const { Button } = DS
   const letterRef = useRef(null)
+  const tuneRef = useRef(null)
+  const addRef = useRef(null)
+  const evalRef = useRef(null)
+  const popupRef = useRef(null)
   const flashTimer = useRef(null)
 
   const [popup, setPopup] = useState(null) // { x, y, text }
@@ -21,6 +43,39 @@ export default function Composer() {
   const [addOpen, setAddOpen] = useState(false)
   const [flashText, setFlashText] = useState(null)
   const [busy, setBusy] = useState(false) // an inline rewrite is in flight
+  const [tour, setTour] = useState(false)
+
+  // First-time users get a one-off walkthrough of the editor's four features.
+  useEffect(() => {
+    let seen = false
+    try { seen = localStorage.getItem(ONBOARD_KEY) === '1' } catch { /* private mode */ }
+    if (!seen) setTour(true)
+  }, [])
+
+  // Dismiss the reword popup when clicking anywhere outside it.
+  useEffect(() => {
+    if (!popup) return
+    const onDocDown = (e) => {
+      if (popupRef.current && !popupRef.current.contains(e.target)) {
+        setPopup(null)
+        setPopupNote('')
+      }
+    }
+    document.addEventListener('mousedown', onDocDown)
+    return () => document.removeEventListener('mousedown', onDocDown)
+  }, [popup])
+
+  const endTour = () => {
+    try { localStorage.setItem(ONBOARD_KEY, '1') } catch { /* private mode */ }
+    setTour(false)
+  }
+
+  const tourSteps = [
+    { getEl: () => tuneRef.current, title: 'Set the overall voice', body: 'Drag the Tone and Length sliders to reshape the entire draft at once — softer or stronger, shorter or more detailed.' },
+    { getEl: () => letterRef.current, title: 'Revise any line', body: 'Select a word, sentence, or passage in the letter. A popup appears where you can tell BetterWords exactly how to reword that section.' },
+    { getEl: () => addRef.current, title: 'Add your own section', body: 'Click “＋ Add a passage” to insert a new custom section anywhere in the draft.' },
+    { getEl: () => evalRef.current, title: 'Read the room before you send', body: 'Risk and Impact show the vibe of your message and the likely reaction — so you can decide whether it’s ready to send or needs another pass.' },
+  ]
 
   const strat = selected
   // When the strategy carries AI paragraphs, tone/length are retuned by the
@@ -107,13 +162,27 @@ export default function Composer() {
     <main className="bw-composer bw-sec-pad" style={{ maxWidth: 1200, margin: '0 auto', padding: '36px 32px 80px', display: 'grid', gridTemplateColumns: '1fr 340px', gap: 36, alignItems: 'start' }}>
       {/* letter */}
       <section>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div style={{ marginBottom: 14 }}>
           <button onClick={() => dispatch({ type: 'GOTO', screen: 'drafts' })} style={{ border: 'none', background: 'transparent', color: 'var(--text-muted)', fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 13, cursor: 'pointer', padding: '6px 4px' }}>
             ← All options
           </button>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 12, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-faint)' }}>
-            ✦ {strat.name}
-          </span>
+        </div>
+
+        {/* strategy title + tags (left) · tips button (right), matching the Drafts screen */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 23, lineHeight: 1.05, color: 'var(--ink-800)', margin: 0 }}>{strat.name}</h1>
+            <StanceBadge st={strat} />
+            {strat.recommended && <span style={REC_BADGE}>✦ Recommended</span>}
+          </div>
+          <button
+            onClick={() => setTour(true)}
+            title="Show editor tips"
+            aria-label="Show editor tips"
+            style={{ flexShrink: 0, width: 40, height: 40, borderRadius: '50%', border: '1px solid var(--border-hair)', background: 'var(--cream-0)', color: 'var(--royal-600)', boxShadow: 'var(--shadow-sm)', fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 17, cursor: 'pointer' }}
+          >
+            ?
+          </button>
         </div>
 
         <div ref={letterRef} onMouseUp={onLetterUp} className="bw-letter" style={{ position: 'relative', background: 'var(--surface-letter)', border: '1px solid rgba(11,22,38,0.07)', borderRadius: 8, boxShadow: 'var(--shadow-letter)', padding: '44px 48px 36px' }}>
@@ -144,7 +213,7 @@ export default function Composer() {
           )}
 
           {popup && (
-            <div style={{ position: 'absolute', left: popup.x, top: popup.y, transform: 'translateX(-50%)', zIndex: 40, width: 300 }}>
+            <div ref={popupRef} style={{ position: 'absolute', left: popup.x, top: popup.y, transform: 'translateX(-50%)', zIndex: 40, width: 300 }}>
               <div style={{ background: 'var(--ink-800)', borderRadius: 10, boxShadow: 'var(--shadow-lg)', padding: 14, color: 'var(--cream-0)', opacity: busy ? 0.7 : 1 }}>
                 <div style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 13, lineHeight: 1.4, color: 'var(--peri-200)', marginBottom: 10 }}>
                   “{popup.text.length > 70 ? popup.text.slice(0, 67) + '…' : popup.text}”
@@ -184,6 +253,7 @@ export default function Composer() {
         {/* Add+ */}
         <div style={{ marginTop: 16 }}>
           <button
+            ref={addRef}
             onClick={() => { setAddOpen(!addOpen); setPopup(null) }}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 18px', border: '1.5px dashed var(--border-strong)', background: 'transparent', borderRadius: 999, color: 'var(--ink-700)', fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
             onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--royal-600)'; e.currentTarget.style.color = 'var(--royal-600)' }}
@@ -210,14 +280,14 @@ export default function Composer() {
       {/* right rail */}
       <aside className="bw-composer-rail" style={{ position: 'sticky', top: 96, display: 'flex', flexDirection: 'column', gap: 18 }}>
         {/* tune */}
-        <div style={{ background: 'var(--cream-0)', border: '1px solid var(--border-hair)', borderRadius: 14, boxShadow: 'var(--shadow-sm)', padding: 22 }}>
+        <div ref={tuneRef} style={{ background: 'var(--cream-0)', border: '1px solid var(--border-hair)', borderRadius: 14, boxShadow: 'var(--shadow-sm)', padding: 22 }}>
           <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-800)', marginBottom: 20 }}>Tune the message</div>
           <SliderRow label="Tone" valueLabel={toneLbl} ends={['Soft', 'Strong']} value={state.tone} onChange={(v) => dispatch({ type: 'SET_TONE', value: v })} onCommit={(v) => retune(v, state.verbosity)} marginBottom={22} />
           <SliderRow label="Length" valueLabel={verbLbl} ends={['Succinct', 'Detailed']} value={state.verbosity} onChange={(v) => dispatch({ type: 'SET_VERB', value: v })} onCommit={(v) => retune(state.tone, v)} />
         </div>
 
         {/* why + meters */}
-        <div style={{ background: 'var(--cream-0)', border: '1px solid var(--border-hair)', borderRadius: 14, boxShadow: 'var(--shadow-sm)', padding: 22 }}>
+        <div ref={evalRef} style={{ background: 'var(--cream-0)', border: '1px solid var(--border-hair)', borderRadius: 14, boxShadow: 'var(--shadow-sm)', padding: 22 }}>
           <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-800)', marginBottom: 12 }}>Why this works</div>
           <p style={{ fontFamily: 'var(--font-serif)', fontSize: 15.5, lineHeight: 1.5, color: 'var(--text-body)', margin: '0 0 14px' }}>{strat.why}</p>
           <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4 }}>Likely reaction</div>
@@ -247,6 +317,8 @@ export default function Composer() {
           Continue to send →
         </Button>
       </aside>
+
+      {tour && <Onboarding steps={tourSteps} onDone={endTour} />}
     </main>
   )
 }
