@@ -21,6 +21,8 @@ const initialState = {
   verbosity: 50,
   letterParas: null, // AI working copy of the open letter; null → derive from mock
   letterLoading: false,
+  evalWhy: null, // model's read of the CURRENT letter; null → use the strategy's copy
+  evalReaction: null,
   replacements: [],
   inserts: [],
   comments: [],
@@ -58,12 +60,22 @@ function reducer(state, action) {
         verbosity: 50,
         letterParas: action.paras ?? null,
         letterLoading: false,
+        evalWhy: null,
+        evalReaction: null,
         replacements: [],
         inserts: [],
         comments: [],
       }
     case 'SET_LETTER':
       return { ...state, letterParas: action.paras, letterLoading: false }
+    case 'SET_EVAL':
+      // Refresh the "why / reaction" copy from the current draft. The tone/length
+      // sliders are animated separately (SET_TONE / SET_VERB) so they glide.
+      return {
+        ...state,
+        evalWhy: action.why ?? state.evalWhy,
+        evalReaction: action.reaction ?? state.evalReaction,
+      }
     case 'SET_LETTER_LOADING':
       return { ...state, letterLoading: action.value }
     case 'SET_TONE':

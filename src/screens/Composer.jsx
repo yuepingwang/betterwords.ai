@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import DS from '../ds'
 import { useStore } from '../store'
-import { composeLetter, rewritePassage, retuneLetter, recipientLabel, liveRisk, liveEff, lvl, bucket, badgeColors, stanceLabel } from '../lib/advisor'
+import { composeLetter, rewritePassage, retuneLetter, evaluateLetter, recipientLabel, liveRisk, liveEff, lvl, bucket, badgeColors, stanceLabel } from '../lib/advisor'
 import Onboarding from '../components/Onboarding'
 
 const ONBOARD_KEY = 'bw_onboarded'
@@ -43,7 +43,9 @@ export default function Composer() {
   const [addOpen, setAddOpen] = useState(false)
   const [flashText, setFlashText] = useState(null)
   const [busy, setBusy] = useState(false) // an inline rewrite is in flight
+  const [evaluating, setEvaluating] = useState(false) // model is re-reading the draft
   const [tour, setTour] = useState(false)
+  const tweenRef = useRef(null)
 
   // First-time users get a one-off walkthrough of the editor's four features.
   useEffect(() => {
@@ -116,18 +118,65 @@ export default function Composer() {
     setAddOpen(false)
   }
 
+  // Glide the Tone/Length sliders from where they are to the model's new read,
+  // instead of snapping. Each frame dispatches the interpolated value, so the
+  // controlled range thumb slides. A null target leaves that slider alone.
+  const animateSliders = (toneTarget, verbTarget) => {
+    cancelAnimationFrame(tweenRef.current)
+    if (toneTarget == null && verbTarget == null) return
+    const fromTone = state.tone
+    const fromVerb = state.verbosity
+    const start = performance.now()
+    const DUR = 480
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / DUR)
+      const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2 // easeInOutQuad
+      if (toneTarget != null) dispatch({ type: 'SET_TONE', value: Math.round(fromTone + (toneTarget - fromTone) * e) })
+      if (verbTarget != null) dispatch({ type: 'SET_VERB', value: Math.round(fromVerb + (verbTarget - fromVerb) * e) })
+      if (t < 1) tweenRef.current = requestAnimationFrame(step)
+    }
+    tweenRef.current = requestAnimationFrame(step)
+  }
+
+  // Stop any in-flight slider tween if the component unmounts.
+  useEffect(() => () => cancelAnimationFrame(tweenRef.current), [])
+
+  // Re-read the CURRENT letter with the model → refresh "Why this works" /
+  // "Likely reaction" from the real wording, and (after an inline edit) let the
+  // Tone/Length sliders follow where the text now sits. Mock strategies have no
+  // model working copy, so this is a no-op for them.
+  const evaluate = (nextParas, { moveSliders = false } = {}) => {
+    if (!aiMode) return
+    setEvaluating(true)
+    evaluateLetter({ scenarioId: state.scenarioId, strategy: strat, paras: nextParas })
+      .then((res) => {
+        dispatch({ type: 'SET_EVAL', why: res.why, reaction: res.reaction })
+        if (moveSliders) animateSliders(res.tone, res.verbosity)
+      })
+      .finally(() => setEvaluating(false))
+  }
+
+  // On opening a strategy, ground the why/reaction copy in the actual draft.
+  useEffect(() => {
+    evaluate(paras)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.selectedIdx])
+
   // One inline-rewrite path for both the quick chips and the free-text note.
   const runRewrite = async ({ mode, instruction }) => {
     if (!popup || busy) return
     setBusy(true)
     try {
       const rep = await rewritePassage({ text: popup.text, mode, instruction, context: paras.join('\n\n') })
-      dispatch({ type: 'ADD_REPLACEMENT', replacement: { find: popup.text, replace: rep } })
+      const replacement = { find: popup.text, replace: rep }
+      dispatch({ type: 'ADD_REPLACEMENT', replacement })
       if (instruction) {
         const snippet = popup.text.length > 60 ? popup.text.slice(0, 57) + '…' : popup.text
         dispatch({ type: 'ADD_COMMENT', comment: { snippet, note: instruction } })
       }
       flash(rep)
+      // Re-evaluate against the edited letter; an edit may shift tone/length.
+      evaluate(composeLetter(strat, { ...state, replacements: [...state.replacements, replacement] }), { moveSliders: true })
     } finally {
       setBusy(false)
       setPopup(null)
@@ -143,9 +192,11 @@ export default function Composer() {
   }
 
   const pickAdd = (sug) => {
-    dispatch({ type: 'ADD_INSERT', insert: { after: sug.after, text: sug.text } })
+    const insert = { after: sug.after, text: sug.text }
+    dispatch({ type: 'ADD_INSERT', insert })
     setAddOpen(false)
     flash(sug.text)
+    evaluate(composeLetter(strat, { ...state, inserts: [...state.inserts, insert] }), { moveSliders: true })
   }
 
   // Slider commit → in AI mode, ask the model to rewrite the letter at the new
@@ -156,6 +207,9 @@ export default function Composer() {
     const base = state.letterParas || strat.paragraphs
     const next = await retuneLetter({ scenarioId: state.scenarioId, strategy: strat, paras: base, tone: nextTone, verbosity: nextVerb })
     dispatch({ type: 'SET_LETTER', paras: next })
+    // The letter changed, so refresh why/reaction — but the sliders already
+    // reflect the user's chosen tone/length, so don't move them.
+    evaluate(composeLetter(strat, { ...state, letterParas: next }), { moveSliders: false })
   }
 
   return (
@@ -205,10 +259,10 @@ export default function Composer() {
             Select any line to revise it · or add a passage below.
           </p>
 
-          {(state.letterLoading || busy) && (
+          {(state.letterLoading || busy || evaluating) && (
             <div style={{ position: 'absolute', top: 14, right: 16, display: 'inline-flex', alignItems: 'center', gap: 7, padding: '5px 11px', borderRadius: 999, background: 'var(--ink-800)', color: 'var(--cream-0)', fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 11, letterSpacing: '0.04em' }}>
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--peri-300)', animation: 'adv-spin 1s linear infinite' }} />
-              {busy ? 'Revising…' : 'Retuning…'}
+              {busy ? 'Revising…' : state.letterLoading ? 'Retuning…' : 'Re-reading…'}
             </div>
           )}
 
@@ -289,9 +343,9 @@ export default function Composer() {
         {/* why + meters */}
         <div ref={evalRef} style={{ background: 'var(--cream-0)', border: '1px solid var(--border-hair)', borderRadius: 14, boxShadow: 'var(--shadow-sm)', padding: 22 }}>
           <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-800)', marginBottom: 12 }}>Why this works</div>
-          <p style={{ fontFamily: 'var(--font-serif)', fontSize: 15.5, lineHeight: 1.5, color: 'var(--text-body)', margin: '0 0 14px' }}>{strat.why}</p>
+          <p style={{ fontFamily: 'var(--font-serif)', fontSize: 15.5, lineHeight: 1.5, color: 'var(--text-body)', margin: '0 0 14px' }}>{state.evalWhy ?? strat.why}</p>
           <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 4 }}>Likely reaction</div>
-          <p style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 15, lineHeight: 1.45, color: 'var(--ink-700)', margin: '0 0 20px' }}>{strat.reaction}</p>
+          <p style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 15, lineHeight: 1.45, color: 'var(--ink-700)', margin: '0 0 20px' }}>{state.evalReaction ?? strat.reaction}</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <LiveBar label="Risk" word={lvl(lr)} value={lr} fill="var(--coral-500)" labelColor="var(--coral-600)" />
             <LiveBar label="Impact" word={lvl(le)} value={le} fill="var(--royal-600)" labelColor="var(--royal-700)" />

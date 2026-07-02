@@ -114,7 +114,9 @@ Exactly three strategies, ordered soft → balanced → strong. Each strategy is
   "reaction": one sentence on how the recipient is likely to react,
   "paragraphs": array of 3-4 strings — the full message body at this tone,
                 first-person, ready to send, NO greeting line and NO signature,
-  "add": array of 3 optional insertions the writer could add, each
+  "add": EXACTLY 3 optional insertions the writer could add to THIS draft —
+         one near the opening, one in the middle, one near the close — each
+         anchored to the draft's own content (not generic filler), each
          { "label": "After the opening — cite the clause", "after": <0-based paragraph index to insert after>, "text": the sentence }
 }`
 
@@ -170,13 +172,34 @@ function normalizeStrategies(arr) {
       why: String(s.why || ''),
       reaction: String(s.reaction || ''),
       paragraphs,
-      add: Array.isArray(s.add)
-        ? s.add
-            .filter((a) => a && a.text)
-            .map((a) => ({ label: String(a.label || 'Add a passage'), after: clampInt(a.after, 0, 0, 8), text: String(a.text) }))
-        : [],
+      add: normalizeAdd(s.add, paragraphs.length),
     }
   })
+}
+
+// Position-appropriate safety-net insertions, used only to top a draft up to
+// three "Add a passage" options when the model returns fewer than three.
+const ADD_FALLBACKS = [
+  { label: 'After the opening — add context', after: 0, text: 'For a little more context: here’s why this matters to me and what led to it.' },
+  { label: 'In the middle — note your records', after: 1, text: 'I’ve kept records and copies of the relevant details, in case they’re helpful.' },
+  { label: 'At the close — name a next step', after: 2, text: 'I’m happy to talk this through — just let me know what works best for you.' },
+]
+
+// Guarantee EXACTLY three insertions per draft: keep the model's (up to 3,
+// with `after` clamped into range), then pad from the fallbacks.
+function normalizeAdd(arr, paraCount) {
+  const hi = paraCount > 0 ? paraCount - 1 : 8
+  const out = Array.isArray(arr)
+    ? arr
+        .filter((a) => a && a.text)
+        .slice(0, 3)
+        .map((a) => ({ label: String(a.label || 'Add a passage'), after: clampInt(a.after, 0, 0, hi), text: String(a.text) }))
+    : []
+  for (let i = out.length; i < 3; i++) {
+    const fb = ADD_FALLBACKS[i]
+    out.push({ ...fb, after: Math.min(fb.after, hi) })
+  }
+  return out
 }
 function clampInt(v, fallback, lo = 0, hi = 100) {
   const n = Math.round(Number(v))
@@ -355,6 +378,56 @@ export async function rewritePassage({ text, mode, instruction, context = '' }) 
     return out || fallback()
   } catch (err) {
     console.warn('[advisor] rewritePassage fell back:', err.message)
+    return fallback()
+  }
+}
+
+// ==================================================================
+// 5) Evaluate — read the CURRENT letter (after retunes, rewrites, inserts)
+//    and produce a fresh "why this works" + "likely reaction", plus where the
+//    draft now SITS on the tone/length scales so the sliders can follow an edit.
+// ==================================================================
+
+export async function evaluateLetter({ scenarioId, strategy, paras }) {
+  const text = (paras || []).join('\n\n').trim()
+  // No AI (or empty) → keep the strategy's original copy and leave the
+  // sliders where they are (tone/verbosity null == "don't move them").
+  const fallback = () => ({
+    why: strategy?.why || '',
+    reaction: strategy?.reaction || '',
+    tone: null,
+    verbosity: null,
+  })
+  if (!text) return fallback()
+  try {
+    const content = await chat(
+      [
+        {
+          role: 'system',
+          content:
+            'You assess a near-final message the writer is about to send. Read the ACTUAL wording and return ' +
+            'JSON: { "why": one sentence on why this version is effective for the writer, ' +
+            '"reaction": one sentence on how the recipient is likely to react to THIS wording, ' +
+            '"tone": integer 0-100 (0 = very soft and gentle, 100 = very firm and direct), ' +
+            '"length": integer 0-100 (0 = very succinct, 100 = very detailed) }. ' +
+            'Judge tone and length from the text itself, not from any prior version.',
+        },
+        {
+          role: 'user',
+          content: `${scenarioContext(scenarioId)}\n\nThe current message:\n${text}\n\nAssess it.`,
+        },
+      ],
+      { json: true }
+    )
+    const parsed = parseJson(content)
+    return {
+      why: String(parsed.why || strategy?.why || ''),
+      reaction: String(parsed.reaction || strategy?.reaction || ''),
+      tone: parsed.tone == null ? null : clampInt(parsed.tone, 50),
+      verbosity: parsed.length == null ? null : clampInt(parsed.length, 50),
+    }
+  } catch (err) {
+    console.warn('[advisor] evaluateLetter fell back:', err.message)
     return fallback()
   }
 }
