@@ -1,0 +1,116 @@
+/* BetterWords v2 Landing — scoped copy of src/screens/Landing.css.
+   Every rule is namespaced under .bw-v2, so editing v2's landing styles
+   here NEVER affects the v1 landing (which uses the global Landing.css). */
+
+.bw-v2 .lp-link {
+  color: var(--text-muted);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s var(--ease-quiet);
+}
+.bw-v2 .lp-link:hover {
+  color: var(--royal-600);
+}
+
+.bw-v2 .lp-cta {
+  transition: transform 0.18s var(--ease-quiet), box-shadow 0.18s var(--ease-quiet),
+    background 0.18s var(--ease-quiet);
+}
+.bw-v2 .lp-cta:hover {
+  transform: translateY(-2px);
+}
+
+.bw-v2 .lp-scenario {
+  transition: transform 0.2s var(--ease-quiet), box-shadow 0.2s var(--ease-quiet),
+    border-color 0.2s var(--ease-quiet);
+}
+.bw-v2 .lp-scenario:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--peri-400);
+}
+
+/* bw-twinkle keyframes now come from the Daybreak system (ds/daybreak.css). */
+
+@media (prefers-reduced-motion: reduce) {
+  .bw-v2 .lp-deck-card {
+    transition: none !important;
+  }
+}
+
+/* ---- betterwords-web landing helpers (scoped) ---------------------- */
+.bw-v2 .wrap {
+  width: 100%;
+  max-width: var(--container-lg);
+  margin-inline: auto;
+  padding-inline: var(--space-6);
+}
+.bw-v2 .center {
+  text-align: center;
+}
+.bw-v2 .section {
+  padding: var(--space-11) 0;
+}
+.bw-v2 .grid3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-5);
+}
+.bw-v2 .serif {
+  font-family: var(--font-serif);
+}
+.bw-v2 .site-kick {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.bw-v2 .site-h1 {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-variation-settings: var(--display-soft);
+  font-weight: var(--weight-semibold);
+  font-size: clamp(46px, 7vw, var(--text-5xl));
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tighter);
+  color: var(--text-strong);
+  margin: 0;
+}
+.bw-v2 .site-h2 {
+  font-family: var(--font-display);
+  font-variation-settings: var(--display-soft);
+  font-weight: var(--weight-semibold);
+  font-size: clamp(32px, 4.5vw, var(--text-3xl));
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  color: var(--text-strong);
+  margin: 0;
+}
+.bw-v2 .site-lead {
+  font-family: var(--font-serif);
+  font-size: var(--text-md);
+  line-height: var(--leading-relaxed);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+@media (max-width: 860px) {
+  .bw-v2 .grid3 {
+    grid-template-columns: 1fr;
+  }
+  .bw-v2 .lp-two {
+    grid-template-columns: 1fr !important;
+    gap: 36px !important;
+  }
+  .bw-v2 .lp-pricing {
+    grid-template-columns: 1fr !important;
+  }
+  .bw-v2 .lp-navlinks .lp-link {
+    display: none;
+  }
+  .bw-v2 .section {
+    padding: var(--space-9) 0;
+  }
+}

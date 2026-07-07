@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 120" fill="none">
+<g stroke-linejoin="round" stroke-linecap="round">
+<g class="bird">
+ <path class="wing" d="M64 46 Q54 22 30 24 Q40 44 58 52" fill="#CFDDFB" stroke="#1C1746" stroke-width="3.6"></path>
+ <ellipse cx="74" cy="54" rx="26" ry="18" fill="#AFC8F6" stroke="#1C1746" stroke-width="4"></ellipse>
+ <circle cx="98" cy="42" r="12" fill="#AFC8F6" stroke="#1C1746" stroke-width="4"></circle>
+ <path d="M108 40 l10 3 -9 4 Z" fill="#EE8654" stroke="#1C1746" stroke-width="2.6"></path>
+ <circle cx="97" cy="39" r="4.6" fill="#fff" stroke="#1C1746" stroke-width="2.6"></circle>
+ <circle cx="98.5" cy="40" r="1.9" fill="#1C1746"></circle>
+ <path d="M50 58 q-10 8 -18 6" stroke="#1C1746" stroke-width="3.4" fill="none"></path>
+ <g class="mail">
+  <path d="M64 72 v10" stroke="#1C1746" stroke-width="2.6"></path>
+  <rect x="50" y="82" width="28" height="20" rx="3" fill="#FFFDF8" stroke="#1C1746" stroke-width="3.2"></rect>
+  <path d="M51 84 l13 9 13 -9" stroke="#1C1746" stroke-width="2.6" fill="none"></path>
+ </g>
+</g>
+<g class="puffs" stroke="#1C1746" stroke-width="2.6" fill="none" opacity="0.5">
+ <path d="M18 74 h10 M12 82 h14 M20 90 h8"></path>
+</g>
+</g></svg>

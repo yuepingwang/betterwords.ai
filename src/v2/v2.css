@@ -1,0 +1,325 @@
+/* ============================================================
+   BetterWords v2 — application styles (fully isolated copy)
+
+   HOW ISOLATION WORKS
+   -------------------
+   The whole v2 app renders inside a single <div class="bw-v2"> (see
+   V2App.jsx). Every rule below is scoped under `.bw-v2`, and this file
+   is only loaded on the v2 entry (?v=2). Nothing here can affect the
+   v1 app, and nothing in v1's app.css / Landing.css / /ds/styles.css
+   should be edited for v2 work — change v2 here (or in the duplicated
+   v2 screen/component files) instead.
+
+   WHERE TO RESTYLE V2
+   -------------------
+   1. THE DESIGN SYSTEM: ./ds/daybreak.css — all Daybreak tokens, scoped
+      to .bw-v2, plus the old→new bridge. Edit values there to retune the
+      whole v2 system; v1's tokens are never touched.
+   2. This file's scoped helper classes (.bw-v2 .bw-hero, etc.) and the
+      LOCAL OVERRIDE ZONE below for one-off tweaks on top of Daybreak.
+   3. Inline styles inside src/v2/screens/*.jsx (most of the look lives
+      here).
+   ============================================================ */
+
+/* ---- LOCAL OVERRIDE ZONE --------------------------------------------
+   The v2 design system now comes from ./ds/daybreak.css (the "Daybreak"
+   system pulled from claude.ai/design), imported before this file in
+   V2App.jsx. It defines all tokens scoped to .bw-v2, plus a bridge that
+   aliases the old Messenger names (--royal-*, --cream-*, --fog-*, …) the
+   copied screens still use — so v2 already renders in Daybreak.
+
+   Use this block only for one-off v2 tweaks ON TOP of Daybreak. Prefer
+   editing daybreak.css (the system) or the native Daybreak tokens in the
+   screen files.
+   -------------------------------------------------------------------- */
+.bw-v2 {
+  /* optional local overrides on top of Daybreak go here */
+}
+
+/* ---- scoped element defaults (mirror app.css, editable for v2) ------ */
+.bw-v2 a {
+  color: inherit;
+  text-decoration: none;
+}
+.bw-v2 button {
+  font-family: inherit;
+}
+.bw-v2 ::selection {
+  background: var(--peri-300);
+  color: var(--ink-800);
+}
+
+/* ---- shared helpers (scoped copy of app.css) ----------------------- */
+.bw-v2 .bw-container {
+  width: 100%;
+  max-width: var(--container-lg);
+  margin-inline: auto;
+  padding-inline: var(--space-5);
+}
+.bw-v2 .bw-kicker {
+  font-family: var(--font-sans);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.bw-v2 .bw-display {
+  font-family: var(--font-display);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-tight);
+  color: var(--text-strong);
+  margin: 0;
+}
+.bw-v2 .bw-serif {
+  font-family: var(--font-serif);
+  color: var(--text-body);
+}
+.bw-v2 .bw-link {
+  color: var(--text-muted);
+  transition: color var(--dur-fast) var(--ease-quiet);
+}
+.bw-v2 .bw-link:hover {
+  color: var(--text-strong);
+}
+.bw-v2 .bw-lift {
+  transition: transform var(--dur-base) var(--ease-quiet),
+    box-shadow var(--dur-base) var(--ease-quiet), border-color var(--dur-base) var(--ease-quiet);
+}
+.bw-v2 .bw-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+/* ---- animations (global keyframes; identical to app.css) ----------- */
+@keyframes adv-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes adv-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes adv-seal {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  55% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ---- range sliders (tone / length) --------------------------------- */
+.bw-v2 .adv-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--fog-2);
+  outline: none;
+  cursor: pointer;
+}
+.bw-v2 .adv-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--royal-600);
+  border: 3px solid var(--cream-0);
+  box-shadow: 0 1px 5px rgba(21, 18, 62, 0.35);
+  cursor: pointer;
+}
+.bw-v2 .adv-range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--royal-600);
+  border: 3px solid var(--cream-0);
+  box-shadow: 0 1px 5px rgba(21, 18, 62, 0.35);
+  cursor: pointer;
+}
+
+/* ---- card hover transitions ---------------------------------------- */
+.bw-v2 .adv-card-hover {
+  transition: transform 0.2s var(--ease-quiet), box-shadow 0.2s var(--ease-quiet),
+    border-color 0.2s var(--ease-quiet);
+}
+.bw-v2 .bw-home-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--peri-400);
+}
+.bw-v2 .bw-list-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--peri-400);
+}
+.bw-v2 .bw-add-sug:hover {
+  border-color: var(--peri-400);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ============================================================
+   Responsive / mobile (scoped copy of app.css)
+   ============================================================ */
+@media (max-width: 960px) {
+  .bw-v2 .bw-hero {
+    grid-template-columns: 1fr !important;
+    padding: 64px 24px 84px !important;
+    gap: 48px !important;
+  }
+  .bw-v2 .bw-hero-deck {
+    width: 100% !important;
+    max-width: 500px !important;
+    height: auto !important;
+    aspect-ratio: 500 / 446 !important;
+    margin: 8px auto 0 !important;
+  }
+  .bw-v2 .bw-hero-h1 {
+    font-size: 46px !important;
+  }
+  .bw-v2 .bw-preview-grid,
+  .bw-v2 .bw-composer,
+  .bw-v2 .bw-map-grid,
+  .bw-v2 .bw-next-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .bw-v2 .bw-composer-rail,
+  .bw-v2 .bw-clarify-rail {
+    position: static !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .bw-v2 .bw-grid-3 {
+    grid-template-columns: 1fr !important;
+  }
+  .bw-v2 .bw-clarify {
+    grid-template-columns: 1fr !important;
+    gap: 28px !important;
+    padding: 28px 22px 64px !important;
+  }
+  .bw-v2 .bw-list-card {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+  .bw-v2 .bw-list-side {
+    border-left: none !important;
+    padding-left: 0 !important;
+    border-top: 1px solid var(--border-hair) !important;
+    padding-top: 18px !important;
+  }
+  .bw-v2 .bw-sec {
+    padding-top: 92px !important;
+    padding-bottom: 92px !important;
+    padding-left: 22px !important;
+    padding-right: 22px !important;
+  }
+  .bw-v2 .bw-sec-pad {
+    padding-left: 22px !important;
+    padding-right: 22px !important;
+  }
+  .bw-v2 .bw-topbar {
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+  }
+  .bw-v2 .bw-letter {
+    padding: 30px 22px 26px !important;
+  }
+  .bw-v2 .bw-hero-h1 {
+    font-size: 40px !important;
+  }
+  .bw-v2 .bw-sec-h2 {
+    font-size: 32px !important;
+  }
+  .bw-v2 .bw-cta-h2 {
+    font-size: 38px !important;
+  }
+  .bw-v2 .bw-q-h1 {
+    font-size: 30px !important;
+  }
+  .bw-v2 .bw-page-h1 {
+    font-size: 34px !important;
+  }
+  .bw-v2 .bw-mc-steps > div {
+    text-align: center !important;
+  }
+  .bw-v2 .bw-mc-steps > div > div:first-child {
+    justify-content: center !important;
+  }
+  .bw-v2 .bw-mc-steps .rule-dotted {
+    display: none !important;
+  }
+  .bw-v2 .bw-mc-head {
+    text-align: center !important;
+    justify-content: center !important;
+  }
+  .bw-v2 .bw-mc-copy {
+    text-align: center !important;
+  }
+  .bw-v2 .bw-mc-copy > div:last-child > div {
+    justify-content: center !important;
+  }
+  .bw-v2 .bw-hero-copy {
+    text-align: center !important;
+  }
+  .bw-v2 .bw-hero-copy > div:first-child {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 12px !important;
+    margin-bottom: 28px !important;
+  }
+  .bw-v2 .bw-hero-copy > .bw-hero-h1 {
+    margin-bottom: 28px !important;
+  }
+  .bw-v2 .bw-hero-copy > p {
+    margin-bottom: 44px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+  .bw-v2 .bw-hero-tags {
+    justify-content: center !important;
+    margin-top: 48px !important;
+  }
+  .bw-v2 .bw-hero-cta {
+    flex-direction: column !important;
+    justify-content: center !important;
+    gap: 20px !important;
+  }
+  .bw-v2 .bw-lnav {
+    padding: 12px 18px !important;
+  }
+  .bw-v2 .bw-lnav-actions {
+    gap: 14px !important;
+  }
+  .bw-v2 .bw-lnav-actions .lp-link {
+    display: none !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .bw-v2 .bw-hero-h1 {
+    font-size: 34px !important;
+  }
+  .bw-v2 .bw-cta-h2 {
+    font-size: 32px !important;
+  }
+  .bw-v2 .bw-sec-h2 {
+    font-size: 28px !important;
+  }
+}

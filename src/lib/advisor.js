@@ -344,6 +344,47 @@ export async function retuneLetter({ scenarioId, strategy, paras, tone, verbosit
 }
 
 // ==================================================================
+// 3b) Nudge — apply ONE adjustment across the WHOLE letter (the "Nudge it"
+//     preset chips: Warmer / Firmer / Shorter / Add a deadline). Like
+//     retuneLetter, but driven by a free-form instruction rather than the
+//     tone/length sliders. `mode` (optional) picks the deterministic
+//     per-paragraph fallback used when AI is unavailable.
+// ==================================================================
+
+export async function nudgeLetter({ scenarioId, paras, instruction, mode }) {
+  const base = Array.isArray(paras) ? paras : []
+  const fallback = () => (mode ? base.map((p) => rephrase(p, mode)) : base)
+  if (!instruction || !base.length) return fallback()
+  try {
+    const content = await chat(
+      [
+        {
+          role: 'system',
+          content:
+            'You revise an entire message by applying ONE adjustment consistently across the whole thing, ' +
+            'WITHOUT changing the facts, the ask, or the first-person voice. Preserve every concrete detail, ' +
+            'and keep any [bracketed placeholders] exactly as they are — never invent names, dates, or amounts ' +
+            'to fill them in. Return JSON: { "paragraphs": [ ...strings ] }. No greeting, no signature.',
+        },
+        {
+          role: 'user',
+          content:
+            `${scenarioContext(scenarioId)}\n\nCurrent message:\n${base.join('\n\n')}\n\n` +
+            `Adjustment to apply across the whole message: ${instruction}\n\nRewrite it.`,
+        },
+      ],
+      { json: true }
+    )
+    const parsed = parseJson(content)
+    const next = (parsed.paragraphs || []).filter((p) => typeof p === 'string' && p.trim())
+    return next.length ? next : fallback()
+  } catch (err) {
+    console.warn('[advisor] nudgeLetter fell back:', err.message)
+    return fallback()
+  }
+}
+
+// ==================================================================
 // 4) Rewrite a selected passage — inline Soften/Firmer/Shorten/Detail,
 //    plus free-text "describe a change" instructions.
 // ==================================================================

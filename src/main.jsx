@@ -11,20 +11,38 @@ import './app.css'
 window.React = React
 window.ReactDOM = ReactDOM
 
-function loadDesignSystem() {
+function loadBundle(src, globalKey, label) {
   return new Promise((resolve, reject) => {
-    if (window.MessengerDesignSystem_02d4f6) return resolve()
+    if (globalKey && window[globalKey]) return resolve()
     const s = document.createElement('script')
-    s.src = '/ds/_ds_bundle.js'
+    s.src = src
     s.async = false
     s.onload = () => resolve()
-    s.onerror = () => reject(new Error('Failed to load Messenger design system bundle'))
+    s.onerror = () => reject(new Error(`Failed to load ${label}`))
     document.head.appendChild(s)
   })
 }
 
-loadDesignSystem().then(async () => {
-  const { default: App } = await import('./App.jsx')
+// Version switch: v2 is reachable via the URL without touching the v1
+// landing page. Any of `/?v=2`, `/?v2`, or `/#v2` loads the isolated v2
+// app (src/v2/); anything else loads the current (v1) app unchanged.
+function wantsV2() {
+  const params = new URLSearchParams(window.location.search)
+  return params.get('v') === '2' || params.has('v2') || window.location.hash === '#v2'
+}
+
+async function boot() {
+  const v2 = wantsV2()
+  // Messenger bundle powers v1 (and any v2 screen not yet rebuilt on Daybreak).
+  await loadBundle('/ds/_ds_bundle.js', 'MessengerDesignSystem_02d4f6', 'Messenger design system bundle')
+  // v2 also loads the Betterwords "Daybreak" design-system bundle, exposing the
+  // full component library on window.BetterwordsAiDesignSystem_ac387e (see ds2.js).
+  if (v2) {
+    await loadBundle('/ds-v2/_ds_bundle.js', 'BetterwordsAiDesignSystem_ac387e', 'Betterwords design system bundle')
+  }
+  const { default: App } = v2 ? await import('./v2/V2App.jsx') : await import('./App.jsx')
   const root = ReactDOMClient.createRoot(document.getElementById('root'))
   root.render(React.createElement(App))
-})
+}
+
+boot()
