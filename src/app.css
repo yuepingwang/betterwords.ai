@@ -14,7 +14,9 @@ html,
 body {
   margin: 0;
   padding: 0;
-  overflow-x: hidden;
+  /* `clip` (not `hidden`) — hidden turns body into a scroll container,
+     which silently disables position: sticky everywhere. */
+  overflow-x: clip;
 }
 
 body {

@@ -11,6 +11,52 @@
 .bw-v2 .lp-link:hover {
   color: var(--royal-600);
 }
+/* Header nav links read darker than footer ones, per the betterwords-web kit. */
+.bw-v2 .lp-navlinks .lp-link {
+  color: var(--text-body);
+}
+.bw-v2 .lp-navlinks .lp-link:hover {
+  color: var(--royal-600);
+}
+/* Landing header only — accent links per hero-register-section. */
+.bw-v2 .lp-nav-accent .lp-link {
+  color: var(--accent);
+}
+.bw-v2 .lp-nav-accent .lp-link:hover {
+  color: var(--accent-hover);
+}
+
+/* Landing wordmark star — loops between its two brand poses:
+   inline at full text size (hero-layout-concepts header) and the small
+   raised sparkle of the Logo lockup (0.42em, tucked at the cap line). */
+.bw-v2 .lp-logo-star {
+  display: inline-block;
+  margin-left: 0.06em;
+  transform-origin: 50% 50%;
+  animation: lp-star-morph 5s var(--ease-in-out) infinite;
+}
+/* Each leg of the morph also spins the star 90° — the ✦ glyph has 90°
+   symmetry, so 0/90/180 all read as the same pose and the loop stays
+   seamless while every transition gets a quarter-turn. */
+@keyframes lp-star-morph {
+  0%,
+  32% {
+    transform: rotate(0deg); /* hero-concepts pose */
+  }
+  46%,
+  84% {
+    transform: translate(-0.14em, -0.42em) scale(0.42) rotate(90deg); /* Logo lockup pose */
+  }
+  98%,
+  100% {
+    transform: rotate(180deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bw-v2 .lp-logo-star {
+    animation: none;
+  }
+}
 
 .bw-v2 .lp-cta {
   transition: transform 0.18s var(--ease-quiet), box-shadow 0.18s var(--ease-quiet),
@@ -36,6 +82,19 @@
   .bw-v2 .lp-deck-card {
     transition: none !important;
   }
+}
+
+/* Postmark ring on the hero deck (self-contained copy of the v1
+   `.postmark` cancellation mark, so v2 doesn't depend on the v1 DS). */
+.bw-v2 .lp-postmark {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-radius: 999px;
+  border: 1.5px solid currentColor;
+  font-family: var(--font-sans);
 }
 
 /* ---- betterwords-web landing helpers (scoped) ---------------------- */
@@ -94,6 +153,48 @@
   line-height: var(--leading-relaxed);
   color: var(--text-muted);
   margin: 0;
+}
+
+/* Hero (v1 layout): collapse the 2-up grid, cap the letter deck at its
+   desktop width and keep its proportions as it scales down on phones. */
+@media (max-width: 960px) {
+  .bw-v2 .lp-hero {
+    grid-template-columns: 1fr !important;
+    gap: 44px !important;
+  }
+  .bw-v2 .lp-hero-deck {
+    width: 100% !important;
+    max-width: 500px !important;
+    height: auto !important;
+    aspect-ratio: 500 / 446 !important;
+    margin: 8px auto 0 !important;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Center the hero copy once it stacks into one column, and let the
+     column shrink below its content's natural width. */
+  .bw-v2 .lp-hero-copy {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    min-width: 0;
+  }
+  .bw-v2 .lp-hero-cta,
+  .bw-v2 .lp-hero-tags {
+    justify-content: center !important;
+  }
+  /* site-h1's clamp() bottoms out at 46px — too large for phones. */
+  .bw-v2 .lp-hero .site-h1 {
+    font-size: 40px !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .bw-v2 .lp-hero .site-h1 {
+    font-size: 34px !important;
+  }
 }
 
 @media (max-width: 860px) {

@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import DS2 from '../ds2'
+import { SiteHeader, SiteFooter } from '../components/SiteChrome'
 import { DATA, SCENARIO_IDS } from '../../data/advocate'
 import './Landing.css'
 
@@ -8,6 +9,38 @@ import './Landing.css'
 // onStart(null) → Home, and the scenario cards jump straight into a flow.
 
 const SCENARIO_ART = { rights: 'ctx-dispute', personal: 'ctx-boundary', circle: 'ctx-speakup' }
+
+// Hidden for now — flip back on when testimonials/pricing are ready.
+const SHOW_TESTIMONIAL = false
+const SHOW_PRICING = false
+
+// Shuffling hero letter deck (layout from the v1 landing, recolored to Daybreak).
+const HERO_CARDS = [
+  {
+    to: 'My landlord — Mr. Aubert', re: 'Return of my security deposit',
+    p1: 'I’m writing to request the return of my $1,850 security deposit for 14 Rue Pelletier. My tenancy ended on 30 May and the deposit is now due.',
+    p2: 'Please return it, or provide a written itemization of any deductions, within seven days.',
+    tag: 'Documented', tagBg: 'var(--peri-100)', tagInk: 'var(--blue-700)',
+    right: 'Impact High', rightInk: 'var(--mint-600)',
+    postL1: 'Ready', postL2: 'to send', postColor: 'var(--coral-500)',
+  },
+  {
+    to: 'My brother — Daniel', re: 'Something I need to be honest about',
+    p1: 'I love you, so I’d rather be honest than keep giving you a soft “maybe.” I’m not able to lend money anymore — and I need that to be a consistent answer, not a one-off.',
+    p2: 'This is about my own limits, not your worth to me. What I can offer is my time and a brother who isn’t keeping score.',
+    tag: 'Honest & Kind', tagBg: 'var(--peri-100)', tagInk: 'var(--blue-700)',
+    right: 'Impact High', rightInk: 'var(--mint-600)',
+    postL1: 'Said', postL2: 'with care', postColor: 'var(--blue-600)',
+  },
+  {
+    to: 'Mom', re: 'A little notice before visits',
+    p1: 'I love having you close, and I want to be honest about something small. Could we text first before stopping by, instead of surprise visits?',
+    p2: 'It isn’t about wanting you less — a little notice just helps me be fully present when you’re here.',
+    tag: 'Warm & Clear', tagBg: 'var(--peach-200)', tagInk: 'var(--peach-600)',
+    right: 'Reaction Warm', rightInk: 'var(--mint-600)',
+    postL1: 'Sealed', postL2: 'with love', postColor: 'var(--honey-600)',
+  },
+]
 
 const STEPS = [
   { icon: 'chat', n: '01', t: 'Tell us the situation', d: 'A few quick questions about who it’s for, what you need, and what worries you most.' },
@@ -20,14 +53,8 @@ const PLANS = [
   { name: 'Plus', price: '$8', note: 'For everything you send', feats: ['Unlimited messages', 'Pros / cons / reaction analysis', 'Your saved voice & tones', 'Follow-up drafting'], cta: 'Go Plus', variant: 'spark', featured: true },
 ]
 
-const FOOTER_COLS = [
-  ['Product', ['How it works', 'Examples', 'Pricing']],
-  ['Company', ['About', 'Careers', 'Blog']],
-  ['Legal', ['Privacy', 'Terms']],
-]
-
 export default function Landing({ onStart }) {
-  const { Logo, Button, Badge, Sparkle, Icon, Avatar, Divider, Card, Tag } = DS2
+  const { Button, Badge, Sparkle, Icon, Avatar, Card, Tag } = DS2
   const start = () => onStart(null)
   const scrollTo = (id) => {
     const el = document.getElementById(id)
@@ -35,33 +62,58 @@ export default function Landing({ onStart }) {
   }
 
   return (
-    <div style={{ background: 'var(--bg-base)', color: 'var(--text-body)', fontFamily: 'var(--font-sans)' }}>
-      {/* header */}
-      <header style={{ position: 'sticky', top: 0, zIndex: 50, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', background: 'rgba(251,247,239,0.72)', borderBottom: '1px solid var(--border-hair)' }}>
-        <div className="wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 68 }}>
-          <span style={{ cursor: 'pointer', display: 'inline-flex' }} onClick={start}><Logo variant="gradient" size={24} /></span>
-          <nav className="lp-navlinks" style={{ display: 'flex', alignItems: 'center', gap: 30 }}>
-            <a className="lp-link" onClick={() => scrollTo('how')} style={{ cursor: 'pointer', fontSize: 15, fontWeight: 500 }}>How it works</a>
-            <a className="lp-link" onClick={() => scrollTo('situations')} style={{ cursor: 'pointer', fontSize: 15, fontWeight: 500 }}>Situations</a>
-            <a className="lp-link" onClick={() => scrollTo('pricing')} style={{ cursor: 'pointer', fontSize: 15, fontWeight: 500 }}>Pricing</a>
-            <Button variant="primary" size="sm" onClick={start}>Start free</Button>
-          </nav>
-        </div>
-      </header>
+    <div style={{ position: 'relative', background: 'var(--bg-base)', color: 'var(--text-body)', fontFamily: 'var(--font-sans)' }}>
+      {/* header — shared sticky chrome, landing variant (solid wordmark,
+          hero-layout-concepts nav type) */}
+      <SiteHeader landing onLogo={start} onNav={scrollTo} onStart={start} />
 
-      {/* hero — grainy Daybreak gradient */}
-      <section className="grad-daybreak" style={{ paddingTop: 84, paddingBottom: 96 }}>
-        <div className="wrap center" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <Badge tone="gradient"><Sparkle size={11} style={{ color: '#fff' }} />Now with tone &amp; length tuning</Badge>
-          <h1 className="site-h1" style={{ marginTop: 22, maxWidth: '16ch' }}>Say the hard thing — well.</h1>
-          <p className="site-lead" style={{ marginTop: 20, maxWidth: '46ch', color: 'var(--ink-700)' }}>
-            A boundary, a dispute, a message you’ve rewritten five times. BetterWords finds the words — in your voice — and shows how each way is likely to land.
-          </p>
-          <div style={{ display: 'flex', gap: 12, marginTop: 30, flexWrap: 'wrap', justifyContent: 'center' }}>
-            <Button variant="spark" size="lg" iconRight={<Sparkle size={16} style={{ color: '#fff' }} />} onClick={start}>Start writing free</Button>
-            <Button variant="outline" size="lg" onClick={() => scrollTo('examples')}>See an example</Button>
+      {/* hero — grainy Daybreak gradient, v1 two-column layout:
+          copy on the left, shuffling letter deck on the right. Pulled up
+          under the 68px sticky header so the gradient runs from the very
+          top of the screen, showing through the frosted header. */}
+      <section className="grad-daybreak" style={{ marginTop: -68, paddingTop: 140, paddingBottom: 112 }}>
+        <div className="wrap lp-hero" style={{ display: 'grid', gridTemplateColumns: '1.05fr 0.95fr', gap: 48, alignItems: 'center' }}>
+          <div className="lp-hero-copy">
+            <Badge tone="gradient"><Sparkle size={11} style={{ color: '#fff' }} />Now with tone &amp; length tuning</Badge>
+            <h1 className="site-h1" style={{ margin: '22px 0 20px', maxWidth: '14ch' }}>Say the hard thing — well.</h1>
+            <p className="site-lead" style={{ margin: '0 0 30px', maxWidth: '44ch', color: 'var(--ink-700)' }}>
+              A boundary, a dispute, a message you’ve rewritten five times. BetterWords finds the words — in your voice — and shows how each way is likely to land.
+            </p>
+            <div className="lp-hero-cta" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <Button variant="spark" size="lg" iconRight={<Sparkle size={16} style={{ color: '#fff' }} />} onClick={start}>Start writing free</Button>
+              <Button variant="outline" size="lg" onClick={() => scrollTo('examples')}>See an example</Button>
+            </div>
+            <div className="lp-hero-tags" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 14, marginTop: 36, fontWeight: 600, fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-600)' }}>
+              <span>Boundaries</span>
+              <Sparkle size={11} style={{ color: 'var(--spark)' }} />
+              <span>Disputes</span>
+              <Sparkle size={11} style={{ color: 'var(--spark)' }} />
+              <span>Speaking up</span>
+            </div>
           </div>
-          <div style={{ marginTop: 16, fontSize: 13, color: 'var(--ink-600)' }}>No card needed · Free for your first 20 messages</div>
+          <HeroDeck />
+        </div>
+      </section>
+
+      {/* how it works */}
+      <section id="how" className="section">
+        <div className="wrap">
+          <div className="center" style={{ marginBottom: 52 }}>
+            <span className="site-kick">How it works</span>
+            <h2 className="site-h2" style={{ marginTop: 12 }}>Three steps to the right words.</h2>
+          </div>
+          <div className="grid3">
+            {STEPS.map((s) => (
+              <div key={s.n} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-xl)', padding: '30px 26px', boxShadow: 'var(--shadow-sm)' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 56, height: 56, borderRadius: 'var(--radius-lg)', background: 'var(--accent-soft)', color: 'var(--accent)' }}>
+                  <Icon name={s.icon} size={26} />
+                </span>
+                <div className="site-kick" style={{ marginTop: 18, color: 'var(--spark)' }}>{s.n}</div>
+                <h3 className="serif" style={{ margin: '6px 0 8px', fontSize: 25, fontWeight: 500, color: 'var(--text-strong)' }}>{s.t}</h3>
+                <p style={{ margin: 0, fontSize: 15.5, lineHeight: 1.6, color: 'var(--text-muted)' }}>{s.d}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -97,29 +149,8 @@ export default function Landing({ onStart }) {
         </div>
       </section>
 
-      {/* how it works */}
-      <section id="how" className="section">
-        <div className="wrap">
-          <div className="center" style={{ marginBottom: 52 }}>
-            <span className="site-kick">How it works</span>
-            <h2 className="site-h2" style={{ marginTop: 12 }}>Three steps to the right words.</h2>
-          </div>
-          <div className="grid3">
-            {STEPS.map((s) => (
-              <div key={s.n} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-xl)', padding: '30px 26px', boxShadow: 'var(--shadow-sm)' }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 56, height: 56, borderRadius: 'var(--radius-lg)', background: 'var(--accent-soft)', color: 'var(--accent)' }}>
-                  <Icon name={s.icon} size={26} />
-                </span>
-                <div className="site-kick" style={{ marginTop: 18, color: 'var(--spark)' }}>{s.n}</div>
-                <h3 className="serif" style={{ margin: '6px 0 8px', fontSize: 25, fontWeight: 500, color: 'var(--text-strong)' }}>{s.t}</h3>
-                <p style={{ margin: 0, fontSize: 15.5, lineHeight: 1.6, color: 'var(--text-muted)' }}>{s.d}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* quote — night band */}
+      {SHOW_TESTIMONIAL && (
       <section className="section night" style={{ background: 'var(--ink-800)' }}>
         <div className="wrap center" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <Sparkle size={30} style={{ color: 'var(--spark)' }} twinkle />
@@ -135,8 +166,10 @@ export default function Landing({ onStart }) {
           </div>
         </div>
       </section>
+      )}
 
       {/* pricing */}
+      {SHOW_PRICING && (
       <section id="pricing" className="section" style={{ background: 'var(--bg-elevated)' }}>
         <div className="wrap">
           <div className="center" style={{ marginBottom: 48 }}>
@@ -166,28 +199,99 @@ export default function Landing({ onStart }) {
           </div>
         </div>
       </section>
+      )}
+
+      {/* closing CTA — night starfield (from the v1 landing, Daybreak-styled) */}
+      <section className="section night bg-night-sky">
+        <div className="wrap center" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <Sparkle size={34} style={{ color: 'var(--foil)' }} twinkle />
+          <h2 className="site-h2" style={{ marginTop: 22, maxWidth: '18ch' }}>The words you can’t find — found.</h2>
+          <p className="site-lead" style={{ marginTop: 18, maxWidth: '42ch' }}>
+            Stop drafting the same hard message at midnight. Tell BetterWords the situation, and send something you’re proud of.
+          </p>
+          <div style={{ marginTop: 30 }}>
+            <Button variant="spark" size="lg" iconRight={<Sparkle size={16} style={{ color: '#fff' }} />} onClick={start}>Compose a message</Button>
+          </div>
+          <div style={{ marginTop: 20, fontSize: 13, color: 'var(--text-faint)', letterSpacing: '0.04em' }}>Rehearse your approach as many times as you need · Till it feels right</div>
+        </div>
+      </section>
 
       {/* footer */}
-      <footer style={{ background: 'var(--bg-base)', borderTop: '1px solid var(--border-hair)', padding: '56px 0 40px' }}>
-        <div className="wrap" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 32 }}>
-          <div style={{ maxWidth: 320 }}>
-            <Logo size={22} />
-            <p style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 14, lineHeight: 1.6 }}>The right words, warmer. BetterWords helps you say the things that matter.</p>
-          </div>
-          <div style={{ display: 'flex', gap: 56, flexWrap: 'wrap' }}>
-            {FOOTER_COLS.map(([h, items]) => (
-              <div key={h}>
-                <div className="site-kick" style={{ marginBottom: 14, color: 'var(--text-muted)' }}>{h}</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {items.map((i) => <a key={i} className="lp-link" style={{ fontSize: 14, cursor: 'pointer' }}>{i}</a>)}
-                </div>
+      <SiteFooter onNav={scrollTo} />
+    </div>
+  )
+}
+
+function HeroDeck() {
+  const [card, setCard] = useState(0)
+  const timer = useRef(null)
+  const n = HERO_CARDS.length
+
+  useEffect(() => {
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reduce) return
+    timer.current = setInterval(() => setCard((c) => (c + 1) % n), 4400)
+    return () => clearInterval(timer.current)
+  }, [n])
+
+  const goCard = (i) => {
+    if (i === card) return
+    clearInterval(timer.current)
+    setCard(i)
+    timer.current = setInterval(() => setCard((c) => (c + 1) % n), 4400)
+  }
+
+  const c = HERO_CARDS[card]
+
+  return (
+    <div className="lp-hero-deck" style={{ position: 'relative', perspective: '1700px', height: 446, marginTop: 48 }}>
+      {HERO_CARDS.map((cardData, i) => {
+        const depth = (i - card + n) % n
+        const offX = [0, -20, 16][depth]
+        const offY = [0, 20, 34][depth]
+        const rot = [1.2, -3.2, 4][depth]
+        const scale = [1, 0.95, 0.905][depth]
+        return (
+          <div
+            key={i}
+            className="lp-deck-card"
+            style={{
+              position: 'absolute', top: 0, left: 0, width: '100%', boxSizing: 'border-box',
+              background: depth === 0 ? 'var(--surface-card)' : 'var(--peri-300)',
+              border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-lg)',
+              boxShadow: depth === 0 ? 'var(--shadow-lg)' : 'var(--shadow-md)', padding: '28px 32px',
+              transformOrigin: 'center bottom', zIndex: 10 - depth,
+              transform: `translate(${offX}px,${offY}px) scale(${scale}) rotate(${rot}deg)`,
+              transition: 'transform 0.75s cubic-bezier(.45,.05,.2,1), background 0.6s var(--ease-out), box-shadow 0.75s var(--ease-out)',
+            }}
+          >
+            <div style={{ opacity: depth === 0 ? 1 : 0, transition: 'opacity 0.55s var(--ease-out)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '44px 1fr', gap: '6px 12px', alignItems: 'baseline', borderBottom: '1px solid var(--border-hair)', paddingBottom: 14, marginBottom: 16, fontSize: 12.5 }}>
+                <span style={{ color: 'var(--text-faint)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>To</span><span style={{ color: 'var(--text-strong)', fontWeight: 500 }}>{cardData.to}</span>
+                <span style={{ color: 'var(--text-faint)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Re</span><span style={{ color: 'var(--text-strong)', fontWeight: 500 }}>{cardData.re}</span>
               </div>
-            ))}
+              <p className="serif" style={{ fontSize: 17.5, lineHeight: 1.55, color: 'var(--text-body)', margin: '0 0 12px' }}>{cardData.p1}</p>
+              <p className="serif" style={{ fontSize: 17.5, lineHeight: 1.55, color: 'var(--text-body)', margin: 0 }}>{cardData.p2}</p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border-hair)' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 700, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: cardData.tagInk, background: cardData.tagBg, padding: '5px 11px', borderRadius: 999 }}>{cardData.tag}</span>
+                <span style={{ fontWeight: 600, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: cardData.rightInk }}>{cardData.right}</span>
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="wrap" style={{ marginTop: 40 }}><Divider /></div>
-        <div className="wrap" style={{ marginTop: 20, fontSize: 13, color: 'var(--text-faint)' }}>© 2026 BetterWords · Say the hard thing, well ✦</div>
-      </footer>
+        )
+      })}
+      {/* postmark badge (front card) */}
+      <div style={{ position: 'absolute', top: -22, right: -14, transform: 'rotate(8deg)', zIndex: 20 }}>
+        <span className="lp-postmark" style={{ width: 74, height: 74, color: c.postColor, background: 'rgba(251,247,239,0.72)', fontWeight: 700, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', lineHeight: 1.15 }}>
+          {c.postL1}<br />{c.postL2}
+        </span>
+      </div>
+      {/* dots */}
+      <div style={{ position: 'absolute', bottom: -36, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 9, alignItems: 'center', zIndex: 20 }}>
+        {HERO_CARDS.map((_, i) => (
+          <button key={i} aria-label="Show example" onClick={() => goCard(i)} style={{ width: i === card ? 22 : 8, height: 8, borderRadius: 999, border: 'none', padding: 0, cursor: 'pointer', transition: 'width .3s var(--ease-out), background .3s var(--ease-out)', background: i === card ? 'var(--accent)' : 'var(--peri-400)' }} />
+        ))}
+      </div>
     </div>
   )
 }
@@ -214,7 +318,7 @@ function LiveExample() {
             <Slider defaultValue={40} labelStart="Succinct" labelEnd="Detailed" />
           </div>
         </div>
-        <Card variant="draft" style={{ padding: 30 }}>
+        <Card variant="draft" style={{ padding: 30, boxShadow: 'var(--shadow-lg)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
             <span className="site-kick" style={{ color: 'var(--text-muted)' }}>To your landlord</span>
             {tone === 'Moderate' && <Badge tone="gradient" size="sm"><Sparkle size={9} style={{ color: '#fff' }} />Recommended</Badge>}
