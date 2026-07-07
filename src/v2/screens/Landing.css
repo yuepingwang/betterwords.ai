@@ -78,25 +78,6 @@
 
 /* bw-twinkle keyframes now come from the Daybreak system (ds/daybreak.css). */
 
-@media (prefers-reduced-motion: reduce) {
-  .bw-v2 .lp-deck-card {
-    transition: none !important;
-  }
-}
-
-/* Postmark ring on the hero deck (self-contained copy of the v1
-   `.postmark` cancellation mark, so v2 doesn't depend on the v1 DS). */
-.bw-v2 .lp-postmark {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  border-radius: 999px;
-  border: 1.5px solid currentColor;
-  font-family: var(--font-sans);
-}
-
 /* ---- betterwords-web landing helpers (scoped) ---------------------- */
 .bw-v2 .wrap {
   width: 100%;
@@ -155,45 +136,347 @@
   margin: 0;
 }
 
-/* Hero (v1 layout): collapse the 2-up grid, cap the letter deck at its
-   desktop width and keep its proportions as it scales down on phones. */
-@media (max-width: 960px) {
-  .bw-v2 .lp-hero {
-    grid-template-columns: 1fr !important;
-    gap: 44px !important;
+/* ---- hero + register (hero-register-section.html, claude.ai/design) --- */
+
+.bw-v2 .lp2-hero {
+  position: relative;
+  text-align: center;
+  padding: 88px 0 92px;
+}
+.bw-v2 .lp2-h1 {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-variation-settings: var(--display-soft);
+  font-weight: 600;
+  letter-spacing: -0.028em;
+  color: var(--ink-800);
+  margin: 22px 0 0;
+  font-size: clamp(46px, 6.6vw, 78px);
+  line-height: 1.04;
+}
+.bw-v2 .lp2-lead {
+  max-width: 46ch;
+  margin: 22px auto 0;
+  font-size: 19px;
+  line-height: 1.6;
+  color: var(--ink-700);
+}
+.bw-v2 .lp2-float {
+  position: absolute;
+  animation: bw-float 5.5s var(--ease-in-out) infinite;
+  filter: drop-shadow(0 8px 14px rgba(28, 23, 70, 0.14));
+}
+.bw-v2 .lp2-float.d1 { animation-delay: -1.4s; }
+.bw-v2 .lp2-float.d2 { animation-delay: -2.9s; }
+.bw-v2 .lp2-float.d3 { animation-delay: -3.9s; }
+.bw-v2 .lp2-tw {
+  color: var(--spark);
+  display: inline-block;
+  animation: bw-twinkle 3s var(--ease-in-out) infinite;
+}
+
+/* hero swap word — gradient letters rising in, blurring out */
+.bw-v2 .lp2-swap {
+  display: inline-flex;
+  white-space: nowrap;
+  vertical-align: baseline;
+}
+.bw-v2 .lp2-ltr {
+  display: inline-block;
+  will-change: transform, opacity, filter;
+  background-image: linear-gradient(92deg, var(--peach-500), var(--coral-500) 55%, var(--foil));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+@keyframes lp2-rise-in {
+  0% { opacity: 0; transform: translateY(0.72em) scale(0.82); filter: blur(5px); }
+  60% { opacity: 1; transform: translateY(-0.07em) scale(1.04); filter: blur(0); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes lp2-rise-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(-0.55em); filter: blur(3px); }
+}
+.bw-v2 .lp2-ltr.in { animation: lp2-rise-in var(--dur-slow) var(--ease-spring) both; }
+.bw-v2 .lp2-ltr.out { animation: lp2-rise-out 300ms var(--ease-in-out) both; }
+
+/* register section — synced copy + pips on the left, letter stack right */
+.bw-v2 .lp2-reg {
+  position: relative;
+  padding: 82px 0 116px;
+}
+.bw-v2 .lp2-reg-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.05fr;
+  gap: 60px;
+  align-items: center;
+  margin-top: 30px;
+}
+.bw-v2 .lp2-reg-title {
+  font-family: var(--font-display);
+  font-variation-settings: var(--display-soft);
+  font-weight: 600;
+  color: var(--ink-800);
+  font-size: clamp(38px, 4.6vw, 56px);
+  line-height: 1.05;
+  letter-spacing: -0.026em;
+  margin: 0;
+  min-height: 1.1em;
+}
+.bw-v2 .lp2-reg-para {
+  font-size: 19px;
+  line-height: 1.62;
+  color: var(--ink-700);
+  max-width: 38ch;
+  margin: 20px 0 0;
+  min-height: 3.2em;
+}
+.bw-v2 .lp2-pips {
+  display: flex;
+  gap: 8px;
+  margin-top: 34px;
+}
+.bw-v2 .lp2-pips button {
+  width: 34px;
+  height: 5px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--border-soft);
+  cursor: pointer;
+  padding: 0;
+  transition: background var(--dur-base), width var(--dur-base) var(--ease-spring);
+}
+.bw-v2 .lp2-pips button.on {
+  background: var(--spark);
+  width: 48px;
+}
+@keyframes lp2-fade-rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+.bw-v2 .lp2-afade { animation: lp2-fade-rise 0.5s var(--ease-out) both; }
+
+/* shuffling letter stack */
+.bw-v2 .lp2-stack {
+  position: relative;
+  height: 400px;
+  top: 46px;
+}
+.bw-v2 .lp2-letter {
+  position: absolute;
+  inset: 0;
+  background: var(--paper-0);
+  border: 1px solid var(--border-hair);
+  border-radius: 14px;
+  padding: 30px 32px 26px;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.62s var(--ease-spring), opacity 0.45s var(--ease-out), box-shadow 0.45s;
+  will-change: transform;
+}
+.bw-v2 .lp2-letter > * {
+  flex-shrink: 0;
+}
+.bw-v2 .lp2-stamp {
+  position: absolute;
+  top: -10px;
+  right: 14px;
+  z-index: 3;
+  transform: rotate(-6deg);
+}
+.bw-v2 .lp2-stamp img {
+  width: 128px;
+  height: 124px;
+  filter: drop-shadow(0 6px 11px rgba(28, 23, 70, 0.18));
+}
+.bw-v2 .lp2-ltop {
+  position: absolute;
+  top: -11px;
+  left: 24px;
+  z-index: 5;
+  display: inline-flex;
+  background-image: var(--grad-aurora);
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 4px;
+  box-shadow: var(--shadow-sm);
+  transform: rotate(-3.5deg);
+}
+.bw-v2 .lp2-lhead {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-right: 118px;
+}
+.bw-v2 .lp2-lrow {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 14px;
+}
+.bw-v2 .lp2-llab {
+  flex: 0 0 22px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.bw-v2 .lp2-lval {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--ink-800);
+  font-weight: 500;
+}
+.bw-v2 .lp2-lval.re {
+  font-family: var(--font-serif);
+  font-size: 16px;
+}
+.bw-v2 .lp2-lrule {
+  border: 0;
+  border-top: 1px solid var(--border-hair);
+  margin: 15px 0;
+}
+.bw-v2 .lp2-lbody {
+  flex: 0 0 auto;
+}
+.bw-v2 .lp2-lbody p {
+  font-family: var(--font-serif);
+  margin: 0 0 12px;
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--text-strong);
+}
+.bw-v2 .lp2-lbody p:last-child {
+  margin-bottom: 0;
+}
+.bw-v2 .lp2-lfoot {
+  margin: auto -32px -26px;
+  padding: 16px 32px 22px;
+  border-top: 1px dashed var(--border-hair);
+  background: rgba(122, 132, 196, 0.06);
+  border-radius: 0 0 14px 14px;
+}
+.bw-v2 .lp2-ltags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.bw-v2 .lp2-ptag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding: 5px 12px 5px 11px;
+  border-radius: 999px;
+  box-shadow: var(--shadow-xs);
+}
+.bw-v2 .lp2-ptag::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.6;
+}
+.bw-v2 .lp2-lland {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.bw-v2 .lp2-lland b {
+  white-space: nowrap;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: 10.5px;
+  color: var(--text-faint);
+}
+.bw-v2 .lp2-lland em {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 16.5px;
+  color: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bw-v2 .lp2-ltr,
+  .bw-v2 .lp2-tw,
+  .bw-v2 .lp2-float,
+  .bw-v2 .lp2-afade {
+    animation: none !important;
   }
-  .bw-v2 .lp-hero-deck {
-    width: 100% !important;
-    max-width: 500px !important;
-    height: auto !important;
-    aspect-ratio: 500 / 446 !important;
-    margin: 8px auto 0 !important;
+  .bw-v2 .lp2-letter {
+    transition: none !important;
+  }
+}
+
+/* Register section: collapse to one column, center the stack. */
+@media (max-width: 960px) {
+  .bw-v2 .lp2-reg-grid {
+    grid-template-columns: 1fr;
+    gap: 44px;
+  }
+  .bw-v2 .lp2-stack {
+    top: 0;
+    width: 100%;
+    max-width: 520px;
+    margin: 12px auto 0;
   }
 }
 
 @media (max-width: 768px) {
-  /* Center the hero copy once it stacks into one column, and let the
-     column shrink below its content's natural width. */
-  .bw-v2 .lp-hero-copy {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    min-width: 0;
+  /* Floating characters crowd the centered copy on phones. */
+  .bw-v2 .lp2-float {
+    display: none;
   }
-  .bw-v2 .lp-hero-cta,
-  .bw-v2 .lp-hero-tags {
-    justify-content: center !important;
+  /* lp2-h1's clamp() bottoms out at 46px — too large for phones. */
+  .bw-v2 .lp2-h1 {
+    font-size: 40px;
   }
-  /* site-h1's clamp() bottoms out at 46px — too large for phones. */
-  .bw-v2 .lp-hero .site-h1 {
-    font-size: 40px !important;
+}
+
+@media (max-width: 560px) {
+  /* Narrower cards wrap more lines — give the stack room to breathe. */
+  .bw-v2 .lp2-stack {
+    height: 470px;
+  }
+  .bw-v2 .lp2-letter {
+    padding: 24px 22px 22px;
+  }
+  .bw-v2 .lp2-lfoot {
+    margin: auto -22px -22px;
+    padding: 14px 22px 18px;
+  }
+  .bw-v2 .lp2-lbody p {
+    font-size: 16px;
+  }
+  .bw-v2 .lp2-lhead {
+    padding-right: 84px;
+  }
+  .bw-v2 .lp2-stamp img {
+    width: 96px;
+    height: 93px;
   }
 }
 
 @media (max-width: 420px) {
-  .bw-v2 .lp-hero .site-h1 {
-    font-size: 34px !important;
+  .bw-v2 .lp2-h1 {
+    font-size: 34px;
+  }
+  .bw-v2 .lp2-stack {
+    height: 540px;
   }
 }
 
