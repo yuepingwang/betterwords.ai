@@ -56,6 +56,7 @@ function Router() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--cream-1)', fontFamily: 'var(--font-sans)', color: 'var(--text-body)', position: 'relative' }}>
       <SiteHeader
+        clear={state.screen === 'editor'}
         onLogo={() => dispatch({ type: 'GO_LANDING' })}
         onNav={goLandingSection}
         onStart={() => dispatch({ type: 'RESTART' })}

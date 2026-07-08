@@ -78,6 +78,17 @@ function reducer(state, action) {
       }
     case 'SET_LETTER_LOADING':
       return { ...state, letterLoading: action.value }
+    case 'RESTORE_EDIT':
+      // Undo/redo in the composer — restore a full editing snapshot at once.
+      return {
+        ...state,
+        letterParas: action.letterParas,
+        replacements: action.replacements,
+        inserts: action.inserts,
+        tone: action.tone,
+        verbosity: action.verbosity,
+        letterLoading: false,
+      }
     case 'SET_TONE':
       return { ...state, tone: action.value }
     case 'SET_VERB':
@@ -98,8 +109,24 @@ function reducer(state, action) {
 export const StoreContext = createContext(null)
 export { reducer as _reducer, initialState as _initialState }
 
+// Dev deep-link: `?v=2&screen=editor&scenario=rights[&idx=1]` boots straight
+// into a screen with a mock scenario loaded — for design review/screenshots.
+function initState() {
+  try {
+    const p = new URLSearchParams(window.location.search)
+    const screen = p.get('screen')
+    if (!screen) return initialState
+    const scenarioId = p.get('scenario') || 'rights'
+    const idx = Math.max(0, Math.min(2, Number(p.get('idx') ?? 1)))
+    const toneDefault = getScenario(scenarioId)?.strategies?.[idx]?.toneDefault ?? 50
+    return { ...initialState, screen, scenarioId, selectedIdx: idx, tone: toneDefault }
+  } catch {
+    return initialState
+  }
+}
+
 export function StoreProvider({ children }) {
-  const [state, dispatch] = useReducer(reducer, initialState)
+  const [state, dispatch] = useReducer(reducer, initState())
   const value = useMemo(() => {
     const scenario = state.scenarioId ? getScenario(state.scenarioId) : null
     // AI-generated strategies take precedence; the static DATA is the fallback.

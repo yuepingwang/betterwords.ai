@@ -46,15 +46,22 @@ export function LandingWordmark({ size = 21, onClick }) {
 // scrolled past it) and takes the hero-register-section color scheme:
 // accent nav links + spark "Start free". App screens keep the always-frosted
 // betterwords-web header with the gradient Logo.
-export function SiteHeader({ landing = false, onLogo, onNav, onStart }) {
+export function SiteHeader({ landing = false, clear = false, onLogo, onNav, onStart }) {
   const { Logo, Button } = DS2
 
   // On the landing, frost the shell once the hero gradient has scrolled
   // up past the header, so the clear header never floats over cream.
-  const [frosted, setFrosted] = React.useState(!landing)
+  // `clear` does the same for app screens whose gradient runs to the top of
+  // the viewport (e.g. the composer): transparent at rest, frosting as soon
+  // as content scrolls up under the header.
+  const [frosted, setFrosted] = React.useState(!landing && !clear)
   React.useEffect(() => {
-    if (!landing) return
+    if (!landing && !clear) return
     const onScroll = () => {
+      if (clear) {
+        setFrosted(window.scrollY > 8)
+        return
+      }
       const hero = document.querySelector('.bw-v2 .grad-daybreak')
       setFrosted(hero ? hero.getBoundingClientRect().bottom <= 68 : window.scrollY > 400)
     }
@@ -65,7 +72,7 @@ export function SiteHeader({ landing = false, onLogo, onNav, onStart }) {
       window.removeEventListener('scroll', onScroll)
       window.removeEventListener('resize', onScroll)
     }
-  }, [landing])
+  }, [landing, clear])
 
   const shell = {
     position: 'sticky', top: 0, zIndex: 50,
@@ -77,7 +84,9 @@ export function SiteHeader({ landing = false, onLogo, onNav, onStart }) {
   }
   return (
     <header style={shell}>
-      <div className="wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 68 }}>
+      {/* header content hugs the screen edges (wider than .wrap) so it
+          doesn't read as centered next to the wider page content below */}
+      <div style={{ width: '100%', padding: '0 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 68 }}>
         {landing ? (
           <LandingWordmark size={24} onClick={onLogo} />
         ) : (

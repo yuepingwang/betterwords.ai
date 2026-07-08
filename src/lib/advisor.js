@@ -424,6 +424,52 @@ export async function rewritePassage({ text, mode, instruction, context = '' }) 
 }
 
 // ==================================================================
+// 4b) Insert a passage — the composer's insert-text tool. Writes one or two
+//     new sentences to slot between two sentences (or as a new paragraph),
+//     from the writer's instruction. Fallback (no AI): use the instruction
+//     itself, tidied into a sentence, so the tool still works in mock mode.
+// ==================================================================
+
+export async function insertPassage({ scenarioId, before = '', after = '', context = '', instruction }) {
+  const fallback = () => {
+    let t = (instruction || '').trim()
+    if (!t) return ''
+    t = t[0].toUpperCase() + t.slice(1)
+    if (!/[.!?…]$/.test(t)) t += '.'
+    return t
+  }
+  if (!instruction?.trim()) return ''
+  try {
+    const placement =
+      before || after
+        ? `The new passage will be inserted ${before ? `right after: "${before.slice(-160)}"` : ''}` +
+          `${before && after ? ' and ' : ''}${after ? `right before: "${after.slice(0, 160)}"` : ''}.`
+        : 'The new passage will be added as its own paragraph.'
+    const content = await chat([
+      {
+        role: 'system',
+        content:
+          'You write a short passage (one or two sentences) to be inserted into an existing message, matching ' +
+          'its first-person voice and tone so the seam is invisible. Return ONLY the new passage as plain text — ' +
+          'no quotes, no preamble, no explanation. Never invent names, dates, or amounts; use a [bracketed ' +
+          'placeholder] if a specific is needed.',
+      },
+      {
+        role: 'user',
+        content:
+          `${scenarioContext(scenarioId)}\n\nFull message:\n${context}\n\n${placement}\n\n` +
+          `What it should convey: ${instruction}`,
+      },
+    ])
+    const out = content.trim().replace(/^["“]|["”]$/g, '').trim()
+    return out || fallback()
+  } catch (err) {
+    console.warn('[advisor] insertPassage fell back:', err.message)
+    return fallback()
+  }
+}
+
+// ==================================================================
 // 5) Evaluate — read the CURRENT letter (after retunes, rewrites, inserts)
 //    and produce a fresh "why this works" + "likely reaction", plus where the
 //    draft now SITS on the tone/length scales so the sliders can follow an edit.
