@@ -210,6 +210,11 @@
   --grad-dusk: linear-gradient(160deg, #5C7BEB 0%, #8A82D9 40%, #BFA8ED 70%, #F9BF9E 100%);
   --grad-aurora: linear-gradient(120deg, #5C7BEB 0%, #A688E4 30%, #F27A66 62%, #F5C659 100%);
   --grad-soft: linear-gradient(170deg, #FBF7EF 0%, #F1EEFB 52%, #FDECE0 100%);
+  /* ember — warm CTA sweep (Button variant="gradient-warm"); synced from
+     the DS export exports/GradientWarmButton.html */
+  --grad-ember: linear-gradient(110deg,
+    #EE8654 0%, #F4A278 14%, #F27A66 30%, #C48CC0 50%,
+    #A688E4 66%, #8AA8EF 84%, #5C7BEB 100%);
   --glow-peri:  radial-gradient(60% 60% at 50% 0%, rgba(92,123,235,0.45), transparent 70%);
   --glow-peach: radial-gradient(50% 50% at 80% 100%, rgba(244,162,120,0.5), transparent 72%);
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
@@ -439,6 +444,29 @@
   background: linear-gradient(100deg, #3F5AE0, #A688E4 45%, #EE8654 88%);
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
+
+/* Button variant="gradient-warm" — verbatim from the DS export
+   exports/GradientWarmButton.html (the bundled Button.jsx predates this
+   variant, so it renders the class but ships no rule for it; this is the
+   missing CSS). background-origin/clip: border-box + no-repeat paint the
+   oversized sweep under the 1.5px transparent border so no page color
+   rings the pill and no tile seam appears mid-slide. */
+.bw-v2 .bw-btn--gradient-warm {
+  background-image: var(--grad-ember);
+  background-repeat: no-repeat;
+  background-origin: border-box;
+  background-clip: border-box;
+  background-size: 240% 100%;
+  background-position: 6% 0;
+  color: var(--paper-0);
+  box-shadow: var(--shadow-md);
+  transition: background-position var(--dur-slow) var(--ease-out),
+              transform var(--dur-base) var(--ease-spring),
+              box-shadow var(--dur-base) var(--ease-out);
+}
+.bw-v2 .bw-btn--gradient-warm:hover { background-position: 100% 0; box-shadow: var(--shadow-lg); transform: translateY(-1.5px); }
+.bw-v2 .bw-btn--gradient-warm:active { background-position: 100% 0; box-shadow: var(--inset-press); transform: translateY(0.5px) scale(0.98); }
+.bw-v2 .bw-btn--gradient-warm:focus-visible { outline: none; box-shadow: var(--focus-shadow); }
 
 .bw-v2 .bg-night-sky {
   background-color: var(--ink-800);

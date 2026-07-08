@@ -58,9 +58,17 @@ const LETTERS = [
 ]
 
 const STEPS = [
-  { icon: 'chat', n: '01', t: 'Tell us the situation', d: 'A few quick questions about who it’s for, what you need, and what worries you most.' },
-  { icon: 'sparkle', n: '02', t: 'Choose how to say it', d: 'See several honest drafts — gentle to direct — each with its likely reaction and risk.' },
-  { icon: 'envelope', n: '03', t: 'Refine, then send', d: 'Tune the tone and length, revise any line, and send something you’re proud of.' },
+  { n: '01', t: 'Tell us the situation', d: 'A few quick questions about who it’s for, what you need, and what worries you most.' },
+  { n: '02', t: 'Choose how to say it', d: 'See several honest drafts — gentle to direct — each with its likely reaction and risk.' },
+  { n: '03', t: 'Refine, then send', d: 'Tune the tone and length, revise any line, and send something you’re proud of.' },
+]
+
+// Rotated number discs + twinkling sparks per step, as in the v1 landing's
+// "how it works" row (mapped to Daybreak tokens).
+const STEP_COLORS = [
+  { disc: 'var(--peach-200)', ink: 'var(--coral-500)', spark: 'var(--coral-400)', delay: '0s' },
+  { disc: 'var(--honey-300)', ink: 'var(--honey-600)', spark: 'var(--honey-500)', delay: '1.6s' },
+  { disc: 'var(--peri-200)', ink: 'var(--royal-700)', spark: 'var(--royal-600)', delay: '3.2s' },
 ]
 
 const PLANS = [
@@ -69,7 +77,7 @@ const PLANS = [
 ]
 
 export default function Landing({ onStart }) {
-  const { Button, Badge, Sparkle, Icon, Avatar, Card, Tag } = DS2
+  const { Button, Badge, Sparkle, Avatar, Card, Tag } = DS2
   const start = () => onStart(null)
   const scrollTo = (id) => {
     const el = document.getElementById(id)
@@ -82,16 +90,17 @@ export default function Landing({ onStart }) {
           hero-layout-concepts nav type) */}
       <SiteHeader landing onLogo={start} onNav={scrollTo} onStart={start} />
 
-      {/* hero + register — grainy Daybreak gradient over both, per
-          hero-register-section.html. Pulled up under the 68px sticky header
-          (with matching padding) so the gradient runs from the very top of
-          the screen, showing through the frosted header. */}
+      {/* hero — grainy Daybreak gradient. Pulled up under the 68px sticky
+          header (with matching padding) so the gradient runs from the very
+          top of the screen, showing through the frosted header. */}
       <section className="grad-daybreak" style={{ marginTop: -68, paddingTop: 68 }}>
         <div className="lp2-hero">
           <img className="lp2-float d1" src="/ds-v2/assets/characters/ctx-sent.svg" style={{ width: 118, top: 64, right: '12%' }} alt="" />
-          <img className="lp2-float d2" src="/ds-v2/assets/characters/ctx-waiting.svg" style={{ width: 112, bottom: 20, left: '9%' }} alt="" />
+          <img className="lp2-float d2" src="/ds-v2/assets/characters/ctx-waiting.svg" style={{ width: 112, bottom: 44, left: '9%' }} alt="" />
           <img className="lp2-float d3" src="/ds-v2/assets/characters/spark.svg" style={{ width: 60, top: 120, left: '16%' }} alt="" />
-          <div className="wrap">
+          {/* paddingTop nudges the hero content down without moving the
+              absolutely-positioned floating characters above */}
+          <div className="wrap" style={{ paddingTop: 16 }}>
             <Badge tone="gradient"><Sparkle size={11} style={{ color: '#fff' }} />Now with tone &amp; length tuning</Badge>
             <h1 className="lp2-h1">Say the hard thing,<br />
               <span style={{ whiteSpace: 'nowrap' }}>
@@ -100,11 +109,31 @@ export default function Landing({ onStart }) {
                 <span className="lp2-tw" style={{ fontSize: '.6em', verticalAlign: '.3em', marginLeft: '.12em' }}>✦</span>
               </span>
             </h1>
-            <p className="lp2-lead">Betterwords helps you write the messages that matter most — and shows you how each way of saying it is likely to land.</p>
+              <p className="lp2-lead">A boundary, a dispute, a message you’ve rewritten five times. Betterwords helps you write the messages that matter most — and shows you how each way is likely to land.</p>
+            {/*<p className="lp2-lead">Betterwords helps you write the messages that matter most — and shows you how each way of saying it is likely to land.</p>*/}
+            {/* CTA row — sized/spaced like the v1 hero pair ("Compose a
+                message →" / "See how it works"): ~50px primary pill, 16px
+                gap, text-like borderless secondary. */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 52, flexWrap: 'wrap', justifyContent: 'center' }}>
+              <Button variant="gradient-warm" size="lg" iconRight={<Sparkle size={16} style={{ color: '#fff' }} />} onClick={start} style={{ height: 50, padding: '0 28px', fontSize: 16 }}>Start writing free</Button>
+              <Button variant="ghost" size="lg" onClick={() => scrollTo('examples')} style={{ height: 50, fontSize: 15, color: 'var(--ink-700)' }}>See an example</Button>
+            </div>
+            {/* Hidden for now — flip back on alongside pricing.
+            <div style={{ marginTop: 16, fontSize: 13, color: 'var(--ink-600)' }}>No card needed · Free for your first 20 messages</div> */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: 14, marginTop: 52, fontWeight: 600, fontSize: 13.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-faint)' }}>
+              <span>Boundaries</span>
+              <Sparkle size={14} style={{ color: 'var(--spark)', display: 'block' }} />
+              <span>Disputes</span>
+              <Sparkle size={14} style={{ color: 'var(--spark)', display: 'block' }} />
+              <span>Speaking up</span>
+            </div>
           </div>
         </div>
-        <RegisterSection />
       </section>
+
+      {/* what you'll send — its own section on the base background, no
+          longer sharing the hero's gradient */}
+      <RegisterSection />
 
       {/* how it works */}
       <section id="how" className="section">
@@ -113,17 +142,28 @@ export default function Landing({ onStart }) {
             <span className="site-kick">How it works</span>
             <h2 className="site-h2" style={{ marginTop: 12 }}>Three steps to the right words.</h2>
           </div>
-          <div className="grid3">
-            {STEPS.map((s) => (
-              <div key={s.n} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-xl)', padding: '30px 26px', boxShadow: 'var(--shadow-sm)' }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 56, height: 56, borderRadius: 'var(--radius-lg)', background: 'var(--accent-soft)', color: 'var(--accent)' }}>
-                  <Icon name={s.icon} size={26} />
-                </span>
-                <div className="site-kick" style={{ marginTop: 18, color: 'var(--spark)' }}>{s.n}</div>
-                <h3 className="serif" style={{ margin: '6px 0 8px', fontSize: 25, fontWeight: 500, color: 'var(--text-strong)' }}>{s.t}</h3>
-                <p style={{ margin: 0, fontSize: 15.5, lineHeight: 1.6, color: 'var(--text-muted)' }}>{s.d}</p>
-              </div>
-            ))}
+          <div className="grid3" style={{ gap: 30 }}>
+            {STEPS.map((s, i) => {
+              const col = STEP_COLORS[i]
+              return (
+                <div key={s.n} style={{ textAlign: 'left' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 18 }}>
+                    <span style={{ position: 'relative', display: 'inline-flex', flex: 'none' }}>
+                      <span style={{ fontFamily: 'var(--font-display)', fontVariationSettings: 'var(--display-soft)', fontWeight: 600, fontSize: 24, color: col.ink, background: col.disc, width: 52, height: 52, borderRadius: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transform: 'rotate(-4deg)', boxShadow: 'var(--shadow-xs)' }}>{s.n}</span>
+                      <span style={{ position: 'absolute', top: -9, right: -9, color: col.spark, animation: `bw-twinkle 4s var(--ease-in-out) ${col.delay} infinite` }}>
+                        <Sparkle size={18} />
+                      </span>
+                      <span style={{ position: 'absolute', bottom: -5, left: -6, color: col.spark, opacity: 0.7, animation: `bw-twinkle 4s var(--ease-in-out) ${col.delay} infinite reverse` }}>
+                        <Sparkle size={11} />
+                      </span>
+                    </span>
+                    <div className="rule-dotted" style={{ flex: 1 }} />
+                  </div>
+                  <h3 style={{ fontFamily: 'var(--font-display)', fontVariationSettings: 'var(--display-soft)', fontWeight: 600, fontSize: 25, lineHeight: 1.1, color: 'var(--text-strong)', margin: '0 0 10px' }}>{s.t}</h3>
+                  <p style={{ fontFamily: 'var(--font-serif)', fontSize: 17, lineHeight: 1.5, color: 'var(--text-muted)', margin: 0 }}>{s.d}</p>
+                </div>
+              )
+            })}
           </div>
         </div>
       </section>
@@ -132,14 +172,12 @@ export default function Landing({ onStart }) {
       <LiveExample />
 
       {/* where it helps — direct-entry scenario cards (jump straight into a flow) */}
-      <section id="situations" className="section">
+      <section id="situations" className="section" style={{ background: 'var(--bg-elevated)' }}>
         <div className="wrap">
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', marginBottom: 40 }}>
-            <div>
-              <span className="site-kick">Where it helps</span>
-              <h2 className="site-h2" style={{ marginTop: 12 }}>For the messages you<br />rewrite five times.</h2>
-            </div>
-            <p className="site-lead" style={{ maxWidth: '34ch' }}>Pick the situation closest to yours and we’ll take it from there — the high-stakes notes where tone is everything.</p>
+          <div style={{ marginBottom: 40 }}>
+            <span className="site-kick">Where it helps</span>
+            <h2 className="site-h2" style={{ marginTop: 12 }}>For the messages you<br />rewrite five times.</h2>
+            <p className="site-lead" style={{ marginTop: 18, maxWidth: '48ch' }}>Pick the situation closest to yours and we’ll take it from there — the high-stakes notes where tone is everything.</p>
           </div>
           <div className="grid3">
             {SCENARIO_IDS.map((id) => {
@@ -314,7 +352,8 @@ function RegisterSection() {
       <div className="wrap">
         <div className="lp2-reg-grid">
           <div>
-            <h2 key={`t-${order[0]}`} className="lp2-reg-title lp2-afade">{front.title}</h2>
+            <span className="site-kick">What you’ll send</span>
+            <h2 key={`t-${order[0]}`} className="lp2-reg-title lp2-afade" style={{ marginTop: 12 }}>{front.title}</h2>
             <p key={`p-${order[0]}`} className="lp2-reg-para lp2-afade">{front.para}</p>
             <div className="lp2-pips">
               {LETTERS.map((d, i) => (
@@ -372,7 +411,7 @@ function LiveExample() {
   }
   const [tone, setTone] = useState('Moderate')
   return (
-    <section id="examples" className="section" style={{ background: 'var(--bg-elevated)' }}>
+    <section id="examples" className="section grad-soft" style={{ backgroundImage: 'linear-gradient(350deg, #FBF7EF 0%, #F1EEFB 52%, #FDECE0 100%)' }}>
       <div className="wrap lp-two" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 56, alignItems: 'center' }}>
         <div>
           <span className="site-kick">Watch it work</span>

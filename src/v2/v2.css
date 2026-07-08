@@ -33,7 +33,11 @@
    screen files.
    -------------------------------------------------------------------- */
 .bw-v2 {
-  /* optional local overrides on top of Daybreak go here */
+  /* v1's app.css sets `-webkit-font-smoothing: antialiased` on body, which
+     thins Fraunces' strokes ("sharper" than the design-system kit HTML,
+     which never sets it). Reset to the browser default so v2 type renders
+     exactly like the kit files (e.g. hero-register-section.html). */
+  -webkit-font-smoothing: auto;
 }
 
 /* ---- scoped element defaults (mirror app.css, editable for v2) ------ */
