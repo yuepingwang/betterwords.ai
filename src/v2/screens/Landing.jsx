@@ -136,7 +136,7 @@ export default function Landing({ onStart }) {
       <RegisterSection />
 
       {/* how it works */}
-      <section id="how" className="section">
+      <section id="how" className="section grad-soft" style={{ backgroundImage: 'linear-gradient(350deg, #FBF7EF 0%, #F1EEFB 52%, #FDECE0 100%)' }}>
         <div className="wrap">
           <div className="center" style={{ marginBottom: 52 }}>
             <span className="site-kick">How it works</span>
@@ -172,7 +172,7 @@ export default function Landing({ onStart }) {
       <LiveExample />
 
       {/* where it helps — direct-entry scenario cards (jump straight into a flow) */}
-      <section id="situations" className="section" style={{ background: 'var(--bg-elevated)' }}>
+      <section id="situations" className="section">
         <div className="wrap">
           <div style={{ marginBottom: 40 }}>
             <span className="site-kick">Where it helps</span>
@@ -411,7 +411,7 @@ function LiveExample() {
   }
   const [tone, setTone] = useState('Moderate')
   return (
-    <section id="examples" className="section grad-soft" style={{ backgroundImage: 'linear-gradient(350deg, #FBF7EF 0%, #F1EEFB 52%, #FDECE0 100%)' }}>
+    <section id="examples" className="section" style={{ background: 'var(--bg-elevated)' }}>
       <div className="wrap lp-two" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 56, alignItems: 'center' }}>
         <div>
           <span className="site-kick">Watch it work</span>
