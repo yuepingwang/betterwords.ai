@@ -40,23 +40,27 @@ export function LandingWordmark({ size = 21, onClick }) {
   )
 }
 
+// Frosted-glass chrome fill — --bg-elevated at 50%, blurred.
+const FROST_BG = 'color-mix(in srgb, var(--bg-elevated) 50%, transparent)'
+
 // `landing` swaps the gradient Logo lockup for the solid animated wordmark,
-// sized to match the app screens' Logo (24px), clears the frosted shell
-// while the header is over the hero gradient (it frosts back in once
-// scrolled past it) and takes the hero-register-section color scheme:
-// accent nav links + spark "Start free". App screens keep the always-frosted
-// betterwords-web header with the gradient Logo.
-export function SiteHeader({ landing = false, clear = false, onLogo, onNav, onStart }) {
+// sized to match the app screens' Logo (24px), and takes the
+// hero-register-section color scheme: accent nav links + spark "Start free".
+// App-screen headers are always frosted (--bg-elevated at 50% + blur); the
+// landing is the one exception — clear while the header is over the first
+// section (the hero gradient), frosting once it scrolls up past the header.
+// `extra` renders on the right side of an app-screen header, aligned to the
+// right edge of the page content (a centered container mirroring the screen's
+// content width) rather than the viewport edge.
+export function SiteHeader({ landing = false, clear = false, extra = null, extraWidth = 1280, onLogo, onNav, onStart }) {
   const { Logo, Button } = DS2
 
-  // On the landing, frost the shell once the hero gradient has scrolled
-  // up past the header, so the clear header never floats over cream.
-  // `clear` does the same for app screens whose gradient runs to the top of
-  // the viewport (e.g. the composer): transparent at rest, frosting as soon
-  // as content scrolls up under the header.
   const [frosted, setFrosted] = React.useState(!landing && !clear)
   React.useEffect(() => {
-    if (!landing && !clear) return
+    if (!landing && !clear) {
+      setFrosted(true)
+      return
+    }
     const onScroll = () => {
       if (clear) {
         setFrosted(window.scrollY > 8)
@@ -78,7 +82,7 @@ export function SiteHeader({ landing = false, clear = false, onLogo, onNav, onSt
     position: 'sticky', top: 0, zIndex: 50,
     backdropFilter: frosted ? 'blur(10px)' : 'none',
     WebkitBackdropFilter: frosted ? 'blur(10px)' : 'none',
-    background: frosted ? 'rgba(251,247,239,0.72)' : 'transparent',
+    background: frosted ? FROST_BG : 'transparent',
     borderBottom: `1px solid ${frosted ? 'var(--border-hair)' : 'transparent'}`,
     transition: 'background 0.25s var(--ease-out), border-color 0.25s var(--ease-out)',
   }
@@ -94,13 +98,25 @@ export function SiteHeader({ landing = false, clear = false, onLogo, onNav, onSt
             <Logo variant="gradient" size={24} />
           </span>
         )}
-        <nav className={landing ? 'lp-navlinks lp-nav-accent' : 'lp-navlinks'} style={{ display: 'flex', alignItems: 'center', gap: landing ? 26 : 30 }}>
-          {NAV_LINKS.map(([label, id]) => (
-            <a key={id} className="lp-link" onClick={() => onNav(id)} style={{ cursor: 'pointer', fontSize: 15, fontWeight: 500 }}>{label}</a>
-          ))}
-          <Button variant={landing ? 'spark' : 'primary'} size="sm" onClick={onStart} style={landing ? { fontSize: 14.5, fontWeight: 600 } : undefined}>Start free</Button>
-        </nav>
+        {/* nav links + CTA are landing-only; app screens keep just the mark */}
+        {landing && (
+          <nav className="lp-navlinks lp-nav-accent" style={{ display: 'flex', alignItems: 'center', gap: 26 }}>
+            {NAV_LINKS.map(([label, id]) => (
+              <a key={id} className="lp-link" onClick={() => onNav(id)} style={{ cursor: 'pointer', fontSize: 15, fontWeight: 500 }}>{label}</a>
+            ))}
+            <Button variant="spark" size="sm" onClick={onStart} style={{ fontSize: 14.5, fontWeight: 600 }}>Start free</Button>
+          </nav>
+        )}
       </div>
+      {/* per-screen control, overlaid so it right-aligns with the page
+          content container instead of the viewport-hugging bar above */}
+      {!landing && extra && (
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 68, pointerEvents: 'none' }}>
+          <div style={{ maxWidth: extraWidth, height: '100%', margin: '0 auto', padding: '0 32px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+            <span style={{ pointerEvents: 'auto', display: 'inline-flex' }}>{extra}</span>
+          </div>
+        </div>
+      )}
     </header>
   )
 }
@@ -108,7 +124,7 @@ export function SiteHeader({ landing = false, clear = false, onLogo, onNav, onSt
 export function SiteFooter({ onLogo, onNav }) {
   const { Logo, Divider } = DS2
   return (
-    <footer style={{ marginTop: 'auto', background: 'var(--bg-base)', borderTop: '1px solid var(--border-hair)', padding: '56px 0 40px' }}>
+    <footer style={{ marginTop: 'auto', background: FROST_BG, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', borderTop: '1px solid var(--border-hair)', padding: '56px 0 40px' }}>
       <div className="wrap" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 32 }}>
         <div style={{ maxWidth: 320 }}>
           <span style={{ display: 'inline-flex', cursor: onLogo ? 'pointer' : undefined }} onClick={onLogo}>

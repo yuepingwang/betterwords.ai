@@ -9,6 +9,8 @@ import './Landing.css'
 // onStart(null) → Home, and the scenario cards jump straight into a flow.
 
 const SCENARIO_ART = { rights: 'ctx-dispute', personal: 'ctx-boundary', circle: 'ctx-speakup' }
+// hover edge tints matching the Home scenario cards (see Home's CARD_TONES)
+const SCENARIO_EDGE = { rights: 'var(--peach-300)', personal: 'var(--lilac-400)', circle: 'var(--honey-400)' }
 
 // Hidden for now — flip back on when testimonials/pricing are ready.
 const SHOW_TESTIMONIAL = false
@@ -87,8 +89,9 @@ export default function Landing({ onStart }) {
   return (
     <div style={{ position: 'relative', background: 'var(--bg-base)', color: 'var(--text-body)', fontFamily: 'var(--font-sans)' }}>
       {/* header — shared sticky chrome, landing variant (solid wordmark,
-          hero-layout-concepts nav type) */}
-      <SiteHeader landing onLogo={start} onNav={scrollTo} onStart={start} />
+          hero-layout-concepts nav type). The wordmark just scrolls back to
+          the top of the landing page. */}
+      <SiteHeader landing onLogo={() => window.scrollTo({ top: 0, behavior: 'smooth' })} onNav={scrollTo} onStart={start} />
 
       {/* hero — grainy Daybreak gradient. Pulled up under the 68px sticky
           header (with matching padding) so the gradient runs from the very
@@ -115,7 +118,7 @@ export default function Landing({ onStart }) {
                 message →" / "See how it works"): ~50px primary pill, 16px
                 gap, text-like borderless secondary. */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 52, flexWrap: 'wrap', justifyContent: 'center' }}>
-              <Button variant="gradient-warm" size="lg" iconRight={<Sparkle size={16} style={{ color: '#fff' }} />} onClick={start} style={{ height: 50, padding: '0 28px', fontSize: 16 }}>Start writing free</Button>
+              <Button variant="gradient-warm" size="lg" iconRight={<img src="/ds-v2/assets/glyphs/logo-star-white.svg" alt="" width={13} height={13} style={{ display: 'block', transform: 'translateY(2px)' }} />} onClick={start} style={{ height: 50, padding: '0 28px', fontSize: 16 }}>Start writing free</Button>
               <Button variant="ghost" size="lg" onClick={() => scrollTo('examples')} style={{ height: 50, fontSize: 15, color: 'var(--ink-700)' }}>See an example</Button>
             </div>
             {/* Hidden for now — flip back on alongside pricing.
@@ -140,7 +143,7 @@ export default function Landing({ onStart }) {
         <div className="wrap">
           <div className="center" style={{ marginBottom: 52 }}>
             <span className="site-kick">How it works</span>
-            <h2 className="site-h2" style={{ marginTop: 12 }}>Three steps to the right words.</h2>
+            <h2 className="site-h2" style={{ marginTop: 12 }}>Three steps from stumped to sent.</h2>
           </div>
           <div className="grid3" style={{ gap: 30 }}>
             {STEPS.map((s, i) => {
@@ -183,7 +186,7 @@ export default function Landing({ onStart }) {
             {SCENARIO_IDS.map((id) => {
               const d = DATA[id]
               return (
-                <Card key={id} className="adv-card-hover bw-home-card" onClick={() => onStart(id)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '40px 28px', cursor: 'pointer' }}>
+                <Card key={id} className="adv-card-hover bw-home-card" onClick={() => onStart(id)} style={{ '--card-edge': SCENARIO_EDGE[id], display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '40px 28px', cursor: 'pointer' }}>
                   <img src={`/ds-v2/assets/characters/${SCENARIO_ART[id]}.svg`} alt="" style={{ width: 128, height: 110, objectFit: 'contain', margin: '0 0 20px' }} />
                   <div className="site-kick" style={{ marginBottom: 12 }}>{d.kicker}</div>
                   <h3 style={{ fontFamily: 'var(--font-display)', fontVariationSettings: 'var(--display-soft)', fontWeight: 600, fontSize: 25, lineHeight: 1.08, color: 'var(--text-strong)', margin: '0 0 14px' }}>{d.label}</h3>
@@ -259,7 +262,7 @@ export default function Landing({ onStart }) {
             Stop drafting the same hard message at midnight. Tell BetterWords the situation, and send something you’re proud of.
           </p>
           <div style={{ marginTop: 30 }}>
-            <Button variant="spark" size="lg" iconRight={<Sparkle size={16} style={{ color: '#fff' }} />} onClick={start}>Compose a message</Button>
+            <Button variant="spark" size="lg" iconRight={<img src="/ds-v2/assets/glyphs/logo-star-white.svg" alt="" width={13} height={13} style={{ display: 'block', transform: 'translateY(2px)' }} />} onClick={start}>Compose a message</Button>
           </div>
           <div style={{ marginTop: 20, fontSize: 13, color: 'var(--text-faint)', letterSpacing: '0.04em' }}>Rehearse your approach as many times as you need · Till it feels right</div>
         </div>
@@ -402,26 +405,51 @@ function RegisterSection() {
   )
 }
 
+// Every tone × length pairing is pre-written (3 tones × 5 lengths), so both
+// tuners work instantly with no model call. Index 0 = most succinct.
+const LIVE_VARIANTS = {
+  Soft: [
+    'Hi — just a gentle nudge on the heating repair when you have a moment. Thank you!',
+    'Hi — just a gentle follow-up on the heating repair whenever you get a chance. Thank you so much!',
+    'Hi — hope your week is going well! Just a gentle follow-up on the heating repair whenever you get a chance. It’s been getting chilly at night. Thank you so much!',
+    'Hi — hope your week is going well! I wanted to gently follow up on the heating repair whenever you get a chance — it’s been out for a little while, and the apartment gets quite chilly at night. Whenever someone can stop by works for me. Thank you so much!',
+    'Hi — hope your week is going well! I wanted to gently follow up on the heating repair we spoke about, whenever you get a chance. It’s been out for about three weeks now, and with the colder nights the apartment gets quite chilly. I’m happy to work around whatever time suits your schedule — mornings or evenings both work. Thank you so much for looking into it!',
+  ],
+  Moderate: [
+    'Hi — following up on the heating, out three weeks now. Could someone come this week? I’d appreciate a firm date.',
+    'Hi — following up on the heating, which has been out three weeks. With it getting cold, could someone come this week? I’d appreciate a firm date.',
+    'Hi — following up on the heating, which has now been out for three weeks. With the weather getting cold, could someone come take a look this week? I’d appreciate a firm date so I can plan around it.',
+    'Hi — I’m following up on the heating repair, which has now been out for three weeks. With the weather getting colder, this is becoming urgent. Could someone come take a look this week? I’d appreciate a firm date so I can plan around it, and I’m happy to be home whenever works.',
+    'Hi — I’m following up again on the heating repair, which has now been out for three weeks despite my earlier messages. With the weather getting colder, this is becoming urgent for us. Could someone come take a look this week? I’d appreciate a firm date so I can plan around it — I’m happy to be home mornings or evenings, whichever is easier to schedule. Thanks for making this a priority.',
+  ],
+  Strong: [
+    'This is my third request about the heating, out three weeks. Please confirm a repair date within 48 hours.',
+    'This is my third request about the heating, unaddressed for three weeks. Please confirm a repair date within 48 hours.',
+    'This is my third request about the heating, which has gone unaddressed for three weeks. Please confirm a repair date within 48 hours, or I’ll need to look into my options.',
+    'This is my third request about the heating, which has gone unaddressed for three weeks despite my messages on the 2nd and the 9th. Working heat is a basic obligation under our lease. Please confirm a repair date within 48 hours, or I’ll need to look into my options.',
+    'This is my third request about the heating, which has gone unaddressed for three weeks despite my messages on the 2nd and the 9th. Working heat is a basic obligation under our lease, and the apartment now drops below comfortable temperatures overnight. Please confirm a repair date within 48 hours. If I don’t hear back, I’ll have the work done myself and deduct the cost from rent, as local tenancy rules allow.',
+  ],
+}
+
 function LiveExample() {
   const { Segmented, Slider, Card, Badge, Sparkle, Tag } = DS2
-  const variants = {
-    Soft: 'Hi — just a gentle follow-up on the heating repair whenever you get a chance. Thank you so much!',
-    Moderate: 'Hi — following up on the heating, which has been out three weeks. With it getting cold, could someone come this week? I’d appreciate a firm date.',
-    Strong: 'This is my third request about the heating, unaddressed for three weeks. Please confirm a repair date within 48 hours.',
-  }
   const [tone, setTone] = useState('Moderate')
+  const [length, setLength] = useState(40)
+  // 0–100 slider → one of the five pre-written lengths
+  const variant = LIVE_VARIANTS[tone][Math.min(4, Math.floor(length / 20))]
   return (
     <section id="examples" className="section" style={{ background: 'var(--bg-elevated)' }}>
       <div className="wrap lp-two" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 56, alignItems: 'center' }}>
         <div>
           <span className="site-kick">Watch it work</span>
           <h2 className="site-h2" style={{ marginTop: 14 }}>One message,<br />every register.</h2>
-          <p className="site-lead" style={{ marginTop: 16, maxWidth: '40ch' }}>Slide the tone from soft to strong and watch the words change — never the meaning, never your voice.</p>
+          <p className="site-lead" style={{ marginTop: 16, maxWidth: '40ch' }}>Switch the tone from soft to strong and watch the words change — never the meaning, never your voice.</p>
           <div style={{ marginTop: 24, maxWidth: 340 }}>
             <div className="site-kick" style={{ marginBottom: 10, color: 'var(--text-muted)' }}>Tone</div>
             <Segmented block options={['Soft', 'Moderate', 'Strong']} value={tone} onChange={setTone} />
             <div className="site-kick" style={{ margin: '22px 0 12px', color: 'var(--text-muted)' }}>Length</div>
-            <Slider defaultValue={40} labelStart="Succinct" labelEnd="Detailed" />
+            {/* the DS Slider forwards the native input event, not a number */}
+            <Slider value={length} onChange={(e) => setLength(Number(e?.target?.value ?? e))} labelStart="Succinct" labelEnd="Detailed" />
           </div>
         </div>
         <Card variant="draft" style={{ padding: 30, boxShadow: 'var(--shadow-lg)' }}>
@@ -429,7 +457,7 @@ function LiveExample() {
             <span className="site-kick" style={{ color: 'var(--text-muted)' }}>To your landlord</span>
             {tone === 'Moderate' && <Badge tone="gradient" size="sm"><Sparkle size={9} style={{ color: '#fff' }} />Recommended</Badge>}
           </div>
-          <p className="serif" style={{ margin: 0, fontSize: 22, lineHeight: 1.6, color: 'var(--text-strong)' }}>{variants[tone]}</p>
+          <p className="serif" style={{ margin: 0, fontSize: 22, lineHeight: 1.6, color: 'var(--text-strong)' }}>{variant}</p>
           <div style={{ display: 'flex', gap: 8, marginTop: 22, flexWrap: 'wrap' }}>
             {['Warmer', 'Shorter', 'Add a deadline'].map((t) => <Tag key={t}>{t}</Tag>)}
           </div>

@@ -16,7 +16,21 @@ export default function Send() {
   }
 
   return (
-    <main style={{ maxWidth: 620, margin: '0 auto', padding: '52px 32px 90px' }}>
+    <main
+      style={{
+        maxWidth: 620,
+        margin: '0 auto',
+        padding: '52px 32px 90px',
+        // the review fills at least 80% of the viewport (title top, letter
+        // middle, actions bottom); the sent state keeps the same band and
+        // centers its content in it so the page height doesn't jump
+        minHeight: '80vh',
+        boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: state.sent ? 'center' : 'space-between',
+      }}
+    >
       {!state.sent && (
         <>
           <div style={{ textAlign: 'center', marginBottom: 30 }}>
@@ -43,12 +57,23 @@ export default function Send() {
 
       {state.sent && (
         <div style={{ textAlign: 'center', animation: 'adv-up .5s var(--ease-out)' }}>
-          <div
-            className="grad-dawn"
-            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 128, height: 128, borderRadius: 'var(--radius-2xl)', margin: '0 auto 26px', boxShadow: 'var(--shadow-lg)', animation: 'adv-seal .7s var(--ease-out)' }}
-          >
-            <Icon name="envelope" size={54} style={{ color: 'var(--ink-800)' }} />
-          </div>
+          {/* the paper plane touching down, big and unboxed */}
+          <span style={{ position: 'relative', display: 'inline-flex', margin: '0 auto 26px' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', animation: 'adv-seal .7s var(--ease-out)' }}>
+              <img
+                className="anim-float"
+                src="/ds-v2/assets/characters/tool-landing-2.svg"
+                alt=""
+                style={{ width: 180, height: 158, objectFit: 'contain', filter: 'drop-shadow(0 8px 14px rgba(28, 23, 70, 0.18))' }}
+              />
+            </span>
+            <span className="bw-tw" style={{ position: 'absolute', top: -6, right: -8 }}>
+              <Sparkle size={24} />
+            </span>
+            <span className="bw-tw" style={{ position: 'absolute', bottom: 2, left: -6, color: 'var(--foil)', animationDelay: '1.4s' }}>
+              <Sparkle size={15} />
+            </span>
+          </span>
           <h1 style={{ fontFamily: 'var(--font-display)', fontVariationSettings: 'var(--display-soft)', fontWeight: 600, fontSize: 44, lineHeight: 1.05, color: 'var(--text-strong)', margin: '0 0 14px' }}>
             It’s on its way. <Sparkle size={22} style={{ color: 'var(--spark)' }} />
           </h1>

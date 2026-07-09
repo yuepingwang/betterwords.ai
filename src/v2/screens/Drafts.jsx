@@ -3,9 +3,16 @@ import DS2 from '../ds2'
 import { useStore } from '../store'
 import { badgeColors, stanceLabel, lvl, initialParas } from '../../lib/advisor'
 
+// Badge metrics per the Feedback spec: 11px · 700 · 0.08em · uppercase · pill.
 const BADGE_BASE = {
-  fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 10, letterSpacing: '0.12em',
-  textTransform: 'uppercase', padding: '5px 11px', borderRadius: 'var(--radius-pill)',
+  fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 'var(--text-3xs)', letterSpacing: '0.08em',
+  textTransform: 'uppercase', padding: '5px 12px', borderRadius: 'var(--radius-pill)',
+}
+
+// .t-label — the DS's small uppercase label (12px · 600 · 0.12em).
+const T_LABEL = {
+  fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 'var(--text-2xs)',
+  letterSpacing: 'var(--tracking-wider)', textTransform: 'uppercase',
 }
 
 // Stance chip keeps the advisor's soft/moderate/strong coloring (shared with the
@@ -16,14 +23,13 @@ function StanceBadge({ st }) {
 }
 
 function Rec({ label = 'Recommended' }) {
-  const { Badge, Sparkle } = DS2
-  return <Badge tone="gradient" size="sm"><Sparkle size={9} style={{ color: '#fff' }} />{label}</Badge>
+  return <span className="bw-rectag">✦ {label}</span>
 }
 
 function Bar({ label, word, value, fill, wordColor }) {
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 5 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', ...T_LABEL, fontSize: 'var(--text-3xs)', marginBottom: 5 }}>
         <span style={{ color: 'var(--text-muted)' }}>{label}</span>
         <span style={{ color: wordColor }}>{word}</span>
       </div>
@@ -45,9 +51,9 @@ function Bars({ st }) {
 
 function ReactionBox({ text }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '12px 14px', background: 'var(--surface-panel)', borderRadius: 'var(--radius-md)' }}>
-      <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', whiteSpace: 'nowrap', paddingTop: 2 }}>Likely reaction</span>
-      <span style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 15.5, lineHeight: 1.45, color: 'var(--text-body)' }}>{text}</span>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', background: 'var(--bg-sunken)', borderRadius: 'var(--radius-md)' }}>
+      <span style={{ ...T_LABEL, fontSize: 'var(--text-3xs)', color: 'var(--text-muted)', whiteSpace: 'nowrap', paddingTop: 3 }}>Likely reaction</span>
+      <span style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 'var(--text-sm)', lineHeight: 'var(--leading-normal)', color: 'var(--text-body)' }}>{text}</span>
     </div>
   )
 }
@@ -69,22 +75,35 @@ export default function Drafts() {
   }
 
   return (
-    <main className="bw-sec-pad" style={{ maxWidth: 1160, margin: '0 auto', padding: '44px 32px 90px' }}>
+    <main className="bw-sec-pad" style={{ maxWidth: 1160, margin: '0 auto', padding: '64px 32px 112px' }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', marginBottom: 28 }}>
         <div>
-          <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 8 }}>
+          <div className="t-kicker" style={{ color: 'var(--accent)', marginBottom: 8 }}>
             {scenario.draftContext.split('·')[0].trim()}
           </div>
-          <h1 className="bw-page-h1" style={{ fontFamily: 'var(--font-display)', fontVariationSettings: 'var(--display-soft)', fontWeight: 600, fontSize: 44, lineHeight: 1.02, color: 'var(--text-strong)', margin: 0 }}>
+          <h1 className="bw-page-h1" style={{ fontFamily: 'var(--font-display)', fontVariationSettings: 'var(--display-soft)', fontWeight: 600, fontSize: 'var(--text-2xl)', lineHeight: 'var(--leading-tight)', letterSpacing: 'var(--tracking-tight)', color: 'var(--text-strong)', margin: 0 }}>
             A few ways to say it
           </h1>
         </div>
-        <Segmented options={SEGS} value={mode} onChange={(m) => dispatch({ type: 'SET_DRAFT_MODE', mode: m })} />
+        <span className="bw-drafts-seg" style={{ display: 'inline-flex' }}>
+          <Segmented options={SEGS} value={mode} onChange={(m) => dispatch({ type: 'SET_DRAFT_MODE', mode: m })} />
+        </span>
       </div>
 
-      {mode === 'list' && <ListMode strategies={strategies} onOpen={open} />}
-      {mode === 'compare' && <CompareMode strategies={strategies} onOpen={open} />}
-      {mode === 'map' && <MapMode strategies={strategies} onOpen={open} />}
+      {/* all three modes stay mounted, stacked in one grid cell — the row
+          holds the tallest mode's height (Ranked), so switching views never
+          shifts the page; inactive modes are hidden but keep their size */}
+      <div style={{ display: 'grid' }}>
+        <div style={{ gridArea: '1 / 1', visibility: mode === 'list' ? 'visible' : 'hidden' }}>
+          <ListMode strategies={strategies} onOpen={open} />
+        </div>
+        <div style={{ gridArea: '1 / 1', visibility: mode === 'compare' ? 'visible' : 'hidden' }}>
+          <CompareMode strategies={strategies} onOpen={open} />
+        </div>
+        <div style={{ gridArea: '1 / 1', visibility: mode === 'map' ? 'visible' : 'hidden' }}>
+          <MapMode strategies={strategies} onOpen={open} />
+        </div>
+      </div>
     </main>
   )
 }
@@ -94,18 +113,18 @@ function ListMode({ strategies, onOpen }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       {strategies.map((st, idx) => (
-        <Card key={idx} className="adv-card-hover bw-list-card" style={{ display: 'grid', gridTemplateColumns: '1fr 230px', gap: 28, padding: '26px 28px' }}>
+        <Card key={idx} className="adv-card-hover bw-list-card anim-rise" style={{ display: 'grid', gridTemplateColumns: '1fr 230px', gap: 28, padding: '24px 28px', animationDelay: `${idx * 70}ms` }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 22, color: 'var(--text-faint)' }}>0{idx + 1}</span>
-              <h3 style={{ fontFamily: 'var(--font-display)', fontVariationSettings: 'var(--display-soft)', fontWeight: 600, fontSize: 24, color: 'var(--text-strong)', margin: 0 }}>{st.name}</h3>
+              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 'var(--text-lg)', color: 'var(--text-faint)' }}>0{idx + 1}</span>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontVariationSettings: 'var(--display-soft)', fontWeight: 600, fontSize: 'var(--text-lg)', lineHeight: 'var(--leading-snug)', color: 'var(--text-strong)', margin: 0 }}>{st.name}</h3>
               <StanceBadge st={st} />
               {st.recommended && <Rec />}
             </div>
-            <p style={{ fontFamily: 'var(--font-serif)', fontSize: 17, lineHeight: 1.5, color: 'var(--text-body)', margin: '0 0 14px' }}>{st.why}</p>
+            <p style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-base)', lineHeight: 'var(--leading-normal)', color: 'var(--text-body)', margin: '0 0 14px' }}>{st.why}</p>
             <ReactionBox text={st.reaction} />
           </div>
-          <div className="bw-list-side" style={{ display: 'flex', flexDirection: 'column', gap: 16, justifyContent: 'center', borderLeft: '1px solid var(--border-hair)', paddingLeft: 26 }}>
+          <div className="bw-list-side" style={{ display: 'flex', flexDirection: 'column', gap: 16, justifyContent: 'center', borderLeft: '1px solid var(--border-hair)', paddingLeft: 24 }}>
             <Bars st={st} />
             <Button variant="primary" size="md" block onClick={() => onOpen(idx)}>Open in composer →</Button>
           </div>
@@ -120,15 +139,15 @@ function CompareMode({ strategies, onOpen }) {
   return (
     <div className="bw-grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 18 }}>
       {strategies.map((st, idx) => (
-        <Card key={idx} style={{ display: 'flex', flexDirection: 'column', padding: '24px 22px' }}>
+        <Card key={idx} className="anim-rise" style={{ display: 'flex', flexDirection: 'column', padding: '24px 22px', animationDelay: `${idx * 70}ms` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
             <StanceBadge st={st} />
             {st.recommended && <Rec label="Pick" />}
           </div>
-          <h3 style={{ fontFamily: 'var(--font-display)', fontVariationSettings: 'var(--display-soft)', fontWeight: 600, fontSize: 23, lineHeight: 1.05, color: 'var(--text-strong)', margin: '0 0 14px' }}>{st.name}</h3>
-          <p style={{ fontFamily: 'var(--font-serif)', fontSize: 15.5, lineHeight: 1.45, color: 'var(--text-body)', margin: '0 0 16px' }}>{st.why}</p>
-          <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 5 }}>Likely reaction</div>
-          <p style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 15, lineHeight: 1.4, color: 'var(--text-body)', margin: '0 0 20px' }}>{st.reaction}</p>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontVariationSettings: 'var(--display-soft)', fontWeight: 600, fontSize: 'var(--text-lg)', lineHeight: 'var(--leading-snug)', color: 'var(--text-strong)', margin: '0 0 14px' }}>{st.name}</h3>
+          <p style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-sm)', lineHeight: 'var(--leading-normal)', color: 'var(--text-body)', margin: '0 0 16px' }}>{st.why}</p>
+          <div style={{ ...T_LABEL, fontSize: 'var(--text-3xs)', color: 'var(--text-muted)', marginBottom: 5 }}>Likely reaction</div>
+          <p style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 'var(--text-sm)', lineHeight: 'var(--leading-normal)', color: 'var(--text-body)', margin: '0 0 20px' }}>{st.reaction}</p>
           <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 13 }}>
             <Bars st={st} />
             <Button variant="primary" size="md" block onClick={() => onOpen(idx)}>Open →</Button>
@@ -145,8 +164,8 @@ function MapMode({ strategies, onOpen }) {
   const sel = strategies[state.mapSelIdx] || null
   return (
     <div className="bw-map-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 32, alignItems: 'start' }}>
-      <Card style={{ padding: '26px 30px 18px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-faint)', marginBottom: 10 }}>
+      <Card className="anim-rise" style={{ padding: '24px 28px 16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', ...T_LABEL, fontSize: 'var(--text-3xs)', color: 'var(--text-faint)', marginBottom: 10 }}>
           <span>↑ Higher risk</span>
           <span>Each dot is a strategy</span>
         </div>
@@ -163,27 +182,27 @@ function MapMode({ strategies, onOpen }) {
                 >
                   {selected && <span style={{ position: 'absolute', inset: -7, borderRadius: '50%', border: '2px solid var(--accent)' }} />}
                 </button>
-                <span style={{ position: 'absolute', top: 22, left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)', fontSize: 11.5, fontWeight: 600, color: 'var(--text-body)' }}>{st.name}</span>
+                <span style={{ position: 'absolute', top: 22, left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-2xs)', fontWeight: 600, color: 'var(--text-body)' }}>{st.name}</span>
               </div>
             )
           })}
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-faint)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', ...T_LABEL, fontSize: 'var(--text-3xs)', color: 'var(--text-faint)' }}>
           <span>Gentle</span>
           <span>More impact / directness →</span>
         </div>
       </Card>
 
       {sel && (
-        <Card style={{ padding: 26, border: '1px solid var(--peri-400)', boxShadow: 'var(--shadow-md)' }}>
+        <Card key={state.mapSelIdx} className="anim-rise" style={{ padding: 24, border: '1px solid var(--peri-400)', boxShadow: 'var(--shadow-md)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
             <StanceBadge st={sel} />
             {sel.recommended && <Rec />}
           </div>
-          <h3 style={{ fontFamily: 'var(--font-display)', fontVariationSettings: 'var(--display-soft)', fontWeight: 600, fontSize: 26, lineHeight: 1.05, color: 'var(--text-strong)', margin: '0 0 12px' }}>{sel.name}</h3>
-          <p style={{ fontFamily: 'var(--font-serif)', fontSize: 16, lineHeight: 1.5, color: 'var(--text-body)', margin: '0 0 14px' }}>{sel.why}</p>
-          <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 5 }}>Likely reaction</div>
-          <p style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 15.5, lineHeight: 1.45, color: 'var(--text-body)', margin: '0 0 22px' }}>{sel.reaction}</p>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontVariationSettings: 'var(--display-soft)', fontWeight: 600, fontSize: 'var(--text-lg)', lineHeight: 'var(--leading-snug)', color: 'var(--text-strong)', margin: '0 0 12px' }}>{sel.name}</h3>
+          <p style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-base)', lineHeight: 'var(--leading-normal)', color: 'var(--text-body)', margin: '0 0 14px' }}>{sel.why}</p>
+          <div style={{ ...T_LABEL, fontSize: 'var(--text-3xs)', color: 'var(--text-muted)', marginBottom: 5 }}>Likely reaction</div>
+          <p style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 'var(--text-sm)', lineHeight: 'var(--leading-normal)', color: 'var(--text-body)', margin: '0 0 22px' }}>{sel.reaction}</p>
           <Button variant="primary" size="lg" block onClick={() => onOpen(state.mapSelIdx)}>Open in composer →</Button>
         </Card>
       )}

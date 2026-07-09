@@ -18,7 +18,21 @@ export default function Next() {
   const { Card, Button, Badge } = DS2
 
   return (
-    <main className="bw-sec-pad" style={{ maxWidth: 920, margin: '0 auto', padding: '56px 32px 90px' }}>
+    <main
+      className="bw-sec-pad"
+      style={{
+        maxWidth: 920,
+        margin: '0 auto',
+        padding: '56px 32px 90px',
+        // same 80vh band as the Send screen's sent state, content centered,
+        // so the celebration flow holds one steady page height throughout
+        minHeight: '80vh',
+        boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+      }}
+    >
       <div style={{ textAlign: 'center', marginBottom: 44 }}>
         <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 12 }}>After you send</div>
         <h1 className="bw-page-h1" style={{ fontFamily: 'var(--font-display)', fontVariationSettings: 'var(--display-soft)', fontWeight: 600, fontSize: 46, lineHeight: 1.03, color: 'var(--text-strong)', margin: '0 0 14px' }}>We’ll be here for what comes next.</h1>

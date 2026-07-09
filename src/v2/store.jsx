@@ -23,10 +23,15 @@ const initialState = {
   letterLoading: false,
   evalWhy: null, // model's read of the CURRENT letter; null → use the strategy's copy
   evalReaction: null,
+  evalPros: null, // fresh pros/cons from the model; null → static per-stance copy
+  evalCons: null,
+  evalRisk: null, // fresh risk/impact reads; null → local slider heuristics
+  evalImpact: null,
   replacements: [],
   inserts: [],
   comments: [],
   sent: false,
+  tourAsk: 0, // bumped by the header help button; Composer opens its tour
 }
 
 function reducer(state, action) {
@@ -39,6 +44,8 @@ function reducer(state, action) {
       return { ...state, screen: 'home', scenarioId: null, clarifyStep: 0, answers: {}, strategies: null, sent: false }
     case 'START_SCENARIO':
       return { ...state, scenarioId: action.scenarioId, screen: 'clarify', clarifyStep: 0, answers: {}, strategies: null }
+    case 'ASK_TOUR':
+      return { ...state, tourAsk: state.tourAsk + 1 }
     case 'SET_GEN_LOADING':
       return { ...state, genLoading: action.value }
     case 'SET_STRATEGIES':
@@ -62,6 +69,10 @@ function reducer(state, action) {
         letterLoading: false,
         evalWhy: null,
         evalReaction: null,
+        evalPros: null,
+        evalCons: null,
+        evalRisk: null,
+        evalImpact: null,
         replacements: [],
         inserts: [],
         comments: [],
@@ -69,12 +80,17 @@ function reducer(state, action) {
     case 'SET_LETTER':
       return { ...state, letterParas: action.paras, letterLoading: false }
     case 'SET_EVAL':
-      // Refresh the "why / reaction" copy from the current draft. The tone/length
+      // Refresh the evaluation panel from the current draft. The tone/length
       // sliders are animated separately (SET_TONE / SET_VERB) so they glide.
+      // Null fields keep the previous value (or the static fallback).
       return {
         ...state,
         evalWhy: action.why ?? state.evalWhy,
         evalReaction: action.reaction ?? state.evalReaction,
+        evalPros: action.pros ?? state.evalPros,
+        evalCons: action.cons ?? state.evalCons,
+        evalRisk: action.risk ?? state.evalRisk,
+        evalImpact: action.impact ?? state.evalImpact,
       }
     case 'SET_LETTER_LOADING':
       return { ...state, letterLoading: action.value }

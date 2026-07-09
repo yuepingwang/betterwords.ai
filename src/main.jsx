@@ -23,16 +23,15 @@ function loadBundle(src, globalKey, label) {
   })
 }
 
-// Version switch: v2 is reachable via the URL without touching the v1
-// landing page. Any of `/?v=2`, `/?v2`, or `/#v2` loads the isolated v2
-// app (src/v2/); anything else loads the current (v1) app unchanged.
-function wantsV2() {
+// Version switch: v2 (src/v2/) is the primary app — `/` and `/?v=2` both load
+// it. The previous app remains reachable via `/?v=1` (also `/?v1` or `/#v1`).
+function wantsV1() {
   const params = new URLSearchParams(window.location.search)
-  return params.get('v') === '2' || params.has('v2') || window.location.hash === '#v2'
+  return params.get('v') === '1' || params.has('v1') || window.location.hash === '#v1'
 }
 
 async function boot() {
-  const v2 = wantsV2()
+  const v2 = !wantsV1()
   // Messenger bundle powers v1 (and any v2 screen not yet rebuilt on Daybreak).
   await loadBundle('/ds/_ds_bundle.js', 'MessengerDesignSystem_02d4f6', 'Messenger design system bundle')
   // v2 also loads the Betterwords "Daybreak" design-system bundle, exposing the

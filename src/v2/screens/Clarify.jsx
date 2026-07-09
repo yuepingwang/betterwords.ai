@@ -4,12 +4,7 @@ import { useStore } from '../store'
 
 const SOMETHING_ELSE = 'Something else'
 const CHIP_STYLE = { fontSize: 'var(--text-sm)', padding: '0.6em 1.1em' }
-const FIELD_STYLE = {
-  width: '100%', boxSizing: 'border-box', background: 'var(--surface-card)',
-  border: '1px solid var(--border-soft)', borderRadius: 'var(--radius-md)',
-  padding: '15px 17px', fontFamily: 'var(--font-serif)', fontSize: 17, lineHeight: 1.5,
-  color: 'var(--text-body)', boxShadow: 'var(--shadow-xs)', outline: 'none',
-}
+const SCENARIO_ART = { rights: 'ctx-dispute', personal: 'ctx-boundary', circle: 'ctx-speakup' }
 
 export default function Clarify() {
   const { state, dispatch, scenario } = useStore()
@@ -33,13 +28,17 @@ export default function Clarify() {
   }
 
   return (
-    <main className="bw-clarify" style={{ maxWidth: 1060, margin: '0 auto', padding: '44px 32px 80px', display: 'grid', gridTemplateColumns: '280px 1fr', gap: 48, alignItems: 'start' }}>
-      {/* rail */}
-      <aside className="bw-clarify-rail" style={{ position: 'sticky', top: 96 }}>
-        <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 6 }}>
+    // The calm "soft" ground (sweep + glow + grain) is painted by the app
+    // wrapper in V2App so it runs the full viewport height.
+    <main>
+    <div className="bw-clarify" style={{ maxWidth: 1060, margin: '0 auto', padding: '64px 32px 80px', minHeight: '78vh', boxSizing: 'border-box', display: 'grid', gridTemplateColumns: '280px 1fr', gap: 48, alignItems: 'start' }}>
+      {/* rail — a paper card with the scenario's own character riding along */}
+      <aside className="bw-clarify-rail" style={{ position: 'sticky', top: 96, background: 'var(--surface-card)', border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)', padding: '24px 22px 26px' }}>
+        <img className="bw-rail-art" src={`/ds-v2/assets/characters/${SCENARIO_ART[state.scenarioId] || 'ctx-courage'}.svg`} alt="" />
+        <div className="t-kicker" style={{ color: 'var(--accent)', marginBottom: 6 }}>
           {scenario.kicker}
         </div>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontVariationSettings: 'var(--display-soft)', fontWeight: 600, fontSize: 26, lineHeight: 1.1, color: 'var(--text-strong)', margin: '0 0 24px' }}>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontVariationSettings: 'var(--display-soft)', fontWeight: 600, fontSize: 'var(--text-lg)', lineHeight: 'var(--leading-snug)', color: 'var(--text-strong)', margin: '0 0 24px' }}>
           {scenario.label}
         </h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -52,19 +51,20 @@ export default function Clarify() {
                 <span
                   style={{
                     width: 26, height: 26, borderRadius: '50%', flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 12,
-                    background: i === idx ? 'var(--accent)' : i < idx ? 'var(--ink-700)' : 'var(--bg-sunken)',
+                    fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 'var(--text-2xs)',
+                    background: i === idx ? 'var(--accent)' : i < idx ? 'var(--success)' : 'var(--bg-sunken)',
                     color: i <= idx ? 'var(--paper-0)' : 'var(--text-faint)',
+                    transition: 'background var(--dur-base) var(--ease-out)',
                   }}
                 >
-                  {i + 1}
+                  {i < idx ? '✓' : i + 1}
                 </span>
                 <div style={{ paddingTop: 2 }}>
-                  <div style={{ fontFamily: 'var(--font-sans)', fontSize: 14, lineHeight: 1.35, fontWeight: i === idx ? 700 : 500, color: i === idx ? 'var(--text-strong)' : i < idx ? 'var(--text-muted)' : 'var(--text-faint)' }}>
+                  <div style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--text-sm)', lineHeight: 'var(--leading-normal)', fontWeight: i === idx ? 600 : 500, color: i === idx ? 'var(--text-strong)' : i < idx ? 'var(--text-muted)' : 'var(--text-faint)' }}>
                     {qq.title}
                   </div>
                   {answeredItem && (
-                    <div style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 14, color: 'var(--accent)', marginTop: 3 }}>
+                    <div style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 'var(--text-sm)', color: 'var(--accent)', marginTop: 3 }}>
                       {answerText}
                     </div>
                   )}
@@ -78,37 +78,42 @@ export default function Clarify() {
       {/* question */}
       <section>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 28 }}>
+          {/* aurora fill — the DS's playful multi-stop sweep as a small accent */}
           <div style={{ flex: 1, height: 6, background: 'var(--bg-sunken)', borderRadius: 'var(--radius-pill)', overflow: 'hidden' }}>
-            <div style={{ width: `${(idx / qs.length) * 100}%`, height: '100%', background: 'var(--accent)', borderRadius: 'var(--radius-pill)', transition: 'width .4s var(--ease-out)' }} />
+            <div style={{ width: `${(idx / qs.length) * 100}%`, height: '100%', backgroundImage: 'var(--grad-aurora)', borderRadius: 'var(--radius-pill)', transition: 'width var(--dur-slow) var(--ease-out)' }} />
           </div>
-          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
             {idx + 1} / {qs.length}
           </span>
         </div>
 
-        <h1 className="bw-q-h1" style={{ fontFamily: 'var(--font-display)', fontVariationSettings: 'var(--display-soft)', fontWeight: 600, fontSize: 40, lineHeight: 1.08, color: 'var(--text-strong)', margin: '0 0 10px' }}>
-          {q.title}
-        </h1>
-        {q.helper && (
-          <p style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--text-muted)', margin: '0 0 30px' }}>{q.helper}</p>
-        )}
+        {/* re-keyed per question so each step rises in (DS motion: bw-rise) */}
+        <div key={q.id} className="anim-rise">
+          <h1 className="bw-q-h1" style={{ fontFamily: 'var(--font-display)', fontVariationSettings: 'var(--display-soft)', fontWeight: 600, fontSize: 'var(--text-2xl)', lineHeight: 'var(--leading-tight)', letterSpacing: 'var(--tracking-tight)', color: 'var(--text-strong)', margin: '0 0 10px' }}>
+            {q.title}
+          </h1>
+          {q.helper && (
+            <p style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-md)', color: 'var(--text-muted)', margin: '0 0 30px' }}>{q.helper}</p>
+          )}
 
-        {isChips && (
-          <ChipsQuestion key={q.id} q={q} ans={ans} onAnswer={(value) => dispatch({ type: 'ANSWER', id: q.id, value })} />
-        )}
+          {isChips && (
+            <ChipsQuestion key={q.id} q={q} ans={ans} onAnswer={(value) => dispatch({ type: 'ANSWER', id: q.id, value })} />
+          )}
 
-        {isText && (
-          <div style={{ marginBottom: 40 }}>
-            <textarea
-              value={typeof ans === 'string' ? ans : ''}
-              onInput={(e) => dispatch({ type: 'ANSWER', id: q.id, value: e.target.value })}
-              onChange={(e) => dispatch({ type: 'ANSWER', id: q.id, value: e.target.value })}
-              placeholder={q.placeholder}
-              rows={3}
-              style={{ ...FIELD_STYLE, resize: 'vertical' }}
-            />
-          </div>
-        )}
+          {isText && (
+            <div style={{ marginBottom: 40 }}>
+              <textarea
+                className="bw-field"
+                value={typeof ans === 'string' ? ans : ''}
+                onInput={(e) => dispatch({ type: 'ANSWER', id: q.id, value: e.target.value })}
+                onChange={(e) => dispatch({ type: 'ANSWER', id: q.id, value: e.target.value })}
+                placeholder={q.placeholder}
+                rows={3}
+                style={{ resize: 'vertical' }}
+              />
+            </div>
+          )}
+        </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <Button variant="ghost" size="md" onClick={back}>← Back</Button>
@@ -117,6 +122,7 @@ export default function Clarify() {
           </Button>
         </div>
       </section>
+    </div>
     </main>
   )
 }
@@ -149,11 +155,12 @@ function ChipsQuestion({ q, ans, onAnswer }) {
       </div>
       {customMode && (
         <input
+          className="bw-field"
           autoFocus
           value={typeof ans === 'string' ? ans : ''}
           onChange={(e) => onAnswer(e.target.value)}
           placeholder={q.customPlaceholder || 'Describe it in your own words…'}
-          style={{ ...FIELD_STYLE, marginTop: 16 }}
+          style={{ marginTop: 16 }}
         />
       )}
     </div>

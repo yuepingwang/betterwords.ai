@@ -43,7 +43,7 @@ function tile({ seed, cells, pitch, r, occupancy, period }) {
       // opacity from the perlin field (bright/dim clusters) with the contrast
       // stretched hard, so bright diamonds run brilliant and dim ones faint
       const n = perlin((gx / cells) * period, (gy / cells) * period)
-      let v = 0.5 + (n * 0.71) * 2.4 + (rand() - 0.5) * 0.18
+      let v = 0.5 + (n * 0.71) * 2.0 + (rand() - 0.5) * 0.18
       v = Math.min(1, Math.max(0, v))
       const o = Math.round((0.06 + v * 0.92) * 100) / 100
       paths += `%3Cpath d='M${cx} ${cy}l${r} ${r}-${r} ${r}-${r}-${r}z' fill-opacity='${o}'/%3E`
@@ -52,8 +52,8 @@ function tile({ seed, cells, pitch, r, occupancy, period }) {
   const svg = `%3Csvg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}'%3E%3Cg fill='%23fff'%3E${paths}%3C/g%3E%3C/svg%3E`
   return { size, uri: `data:image/svg+xml,${svg}` }
 }
-const a = tile({ seed: 11, cells: 36, pitch: 5, r: 2.2, occupancy: 0.06, period: 4 })
-const b = tile({ seed: 47, cells: 40, pitch: 5, r: 2.2, occupancy: 0.05, period: 4 })
+const a = tile({ seed: 11, cells: 36, pitch: 3, r: 2.2, occupancy: 0.03, period: 4 })
+const b = tile({ seed: 47, cells: 40, pitch: 4, r: 2.2, occupancy: 0.02, period: 4 })
 console.log('/* layer A —', a.size + 'px */')
 console.log(a.uri)
 console.log('/* layer B —', b.size + 'px */')

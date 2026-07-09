@@ -27,14 +27,16 @@ export default function Generating() {
   }, [])
 
   return (
-    <main style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '70vh', gap: 22, textAlign: 'center' }}>
-      <Sparkle size={44} twinkle style={{ color: 'var(--accent)' }} />
-      <h2 style={{ fontFamily: 'var(--font-display)', fontVariationSettings: 'var(--display-soft)', fontWeight: 600, fontSize: 32, color: 'var(--text-strong)', margin: 0 }}>
+    <main className="anim-rise" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '78vh', gap: 20, textAlign: 'center' }}>
+      <Sparkle size={44} twinkle style={{ color: 'var(--spark)' }} />
+      <h2 style={{ fontFamily: 'var(--font-display)', fontVariationSettings: 'var(--display-soft)', fontWeight: 600, fontSize: 'var(--text-xl)', lineHeight: 'var(--leading-snug)', color: 'var(--text-strong)', margin: 0 }}>
         Composing a few ways to say this…
       </h2>
-      <p style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--text-muted)', margin: 0 }}>
+      <p style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-md)', color: 'var(--text-muted)', margin: 0 }}>
         Weighing tone, risk, and how it’s likely to land.
       </p>
+      {/* DS loading sweep (bw-shimmer, Motion spec) */}
+      <div aria-hidden className="bw-shimmerbar" style={{ width: 180, height: 10, marginTop: 8 }} />
     </main>
   )
 }

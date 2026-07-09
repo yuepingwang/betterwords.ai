@@ -469,6 +469,49 @@ export async function insertPassage({ scenarioId, before = '', after = '', conte
   }
 }
 
+// Custom "add something else": the writer describes what to add; the model
+// writes the passage AND picks the recommended paragraph to insert it after.
+export async function draftAddition({ scenarioId, paras, instruction }) {
+  const count = (paras || []).length
+  const fallback = () => {
+    let t = (instruction || '').trim()
+    if (!t) return null
+    t = t[0].toUpperCase() + t.slice(1)
+    if (!/[.!?…]$/.test(t)) t += '.'
+    return { after: Math.max(0, count - 2), text: t }
+  }
+  if (!instruction?.trim()) return null
+  const text = (paras || []).join('\n\n').trim()
+  try {
+    const content = await chat(
+      [
+        {
+          role: 'system',
+          content:
+            'You write one short passage (one or two sentences) to add to an existing message, matching its ' +
+            'first-person voice and tone so the seam is invisible, and you choose the best spot for it. ' +
+            'Never invent names, dates, or amounts; use a [bracketed placeholder] if a specific is needed. ' +
+            'Return JSON: { "after": 0-based index of the paragraph to insert the passage after, "text": the passage }.',
+        },
+        {
+          role: 'user',
+          content:
+            `${scenarioContext(scenarioId)}\n\nThe current message (${count} paragraphs, 0-indexed):\n${text}\n\n` +
+            `What the new passage should convey: ${instruction}`,
+        },
+      ],
+      { json: true }
+    )
+    const parsed = parseJson(content)
+    const t = String(parsed.text || '').trim().replace(/^["“]|["”]$/g, '').trim()
+    if (!t) return fallback()
+    return { after: clampInt(parsed.after, Math.max(0, count - 2), 0, Math.max(0, count - 1)), text: t }
+  } catch (err) {
+    console.warn('[advisor] draftAddition fell back:', err.message)
+    return fallback()
+  }
+}
+
 // ==================================================================
 // 5) Evaluate — read the CURRENT letter (after retunes, rewrites, inserts)
 //    and produce a fresh "why this works" + "likely reaction", plus where the
@@ -477,11 +520,16 @@ export async function insertPassage({ scenarioId, before = '', after = '', conte
 
 export async function evaluateLetter({ scenarioId, strategy, paras }) {
   const text = (paras || []).join('\n\n').trim()
-  // No AI (or empty) → keep the strategy's original copy and leave the
-  // sliders where they are (tone/verbosity null == "don't move them").
+  // No AI (or empty) → keep the strategy's original copy, leave the sliders
+  // where they are, and let the UI fall back to its static pros/cons and
+  // heuristic meters (all the null fields mean "no fresh read — use fallback").
   const fallback = () => ({
     why: strategy?.why || '',
     reaction: strategy?.reaction || '',
+    pros: null,
+    cons: null,
+    risk: null,
+    impact: null,
     tone: null,
     verbosity: null,
   })
@@ -495,9 +543,13 @@ export async function evaluateLetter({ scenarioId, strategy, paras }) {
             'You assess a near-final message the writer is about to send. Read the ACTUAL wording and return ' +
             'JSON: { "why": one sentence on why this version is effective for the writer, ' +
             '"reaction": one sentence on how the recipient is likely to react to THIS wording, ' +
+            '"pros": array of 2-3 short phrases (max ~8 words each) naming what THIS wording does well, ' +
+            '"cons": array of 1-2 short phrases naming the real risks or costs of THIS wording, ' +
+            '"risk": integer 0-100 (chance this wording backfires or strains the relationship), ' +
+            '"impact": integer 0-100 (likely effectiveness at getting the writer their outcome), ' +
             '"tone": integer 0-100 (0 = very soft and gentle, 100 = very firm and direct), ' +
             '"length": integer 0-100 (0 = very succinct, 100 = very detailed) }. ' +
-            'Judge tone and length from the text itself, not from any prior version.',
+            'Judge everything from the text itself, not from any prior version.',
         },
         {
           role: 'user',
@@ -507,14 +559,62 @@ export async function evaluateLetter({ scenarioId, strategy, paras }) {
       { json: true }
     )
     const parsed = parseJson(content)
+    const phrases = (arr, max) =>
+      Array.isArray(arr) && arr.length
+        ? arr.filter((p) => typeof p === 'string' && p.trim()).slice(0, max).map((p) => String(p).trim())
+        : null
     return {
       why: String(parsed.why || strategy?.why || ''),
       reaction: String(parsed.reaction || strategy?.reaction || ''),
+      pros: phrases(parsed.pros, 3),
+      cons: phrases(parsed.cons, 2),
+      risk: parsed.risk == null ? null : clampInt(parsed.risk, 45),
+      impact: parsed.impact == null ? null : clampInt(parsed.impact, 70),
       tone: parsed.tone == null ? null : clampInt(parsed.tone, 50),
       verbosity: parsed.length == null ? null : clampInt(parsed.length, 50),
     }
   } catch (err) {
     console.warn('[advisor] evaluateLetter fell back:', err.message)
+    return fallback()
+  }
+}
+
+// ==================================================================
+// 5b) Suggest insertions — refresh the "Add Something Else" panel from the
+//     CURRENT letter (after retunes, rewrites, inserts), so suggestions stay
+//     anchored to what's actually on the page. Fallback: the strategy's
+//     generation-time suggestions, else the generic position fallbacks.
+// ==================================================================
+
+export async function suggestInsertions({ scenarioId, strategy, paras }) {
+  const count = (paras || []).length
+  const fallback = () => (strategy?.add?.length ? strategy.add : normalizeAdd([], count))
+  const text = (paras || []).join('\n\n').trim()
+  if (!text) return fallback()
+  try {
+    const content = await chat(
+      [
+        {
+          role: 'system',
+          content:
+            'You propose exactly three optional passages the writer could add to strengthen their message — ' +
+            'one near the opening, one in the middle, one near the close — each anchored to what the message ' +
+            'actually says (never generic filler). Match its first-person voice and tone. Never invent names, ' +
+            'dates, or amounts; use a [bracketed placeholder] if a specific is needed. ' +
+            'Return JSON: { "suggestions": [ { "label": short handle like "After the opening — cite the clause", ' +
+            '"after": 0-based index of the paragraph to insert after, "text": the one-or-two-sentence passage } ] }.',
+        },
+        {
+          role: 'user',
+          content: `${scenarioContext(scenarioId)}\n\nThe current message (${count} paragraphs, 0-indexed):\n${text}\n\nPropose the three additions now.`,
+        },
+      ],
+      { json: true }
+    )
+    const parsed = parseJson(content)
+    return normalizeAdd(parsed.suggestions, count)
+  } catch (err) {
+    console.warn('[advisor] suggestInsertions fell back:', err.message)
     return fallback()
   }
 }

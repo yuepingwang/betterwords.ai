@@ -7,6 +7,8 @@ import {
   retuneLetter,
   insertPassage,
   evaluateLetter,
+  suggestInsertions,
+  draftAddition,
   recipientLabel,
   liveRisk,
   liveEff,
@@ -17,7 +19,8 @@ import {
 import Onboarding from '../components/Onboarding'
 import './Composer.css'
 
-const ONBOARD_KEY = 'bw_onboarded_composer2'
+// Versioned: bump when the tour content changes so everyone sees it once more.
+const ONBOARD_KEY = 'bw_onboarded_composer3'
 const GLYPHS = '/ds-v2/assets/glyphs'
 
 const QUICK_CHIPS = [
@@ -112,17 +115,19 @@ const CheckIcon = ({ size = 18 }) => (
   </svg>
 )
 
-const LABEL = {
+// .t-label per the Type spec (12px · 600 · 0.12em · uppercase) — the one
+// micro-caps style used across the screen.
+const T_LABEL = {
   fontFamily: 'var(--font-sans)',
-  fontWeight: 700,
-  fontSize: 11,
-  letterSpacing: '0.1em',
+  fontWeight: 600,
+  fontSize: 'var(--text-2xs)',
+  letterSpacing: 'var(--tracking-wider)',
   textTransform: 'uppercase',
 }
 
 export default function Composer() {
   const { state, dispatch, scenario, selected } = useStore()
-  const { Badge, Sparkle } = DS2
+  const { Badge, Sparkle, Button, Icon, Input, IconButton } = DS2
 
   const letterRef = useRef(null)
   const bodyRef = useRef(null)
@@ -132,6 +137,7 @@ export default function Composer() {
   const toolsRef = useRef(null)
   const tuneRef = useRef(null)
   const evalRef = useRef(null)
+  const topActionsRef = useRef(null)
   const fileRef = useRef(null)
   const pendingGapRef = useRef(null)
   // set when a mousedown inside the letter body dismisses an open popup, so
@@ -150,6 +156,10 @@ export default function Composer() {
   const [popupNote, setPopupNote] = useState('')
   const [hoverPt, setHoverPt] = useState(null) // sentence caret in insert mode
   const [addOpen, setAddOpen] = useState(false)
+  const [addSugs, setAddSugs] = useState(null) // null = loading fresh suggestions
+  const [addNote, setAddNote] = useState('')
+  const [addBusy, setAddBusy] = useState(false)
+  const addPanelRef = useRef(null)
   const [flashText, setFlashText] = useState(null)
   const [busy, setBusy] = useState(false)
   const [evaluating, setEvaluating] = useState(false)
@@ -163,12 +173,14 @@ export default function Composer() {
   const paras = composeLetter(strat, state)
   const flashIdx = flashText ? paras.findIndex((p) => p.includes(flashText)) : -1
 
-  const lr = liveRisk(strat, state.tone, state.verbosity)
-  const le = liveEff(strat, state.tone, state.verbosity)
+  // Meters and pros/cons prefer the model's fresh read of the CURRENT letter
+  // (store.eval*), falling back to slider heuristics / per-stance copy.
+  const lr = state.evalRisk ?? liveRisk(strat, state.tone, state.verbosity)
+  const le = state.evalImpact ?? liveEff(strat, state.tone, state.verbosity)
   const toneWord = TONE_WORD[bucket(state.tone)]
   const levelEval = LEVEL_EVAL[strat.level] || LEVEL_EVAL.balanced
-  const pros = strat.pros?.length ? strat.pros : levelEval.pros
-  const cons = strat.cons?.length ? strat.cons : levelEval.cons
+  const pros = state.evalPros?.length ? state.evalPros : strat.pros?.length ? strat.pros : levelEval.pros
+  const cons = state.evalCons?.length ? state.evalCons : strat.cons?.length ? strat.cons : levelEval.cons
   const badge = LEVEL_BADGE[strat.level] || LEVEL_BADGE.balanced
 
   // Displayed-paragraph index → the base-paragraph index inserts anchor to
@@ -188,8 +200,9 @@ export default function Composer() {
 
   // ---------- first-run tour ----------
   useEffect(() => {
-    // Skip the tour when the screen was opened via the dev deep-link.
-    if (new URLSearchParams(window.location.search).has('screen')) return
+    // Auto-start the tour the very first time the composer opens.
+    // `?tour=0` opts out (design review / automated screenshots).
+    if (new URLSearchParams(window.location.search).get('tour') === '0') return
     let seen = false
     try {
       seen = localStorage.getItem(ONBOARD_KEY) === '1'
@@ -198,6 +211,12 @@ export default function Composer() {
     }
     if (!seen) setTour(true)
   }, [])
+
+  // The header help button (V2App) bumps tourAsk to replay the tour.
+  useEffect(() => {
+    if (state.tourAsk) setTour(true)
+  }, [state.tourAsk])
+
   const endTour = () => {
     try {
       localStorage.setItem(ONBOARD_KEY, '1')
@@ -207,10 +226,11 @@ export default function Composer() {
     setTour(false)
   }
   const tourSteps = [
-    { getEl: () => toolsRef.current, title: 'Three ways to edit', body: 'Switch tools here — revise text you select, write something new between sentences or paragraphs, or drop in an image.' },
     { getEl: () => letterRef.current, title: 'Work right on the letter', body: 'With the edit tool, select any passage and tell BetterWords how to reword it. With the insert tool, click between sentences or paragraphs to add something new.' },
+    { getEl: () => toolsRef.current, title: 'Your editing toolbar', body: 'Switch between the edit, insert, and image tools. Undo, copy the letter, and “Add Something Else” — suggestions written for this draft — live here too.' },
     { getEl: () => tuneRef.current, title: 'Tune the whole draft', body: 'Drag Tone and Length to reshape the entire message at once — undo and redo are right here too.' },
-    { getEl: () => evalRef.current, title: 'Read the room before you send', body: 'Pros, cons, risk, and the likely reaction — so you can decide whether it’s ready or needs another pass.' },
+    { getEl: () => evalRef.current, title: 'Read the room before you send', body: 'Pros, cons, risk, and the likely reaction — updated as you edit, so you can decide whether it’s ready or needs another pass.' },
+    { getEl: () => topActionsRef.current, title: 'Save it, then send it', body: 'Keep this version with “Save as New Draft”, and when it feels right, “Review & Send”. You can replay this tour anytime with the smiley button in the header.' },
   ]
 
   // ---------- popup dismissal + cleanup ----------
@@ -219,6 +239,9 @@ export default function Composer() {
     const onDocDown = (e) => {
       if (popupRef.current?.contains(e.target)) return
       if (addWrapRef.current?.contains(e.target)) return
+      if (addPanelRef.current?.contains(e.target)) return
+      // undo/redo act on the letter, not the panel — don't dismiss it
+      if (e.target.closest?.('[data-keep-add]')) return
       // clicking away resets the popup and its insert marker together; if the
       // click lands back in the letter body, swallow the follow-up click so
       // it only dismisses instead of opening a new popup
@@ -231,6 +254,16 @@ export default function Composer() {
     document.addEventListener('mousedown', onDocDown)
     return () => document.removeEventListener('mousedown', onDocDown)
   }, [popup, addOpen])
+
+  // keep the selected passage painted while the rewrite popup is open —
+  // focusing the popup's input drops the native ::selection highlight, so the
+  // captured range is mirrored through the CSS Custom Highlight API
+  useEffect(() => {
+    if (popup?.kind !== 'rewrite' || !popup.range) return
+    if (typeof Highlight === 'undefined' || !CSS.highlights) return
+    CSS.highlights.set('bw-rewrite', new Highlight(popup.range))
+    return () => CSS.highlights.delete('bw-rewrite')
+  }, [popup])
 
   useEffect(
     () => () => {
@@ -250,12 +283,16 @@ export default function Composer() {
   }
 
   // ---------- undo / redo ----------
+  // Snapshots also carry the "Add Something Else" suggestion list, so undoing
+  // a pick puts the consumed option card back under the panel (and redo
+  // consumes it again). `sugs: null` (panel never loaded) is left untouched.
   const snapshot = () => ({
     letterParas: state.letterParas,
     replacements: state.replacements,
     inserts: state.inserts,
     tone: state.tone,
     verbosity: state.verbosity,
+    sugs: addSugs,
   })
   const pushHistory = (snap = snapshot()) => {
     histRef.current.undo.push(snap)
@@ -264,18 +301,23 @@ export default function Composer() {
   }
   const canUndo = histRef.current.undo.length > 0
   const canRedo = histRef.current.redo.length > 0
+  const restoreEntry = (entry) => {
+    const { sugs, ...letter } = entry
+    dispatch({ type: 'RESTORE_EDIT', ...letter })
+    if (sugs != null) setAddSugs(sugs)
+  }
   const doUndo = () => {
     const h = histRef.current
     if (!h.undo.length || busy || state.letterLoading) return
     h.redo.push(snapshot())
-    dispatch({ type: 'RESTORE_EDIT', ...h.undo.pop() })
+    restoreEntry(h.undo.pop())
     setHistTick((t) => t + 1)
   }
   const doRedo = () => {
     const h = histRef.current
     if (!h.redo.length || busy || state.letterLoading) return
     h.undo.push(snapshot())
-    dispatch({ type: 'RESTORE_EDIT', ...h.redo.pop() })
+    restoreEntry(h.redo.pop())
     setHistTick((t) => t + 1)
   }
 
@@ -297,12 +339,21 @@ export default function Composer() {
     tweenRef.current = requestAnimationFrame(step)
   }
 
+  // Always evaluate the current wording — evaluateLetter falls back to the
+  // strategy's static copy when AI is unavailable, so mock mode still works.
   const evaluate = (nextParas, { moveSliders = false } = {}) => {
-    if (!aiMode) return
     setEvaluating(true)
     evaluateLetter({ scenarioId: state.scenarioId, strategy: strat, paras: nextParas.filter((p) => !isImagePara(p)) })
       .then((res) => {
-        dispatch({ type: 'SET_EVAL', why: res.why, reaction: res.reaction })
+        dispatch({
+          type: 'SET_EVAL',
+          why: res.why,
+          reaction: res.reaction,
+          pros: res.pros,
+          cons: res.cons,
+          risk: res.risk,
+          impact: res.impact,
+        })
         if (moveSliders) animateSliders(res.tone, res.verbosity)
       })
       .finally(() => setEvaluating(false))
@@ -335,10 +386,42 @@ export default function Composer() {
     if (sigRef.current?.contains(range.commonAncestorContainer)) return
     const r = range.getBoundingClientRect()
     const c = cont.getBoundingClientRect()
-    setPopup({ kind: 'rewrite', x: clampX(r.left - c.left + r.width / 2), y: r.bottom - c.top + 12, text })
+    // native ::selection paints full line boxes (line-height tall, gaps
+    // filled) while ::highlight paints only the font box — so the green
+    // ground is drawn by us: capture the selection's per-line rects and
+    // expand each to the full line pitch, exactly matching the native paint.
+    // The ::highlight mirror then only turns the text white (no background).
+    const bodyEl = bodyRef.current
+    const bodyRect = bodyEl.getBoundingClientRect()
+    const pEl = range.startContainer.parentElement?.closest('p') || bodyEl.querySelector('p')
+    const pitch = parseFloat(pEl ? getComputedStyle(pEl).lineHeight : '') || 28
+    const rects = [...range.getClientRects()]
+      .filter((cr) => cr.width > 1 && cr.height > 1 && cr.height < pitch * 1.6)
+      .map((cr) => ({
+        left: cr.left - bodyRect.left + bodyEl.scrollLeft,
+        top: cr.top + cr.height / 2 - pitch / 2 - bodyRect.top + bodyEl.scrollTop,
+        width: cr.width,
+        height: pitch,
+      }))
+    setPopup({ kind: 'rewrite', x: clampX(r.left - c.left + r.width / 2), y: r.bottom - c.top + 12, text, range: range.cloneRange(), rects })
     setPopupNote('')
     setAddOpen(false)
+    // hand the paint over to our overlay + the ::highlight text color right
+    // away — the native selection stops painting entirely once the popup's
+    // input takes focus, so it can't be the popup-time paint source
+    sel.removeAllRanges()
   }
+  // the drag can end outside the letter (or the viewport), where the body's
+  // own mouseup never fires — finish the select→popup flow on document
+  // mouseup instead; onLetterUp validates the range lives in the letter body
+  const letterUpRef = useRef()
+  letterUpRef.current = onLetterUp
+  useEffect(() => {
+    if (tool !== 'edit') return
+    const onUp = () => letterUpRef.current?.()
+    document.addEventListener('mouseup', onUp)
+    return () => document.removeEventListener('mouseup', onUp)
+  }, [tool])
 
   const runRewrite = async ({ mode, instruction }) => {
     if (!popup || busy) return
@@ -508,13 +591,54 @@ export default function Composer() {
   }
 
   // ---------- Add something else (draft-anchored suggestions) ----------
+  // Opening the panel asks the model for three insertions anchored to the
+  // CURRENT letter (suggestInsertions falls back to the strategy's
+  // generation-time list without AI); a shimmer shows while it thinks.
+  const toggleAdd = () => {
+    const opening = !addOpen
+    setAddOpen(opening)
+    setPopup(null)
+    if (!opening) return
+    setAddNote('')
+    setAddSugs(null)
+    suggestInsertions({ scenarioId: state.scenarioId, strategy: strat, paras: paras.filter((p) => !isImagePara(p)) })
+      .then((sugs) => setAddSugs(sugs))
+      .catch(() => setAddSugs(strat.add || []))
+  }
+
   const pickAdd = (sug) => {
-    const insert = { after: sug.after, text: sug.text }
+    // `after` indexes the displayed letter — anchor it to a base paragraph.
+    const insert = { after: anchorForGap(sug.after), text: sug.text }
     pushHistory()
     dispatch({ type: 'ADD_INSERT', insert })
-    setAddOpen(false)
+    // the used card leaves; the other suggestions and the custom field stay
+    // (the button toggles the whole panel away). Later anchors shift past
+    // the paragraph that was just added so they keep their intended spot.
+    setAddSugs((cur) =>
+      cur ? cur.filter((s) => s !== sug).map((s) => (s.after > sug.after ? { ...s, after: s.after + 1 } : s)) : cur
+    )
     flash(sug.text)
     evaluate(composeLetter(strat, { ...state, inserts: [...state.inserts, insert] }), { moveSliders: true })
+  }
+
+  // Custom addition: the writer describes the content/perspective to add; the
+  // model writes it in the draft's voice and picks the recommended spot.
+  const addCustom = async () => {
+    const note = addNote.trim()
+    if (!note || addBusy) return
+    setAddBusy(true)
+    try {
+      const sug = await draftAddition({
+        scenarioId: state.scenarioId,
+        paras: paras.filter((p) => !isImagePara(p)),
+        instruction: note,
+      })
+      if (!sug) return
+      pickAdd(sug)
+      setAddNote('')
+    } finally {
+      setAddBusy(false)
+    }
   }
 
   // ---------- full-text tuning ----------
@@ -560,54 +684,55 @@ export default function Composer() {
       : 'Re-reading…'
 
   return (
-    <main className="bw-cmp-bg">
+    // The daybreak + sparkle ground (.bw-cmp-bg) is painted by the app
+    // wrapper in V2App so it runs the full viewport height.
+    <main>
       <div
         className="bw-composer bw-sec-pad"
-        style={{ maxWidth: 1280, margin: '0 auto', padding: '26px 32px 96px', display: 'grid', gridTemplateColumns: '1fr 360px', gap: 26, alignItems: 'start' }}
+        style={{ maxWidth: 1280, margin: '0 auto', padding: '24px 32px 96px', display: 'grid', gridTemplateColumns: '1fr 360px', gap: 24, alignItems: 'start' }}
       >
         {/* top action row */}
         <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
           <button className="bw-cmp-back" onClick={() => dispatch({ type: 'GOTO', screen: 'drafts' })}>← All Options</button>
-          <div className="bw-cmp-top-actions" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button className="bw-cmp-save" onClick={saveDraft}>{saved ? 'Saved ✓' : 'Save as New Draft'}</button>
-            <button className="bw-cmp-send" onClick={() => dispatch({ type: 'GOTO', screen: 'send' })}>Review &amp; Send</button>
+          <div ref={topActionsRef} className="bw-cmp-top-actions" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Button variant="outline" iconLeft={<Icon name="star" size={16} />} onClick={saveDraft}>
+              {saved ? 'Saved ✓' : 'Save as New Draft'}
+            </Button>
+            <button className="bw-cmp-send" onClick={() => dispatch({ type: 'GOTO', screen: 'send' })}>
+              Review &amp; Send
+              <Icon name="send" size={16} />
+            </button>
           </div>
         </div>
 
         {/* ---- draft panel ---- */}
-        <section className="bw-cmp-panel" style={{ padding: '24px 26px 26px' }}>
-          <div style={{ ...LABEL, color: 'var(--ink-500)', letterSpacing: '0.08em', fontSize: 12.5, fontWeight: 600, textTransform: 'none', marginBottom: 10 }}>
+        <section className="bw-cmp-panel" style={{ padding: '24px 16px 16px' }}>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--text-muted)', margin: '0 4px 12px' }}>
             Draft · Edited just now
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <h1 style={{ fontFamily: 'var(--font-display)', fontVariationSettings: 'var(--display-soft)', fontWeight: 600, fontSize: 30, lineHeight: 1.05, color: 'var(--ink-800)', margin: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px 12px', flexWrap: 'wrap', margin: '0 4px' }}>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontVariationSettings: 'var(--display-soft)', fontWeight: 600, fontSize: 'var(--text-lg)', lineHeight: 'var(--leading-snug)', color: 'var(--text-strong)', margin: 0 }}>
               Option {String(state.selectedIdx + 1).padStart(2, '0')}: {strat.name}
             </h1>
-            <span style={{ ...LABEL, padding: '6px 12px', borderRadius: 'var(--radius-pill)', background: badge.bg, color: badge.fg }}>
+            <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 'var(--text-3xs)', letterSpacing: '0.08em', textTransform: 'uppercase', padding: '5px 12px', borderRadius: 'var(--radius-pill)', background: badge.bg, color: badge.fg }}>
               {stanceLabel(strat.level)}
             </span>
-            {strat.recommended && (
-              <Badge tone="gradient" size="sm">
-                <Sparkle size={9} style={{ color: '#fff' }} />
-                Recommended
-              </Badge>
-            )}
+            {strat.recommended && <span className="bw-rectag">✦ Recommended</span>}
           </div>
 
           {/* letter sheet */}
           <div ref={letterRef} className="bw-cmp-letter">
-            <div style={{ display: 'grid', gridTemplateColumns: '46px 1fr', gap: '8px 14px', alignItems: 'baseline', borderBottom: '1px solid var(--border-soft)', paddingBottom: 16, marginBottom: 22, fontFamily: 'var(--font-sans)', fontSize: 14 }}>
-              <span style={{ ...LABEL, color: 'var(--text-faint)' }}>To</span>
-              <span style={{ color: 'var(--ink-800)', fontWeight: 500 }}>{recipientLabel(scenario)}</span>
-              <span style={{ ...LABEL, color: 'var(--text-faint)' }}>Re</span>
-              <span style={{ color: 'var(--ink-800)', fontWeight: 500 }}>{strat.subject}</span>
+            <div style={{ display: 'grid', gridTemplateColumns: '46px 1fr', gap: '8px 16px', alignItems: 'baseline', borderBottom: '1px solid var(--border-soft)', paddingBottom: 16, marginBottom: 24, fontFamily: 'var(--font-sans)', fontSize: 'var(--text-sm)' }}>
+              <span style={{ ...T_LABEL, color: 'var(--text-faint)' }}>To</span>
+              <span style={{ color: 'var(--text-strong)', fontWeight: 500 }}>{recipientLabel(scenario)}</span>
+              <span style={{ ...T_LABEL, color: 'var(--text-faint)' }}>Re</span>
+              <span style={{ color: 'var(--text-strong)', fontWeight: 500 }}>{strat.subject}</span>
             </div>
 
             <div
               ref={bodyRef}
               className={`bw-cmp-body bw-cmp-body--${tool}`}
               style={{ opacity: state.letterLoading ? 0.5 : 1, userSelect: tool === 'edit' ? 'text' : 'none' }}
-              onMouseUp={onLetterUp}
               onMouseMove={tool === 'insert' ? onBodyMove : undefined}
               onMouseLeave={() => setHoverPt(null)}
               onClick={tool === 'insert' ? onBodyClick : undefined}
@@ -616,6 +741,17 @@ export default function Composer() {
                 setPopup(null)
               }}
             >
+              {/* the rewrite selection's green ground — full-line-pitch rects
+                  matching the native ::selection paint, behind the text
+                  (z -1 inside the body's own stacking context) */}
+              {popup?.kind === 'rewrite' &&
+                popup.rects?.map((hr, i) => (
+                  <span
+                    key={`hl${i}`}
+                    aria-hidden
+                    style={{ position: 'absolute', left: hr.left, top: hr.top, width: hr.width, height: hr.height, background: '#10b981', zIndex: -1, pointerEvents: 'none' }}
+                  />
+                ))}
               {paras.map((text, i) => (
                 <React.Fragment key={i}>
                   {i > 0 && (
@@ -687,17 +823,18 @@ export default function Composer() {
                       ))}
                     </div>
                     <div className="bw-cmp-pop-row">
-                      <input
-                        className="bw-cmp-pop-input"
+                      <Input
+                        size="md"
                         value={popupNote}
                         onChange={(e) => setPopupNote(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && applyNote()}
                         placeholder="Describe a change…"
                         disabled={busy}
+                        style={{ flex: 1, fontFamily: 'var(--font-sans)' }}
                       />
-                      <button className="bw-cmp-pop-btn" disabled={busy} onClick={applyNote}>
-                        {busy ? '…' : 'Rewrite'}
-                      </button>
+                      <IconButton variant="soft" size="md" label="Rewrite" disabled={busy} onClick={applyNote}>
+                        <Icon name="wand" size={18} />
+                      </IconButton>
                     </div>
                   </>
                 ) : (
@@ -722,21 +859,6 @@ export default function Composer() {
                     <div className="bw-cmp-pop-hint">Betterwords drafts it in your voice, right here.</div>
                   </>
                 )}
-              </div>
-            )}
-
-            {/* add-something-else panel */}
-            {addOpen && (
-              <div className="bw-cmp-addpanel">
-                <div style={{ ...LABEL, fontSize: 10.5, color: 'var(--text-muted)', marginBottom: 10 }}>
-                  Suggested for this draft
-                </div>
-                {(strat.add || []).map((sug, i) => (
-                  <button key={i} className="bw-cmp-addsug" onClick={() => pickAdd(sug)}>
-                    <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 4 }}>{sug.label}</div>
-                    <div style={{ fontFamily: 'var(--font-serif)', fontSize: 15, lineHeight: 1.45, color: 'var(--ink-700)' }}>“{sug.text}”</div>
-                  </button>
-                ))}
               </div>
             )}
 
@@ -769,15 +891,15 @@ export default function Composer() {
 
               <div style={{ flex: 1 }} />
 
-              <button className="bw-cmp-mini" title="Undo" aria-label="Undo" disabled={!canUndo || busy || state.letterLoading} onClick={doUndo}>
+              <button className="bw-cmp-mini" title="Undo" aria-label="Undo" data-keep-add="" disabled={!canUndo || busy || state.letterLoading} onClick={doUndo}>
                 <RotateCcwIcon />
               </button>
               <button className="bw-cmp-mini" title="Copy the letter" aria-label="Copy the letter" onClick={copyLetter}>
                 {copied ? <CheckIcon /> : <CopyIcon />}
               </button>
               <span ref={addWrapRef} style={{ display: 'inline-flex', marginLeft: 4 }}>
-                <button className="bw-cmp-addbtn" onClick={() => { setAddOpen(!addOpen); setPopup(null) }}>
-                  <Sparkle size={13} style={{ color: 'var(--spark)' }} />
+                <button className="bw-cmp-addbtn" onClick={toggleAdd}>
+                  <img src="/ds-v2/assets/glyphs/logo-star.svg" alt="" width={12} height={12} style={{ display: 'block' }} />
                   Add Something Else
                 </button>
               </span>
@@ -785,48 +907,90 @@ export default function Composer() {
 
             <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={onFile} />
           </div>
+
+          {/* add-something-else — suggestions + a custom ask, below the letter
+              card but inside the frosted draft panel */}
+          {addOpen && (
+            <div ref={addPanelRef} className="bw-cmp-addpanel">
+              <div style={{ ...T_LABEL, fontSize: 'var(--text-3xs)', color: 'var(--text-muted)', marginBottom: 10 }}>
+                Suggested for this draft
+              </div>
+              {addSugs == null
+                ? [0, 1, 2].map((i) => (
+                    <div key={i} className="bw-cmp-addsug" style={{ cursor: 'default' }}>
+                      <div className="bw-shimmerbar" style={{ width: 120, height: 10, marginBottom: 8 }} />
+                      <div className="bw-shimmerbar" style={{ width: '92%', height: 12 }} />
+                    </div>
+                  ))
+                : addSugs.map((sug, i) => (
+                    <button key={i} className="bw-cmp-addsug" disabled={addBusy} onClick={() => pickAdd(sug)}>
+                      <div style={{ ...T_LABEL, fontSize: 'var(--text-3xs)', color: 'var(--accent)', marginBottom: 4 }}>{sug.label}</div>
+                      <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-sm)', lineHeight: 'var(--leading-normal)', color: 'var(--text-body)' }}>“{sug.text}”</div>
+                    </button>
+                  ))}
+              <div style={{ ...T_LABEL, fontSize: 'var(--text-3xs)', color: 'var(--text-muted)', margin: '14px 0 8px' }}>
+                Or describe your own
+              </div>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <Input
+                  size="md"
+                  value={addNote}
+                  onChange={(e) => setAddNote(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && addCustom()}
+                  placeholder="A detail, a perspective, a reassurance to add…"
+                  disabled={addBusy}
+                  style={{ flex: 1, fontFamily: 'var(--font-sans)' }}
+                />
+                <IconButton variant="soft" size="md" label={addBusy ? 'Writing…' : 'Write & Add'} disabled={addBusy || !addNote.trim()} onClick={addCustom}>
+                  <Icon name="plus" size={18} />
+                </IconButton>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* ---- right rail ---- */}
-        <aside className="bw-composer-rail" style={{ position: 'sticky', top: 92, display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <aside className="bw-composer-rail" style={{ position: 'sticky', top: 92, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div className="bw-cmp-panel" ref={tuneRef}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 22 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, margin: '0 4px 16px' }}>
               <h2 className="bw-cmp-panel-h2">Full-Text Tuning</h2>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="bw-cmp-round" title="Undo" aria-label="Undo" disabled={!canUndo || busy || state.letterLoading} onClick={doUndo}>
+                <button className="bw-cmp-round" title="Undo" aria-label="Undo" data-keep-add="" disabled={!canUndo || busy || state.letterLoading} onClick={doUndo}>
                   <RotateCcwIcon size={15} />
                 </button>
-                <button className="bw-cmp-round" title="Redo" aria-label="Redo" disabled={!canRedo || busy || state.letterLoading} onClick={doRedo}>
+                <button className="bw-cmp-round" title="Redo" aria-label="Redo" data-keep-add="" disabled={!canRedo || busy || state.letterLoading} onClick={doRedo}>
                   <RotateCwIcon size={15} />
                 </button>
               </div>
             </div>
 
-            <TuneSlider
-              label="Tone"
-              word={toneWord}
-              value={state.tone}
-              startLabel="Soft"
-              endLabel="Strong"
-              onStart={startDrag}
-              onChange={(v) => dispatch({ type: 'SET_TONE', value: v })}
-              onCommit={commitTune}
-            />
-            <div style={{ height: 22 }} />
-            <TuneSlider
-              label="Length"
-              word={verbLabel(state.verbosity)}
-              value={state.verbosity}
-              startLabel="Succinct"
-              endLabel="Detailed"
-              onStart={startDrag}
-              onChange={(v) => dispatch({ type: 'SET_VERB', value: v })}
-              onCommit={commitTune}
-            />
+            <div className="bw-cmp-inner">
+              <TuneSlider
+                label="Tone"
+                word={toneWord}
+                value={state.tone}
+                startLabel="Soft"
+                endLabel="Strong"
+                onStart={startDrag}
+                onChange={(v) => dispatch({ type: 'SET_TONE', value: v })}
+                onCommit={commitTune}
+              />
+              <div style={{ height: 16 }} />
+              <TuneSlider
+                label="Length"
+                word={verbLabel(state.verbosity)}
+                value={state.verbosity}
+                startLabel="Succinct"
+                endLabel="Detailed"
+                onStart={startDrag}
+                onChange={(v) => dispatch({ type: 'SET_VERB', value: v })}
+                onCommit={commitTune}
+              />
+            </div>
           </div>
 
-          <div className="bw-cmp-panel" ref={evalRef}>
-            <h2 className="bw-cmp-panel-h2" style={{ marginBottom: 18 }}>Evaluation</h2>
+          <div className="bw-cmp-panel" ref={evalRef} style={{ paddingTop: 24 }}>
+            <h2 className="bw-cmp-panel-h2" style={{ margin: '0 4px 16px' }}>Evaluation</h2>
 
             <div className="bw-cmp-inner">
               <div className="bw-cmp-eval-label" style={{ color: 'var(--mint-600)' }}>Pros</div>
@@ -841,13 +1005,13 @@ export default function Composer() {
 
             <div className="bw-cmp-inner">
               <Meter label="Risk" value={lr} fill="var(--spark)" />
-              <div style={{ height: 14 }} />
-              <Meter label="Impact" value={le} fill="var(--blue-600)" />
+              <div style={{ height: 16 }} />
+              <Meter label="Impact" value={le} fill="var(--accent)" />
             </div>
 
             <div className="bw-cmp-inner">
-              <div className="bw-cmp-eval-label" style={{ color: 'var(--blue-600)' }}>Likely reaction</div>
-              <p style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 16.5, lineHeight: 1.45, color: 'var(--ink-700)', margin: 0 }}>
+              <div className="bw-cmp-eval-label" style={{ color: 'var(--accent)' }}>Likely reaction</div>
+              <p style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 'var(--text-base)', lineHeight: 'var(--leading-normal)', color: 'var(--text-body)', margin: 0 }}>
                 {state.evalReaction ?? strat.reaction}
               </p>
             </div>
@@ -865,15 +1029,15 @@ function TuneSlider({ label, word, value, startLabel, endLabel, onStart, onChang
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <span style={{ ...LABEL, color: 'var(--ink-500)' }}>{label}</span>
-        <span style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontWeight: 600, fontSize: 19, color: 'var(--ink-800)' }}>{word}</span>
+        <span style={{ ...T_LABEL, color: 'var(--text-muted)' }}>{label}</span>
+        <span style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontWeight: 600, fontSize: 'var(--text-md)', color: 'var(--text-strong)' }}>{word}</span>
       </div>
       <input
         type="range"
         min="0"
         max="100"
         className="bw-cmp-range"
-        style={{ background: `linear-gradient(90deg, var(--blue-600) 0% ${pct}%, #eee3cd ${pct}% 100%)` }}
+        style={{ background: `linear-gradient(90deg, var(--accent) 0% ${pct}%, var(--bg-sunken) ${pct}% 100%)` }}
         value={value}
         onMouseDown={onStart}
         onTouchStart={onStart}
@@ -884,7 +1048,7 @@ function TuneSlider({ label, word, value, startLabel, endLabel, onStart, onChang
         onKeyUp={onCommit}
         aria-label={label}
       />
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-sans)', fontSize: 12.5, color: 'var(--text-muted)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
         <span>{startLabel}</span>
         <span>{endLabel}</span>
       </div>
@@ -895,9 +1059,9 @@ function TuneSlider({ label, word, value, startLabel, endLabel, onStart, onChang
 function Meter({ label, value, fill }) {
   return (
     <div>
-      <div style={{ ...LABEL, color: 'var(--ink-500)', marginBottom: 7 }}>{label}</div>
-      <div style={{ height: 7, background: 'var(--paper-2)', borderRadius: 'var(--radius-pill)', overflow: 'hidden' }}>
-        <div style={{ width: `${value}%`, height: '100%', background: fill, borderRadius: 'var(--radius-pill)', transition: 'width .35s var(--ease-out)' }} />
+      <div style={{ ...T_LABEL, color: 'var(--text-muted)', marginBottom: 7 }}>{label}</div>
+      <div style={{ height: 8, background: 'var(--bg-sunken)', borderRadius: 'var(--radius-pill)', overflow: 'hidden' }}>
+        <div style={{ width: `${value}%`, height: '100%', background: fill, borderRadius: 'var(--radius-pill)', transition: 'width var(--dur-slow) var(--ease-out)' }} />
       </div>
     </div>
   )
