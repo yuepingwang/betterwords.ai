@@ -113,6 +113,8 @@ function reducer(state, action) {
       return { ...state, replacements: [...state.replacements, action.replacement] }
     case 'ADD_INSERT':
       return { ...state, inserts: [...state.inserts, action.insert] }
+    case 'SET_INSERTS':
+      return { ...state, inserts: action.inserts }
     case 'ADD_COMMENT':
       return { ...state, comments: [...state.comments, action.comment] }
     case 'SET_SENT':

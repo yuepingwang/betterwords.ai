@@ -57,7 +57,14 @@ const TONE_WORD = { soft: 'Soft', bal: 'Moderate', strong: 'Strong' }
 // Inserted images travel through the letter state as marker paragraphs so
 // applyEdits/composeLetter (which only know strings) keep working.
 const isImagePara = (t) => typeof t === 'string' && t.startsWith('[image:') && t.endsWith(']')
-const imageSrc = (t) => t.slice(7, -1)
+// an optional `|w=NN` suffix on the marker carries the display width (% of
+// the letter column) so resizes survive undo/redo and draft snapshots
+const imageSrc = (t) => t.slice(7, -1).split('|w=')[0]
+const imageWidth = (t) => {
+  const m = t.match(/\|w=(\d+)\]$/)
+  return m ? Number(m[1]) : 78
+}
+const imageMarker = (src, w) => `[image:${src}|w=${w}]`
 
 // Character offsets of the sentence boundaries in a paragraph (after each
 // terminal-punctuation + space run, plus the paragraph end).
@@ -114,6 +121,18 @@ const CheckIcon = ({ size = 18 }) => (
     <polyline points="20 6 9 17 4 12" />
   </svg>
 )
+// minus/x drawn to the DS line-icon spec (1.7 stroke, round caps) — the
+// Daybreak set has no minus or x glyph to pair with its "plus"
+const MinusIcon = ({ size = 15 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M5 12h14" />
+  </svg>
+)
+const XIcon = ({ size = 15 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 6l12 12M18 6L6 18" />
+  </svg>
+)
 
 // .t-label per the Type spec (12px · 600 · 0.12em · uppercase) — the one
 // micro-caps style used across the screen.
@@ -127,7 +146,7 @@ const T_LABEL = {
 
 export default function Composer() {
   const { state, dispatch, scenario, selected } = useStore()
-  const { Badge, Sparkle, Button, Icon, Input, IconButton } = DS2
+  const { Badge, Sparkle, Button, Icon } = DS2
 
   const letterRef = useRef(null)
   const bodyRef = useRef(null)
@@ -590,6 +609,27 @@ export default function Composer() {
     reader.readAsDataURL(f)
   }
 
+  // hover controls on an inserted image — the marker text doubles as the
+  // identity key into state.inserts (images only ever live there)
+  const findImageInsert = (marker) => state.inserts.findIndex((ins) => ins.text === marker)
+  const resizeImage = (marker, delta) => {
+    const i = findImageInsert(marker)
+    if (i === -1) return
+    const next = Math.min(100, Math.max(30, imageWidth(marker) + delta))
+    if (next === imageWidth(marker)) return
+    pushHistory()
+    dispatch({
+      type: 'SET_INSERTS',
+      inserts: state.inserts.map((ins, j) => (j === i ? { ...ins, text: imageMarker(imageSrc(marker), next) } : ins)),
+    })
+  }
+  const removeImage = (marker) => {
+    const i = findImageInsert(marker)
+    if (i === -1) return
+    pushHistory()
+    dispatch({ type: 'SET_INSERTS', inserts: state.inserts.filter((_, j) => j !== i) })
+  }
+
   // ---------- Add something else (draft-anchored suggestions) ----------
   // Opening the panel asks the model for three insertions anchored to the
   // CURRENT letter (suggestInsertions falls back to the strategy's
@@ -766,7 +806,35 @@ export default function Composer() {
                     </div>
                   )}
                   {isImagePara(text) ? (
-                    <img className="bw-cmp-img" src={imageSrc(text)} alt="Inserted attachment" />
+                    <span className="bw-cmp-imgwrap" style={{ maxWidth: `${imageWidth(text)}%` }}>
+                      <img className="bw-cmp-img" src={imageSrc(text)} alt="Inserted attachment" />
+                      <span className="bw-cmp-imgtools" data-keep-add="">
+                        <button
+                          title="Smaller"
+                          aria-label="Make image smaller"
+                          disabled={imageWidth(text) <= 30}
+                          onClick={(e) => { e.stopPropagation(); resizeImage(text, -15) }}
+                        >
+                          <MinusIcon />
+                        </button>
+                        <button
+                          title="Larger"
+                          aria-label="Make image larger"
+                          disabled={imageWidth(text) >= 100}
+                          onClick={(e) => { e.stopPropagation(); resizeImage(text, 15) }}
+                        >
+                          <Icon name="plus" size={15} />
+                        </button>
+                        <button
+                          className="is-remove"
+                          title="Remove image"
+                          aria-label="Remove image"
+                          onClick={(e) => { e.stopPropagation(); removeImage(text) }}
+                        >
+                          <XIcon />
+                        </button>
+                      </span>
+                    </span>
                   ) : (
                     <p data-idx={i} style={{ background: i === flashIdx ? 'rgba(238,134,84,0.22)' : 'transparent', padding: i === flashIdx ? '2px 4px' : 0 }}>
                       {text}
@@ -823,18 +891,17 @@ export default function Composer() {
                       ))}
                     </div>
                     <div className="bw-cmp-pop-row">
-                      <Input
-                        size="md"
+                      <input
+                        className="bw-cmp-pop-input"
                         value={popupNote}
                         onChange={(e) => setPopupNote(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && applyNote()}
                         placeholder="Describe a change…"
                         disabled={busy}
-                        style={{ flex: 1, fontFamily: 'var(--font-sans)' }}
                       />
-                      <IconButton variant="soft" size="md" label="Rewrite" disabled={busy} onClick={applyNote}>
-                        <Icon name="wand" size={18} />
-                      </IconButton>
+                      <button className="bw-cmp-pop-txtbtn" disabled={busy} onClick={applyNote}>
+                        {busy ? '…' : 'Rewrite'}
+                      </button>
                     </div>
                   </>
                 ) : (
@@ -868,6 +935,7 @@ export default function Composer() {
                 className={`bw-cmp-tool bw-cmp-tool--edit${tool === 'edit' ? ' is-active' : ''}`}
                 title="Edit text — select a passage to revise it"
                 aria-label="Edit text tool"
+                data-keep-add=""
                 onClick={() => { setTool('edit'); setPopup(null); setHoverPt(null) }}
               >
                 <img src={`${GLYPHS}/edit-text-btn.svg`} alt="" />
@@ -876,6 +944,7 @@ export default function Composer() {
                 className={`bw-cmp-tool bw-cmp-tool--insert${tool === 'insert' ? ' is-active' : ''}`}
                 title="Insert text — click between sentences or paragraphs"
                 aria-label="Insert text tool"
+                data-keep-add=""
                 onClick={() => { setTool('insert'); setPopup(null) }}
               >
                 <img src={`${GLYPHS}/insert-text-btn.svg`} alt="" />
@@ -884,6 +953,7 @@ export default function Composer() {
                 className={`bw-cmp-tool bw-cmp-tool--image${tool === 'image' ? ' is-active' : ''}`}
                 title="Insert image — click a gap to attach one"
                 aria-label="Insert image tool"
+                data-keep-add=""
                 onClick={() => { setTool('image'); setPopup(null); setHoverPt(null) }}
               >
                 <img src={`${GLYPHS}/insert-image-btn.svg`} alt="" />
@@ -931,19 +1001,18 @@ export default function Composer() {
               <div style={{ ...T_LABEL, fontSize: 'var(--text-3xs)', color: 'var(--text-muted)', margin: '14px 0 8px' }}>
                 Or describe your own
               </div>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                <Input
-                  size="md"
+              <div className="bw-cmp-pop-row">
+                <input
+                  className="bw-cmp-pop-input"
                   value={addNote}
                   onChange={(e) => setAddNote(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && addCustom()}
                   placeholder="A detail, a perspective, a reassurance to add…"
                   disabled={addBusy}
-                  style={{ flex: 1, fontFamily: 'var(--font-sans)' }}
                 />
-                <IconButton variant="soft" size="md" label={addBusy ? 'Writing…' : 'Write & Add'} disabled={addBusy || !addNote.trim()} onClick={addCustom}>
-                  <Icon name="plus" size={18} />
-                </IconButton>
+                <button className="bw-cmp-pop-txtbtn" disabled={addBusy || !addNote.trim()} onClick={addCustom}>
+                  {addBusy ? 'Writing…' : 'Write & Add'}
+                </button>
               </div>
             </div>
           )}
@@ -951,7 +1020,7 @@ export default function Composer() {
 
         {/* ---- right rail ---- */}
         <aside className="bw-composer-rail" style={{ position: 'sticky', top: 92, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div className="bw-cmp-panel" ref={tuneRef}>
+          <div className="bw-cmp-panel" ref={tuneRef} data-keep-add="">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, margin: '0 4px 16px' }}>
               <h2 className="bw-cmp-panel-h2">Full-Text Tuning</h2>
               <div style={{ display: 'flex', gap: 8 }}>
