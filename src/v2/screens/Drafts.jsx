@@ -1,6 +1,7 @@
 import React from 'react'
 import DS2 from '../ds2'
 import { useStore } from '../store'
+import { RecapRail } from '../components/ClarifyRecap'
 import { badgeColors, stanceLabel, lvl, initialParas } from '../../lib/advisor'
 
 // Badge metrics per the Feedback spec: 11px · 700 · 0.08em · uppercase · pill.
@@ -51,7 +52,7 @@ function Bars({ st }) {
 
 function ReactionBox({ text }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', background: 'var(--bg-sunken)', borderRadius: 'var(--radius-md)' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', background: 'var(--paper-1)', borderRadius: 'var(--radius-md)' }}>
       <span style={{ ...T_LABEL, fontSize: 'var(--text-3xs)', color: 'var(--text-muted)', whiteSpace: 'nowrap', paddingTop: 3 }}>Likely reaction</span>
       <span style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 'var(--text-sm)', lineHeight: 'var(--leading-normal)', color: 'var(--text-body)' }}>{text}</span>
     </div>
@@ -75,33 +76,40 @@ export default function Drafts() {
   }
 
   return (
-    <main className="bw-sec-pad" style={{ maxWidth: 1160, margin: '0 auto', padding: '64px 32px 112px' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', marginBottom: 28 }}>
-        <div>
-          <div className="t-kicker" style={{ color: 'var(--accent)', marginBottom: 8 }}>
-            {scenario.draftContext.split('·')[0].trim()}
+    <main className="bw-sec-pad" style={{ maxWidth: 1280, margin: '0 auto', padding: '64px 32px 112px' }}>
+      {/* no alignItems:start — the rail column stretches so the side card
+          always reaches at least the bottom of the last draft card */}
+      <div className="bw-drafts-rail-grid" style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 40 }}>
+        <RecapRail />
+        <div style={{ minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', marginBottom: 28 }}>
+            <div>
+              <div className="t-kicker" style={{ color: 'var(--accent)', marginBottom: 8 }}>
+                {scenario.draftContext.split('·')[0].trim()}
+              </div>
+              <h1 className="bw-page-h1" style={{ fontFamily: 'var(--font-display)', fontVariationSettings: 'var(--display-soft)', fontWeight: 600, fontSize: 'var(--text-2xl)', lineHeight: 'var(--leading-tight)', letterSpacing: 'var(--tracking-tight)', color: 'var(--text-strong)', margin: 0 }}>
+                A few ways to say it
+              </h1>
+            </div>
+            <span className="bw-drafts-seg" style={{ display: 'inline-flex' }}>
+              <Segmented options={SEGS} value={mode} onChange={(m) => dispatch({ type: 'SET_DRAFT_MODE', mode: m })} />
+            </span>
           </div>
-          <h1 className="bw-page-h1" style={{ fontFamily: 'var(--font-display)', fontVariationSettings: 'var(--display-soft)', fontWeight: 600, fontSize: 'var(--text-2xl)', lineHeight: 'var(--leading-tight)', letterSpacing: 'var(--tracking-tight)', color: 'var(--text-strong)', margin: 0 }}>
-            A few ways to say it
-          </h1>
-        </div>
-        <span className="bw-drafts-seg" style={{ display: 'inline-flex' }}>
-          <Segmented options={SEGS} value={mode} onChange={(m) => dispatch({ type: 'SET_DRAFT_MODE', mode: m })} />
-        </span>
-      </div>
 
-      {/* all three modes stay mounted, stacked in one grid cell — the row
-          holds the tallest mode's height (Ranked), so switching views never
-          shifts the page; inactive modes are hidden but keep their size */}
-      <div style={{ display: 'grid' }}>
-        <div style={{ gridArea: '1 / 1', visibility: mode === 'list' ? 'visible' : 'hidden' }}>
-          <ListMode strategies={strategies} onOpen={open} />
-        </div>
-        <div style={{ gridArea: '1 / 1', visibility: mode === 'compare' ? 'visible' : 'hidden' }}>
-          <CompareMode strategies={strategies} onOpen={open} />
-        </div>
-        <div style={{ gridArea: '1 / 1', visibility: mode === 'map' ? 'visible' : 'hidden' }}>
-          <MapMode strategies={strategies} onOpen={open} />
+          {/* all three modes stay mounted, stacked in one grid cell — the row
+              holds the tallest mode's height (Ranked), so switching views never
+              shifts the page; inactive modes are hidden but keep their size */}
+          <div style={{ display: 'grid' }}>
+            <div style={{ gridArea: '1 / 1', visibility: mode === 'list' ? 'visible' : 'hidden' }}>
+              <ListMode strategies={strategies} onOpen={open} />
+            </div>
+            <div style={{ gridArea: '1 / 1', visibility: mode === 'compare' ? 'visible' : 'hidden' }}>
+              <CompareMode strategies={strategies} onOpen={open} />
+            </div>
+            <div style={{ gridArea: '1 / 1', visibility: mode === 'map' ? 'visible' : 'hidden' }}>
+              <MapMode strategies={strategies} onOpen={open} />
+            </div>
+          </div>
         </div>
       </div>
     </main>

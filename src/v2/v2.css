@@ -136,6 +136,80 @@
   box-shadow: var(--focus-shadow);
 }
 
+/* ---- choice chips (Intake spec: pill radio-group — paper fill, 1.5px
+   --border-soft, --control-h-md; hover lifts 1px to --border-strong;
+   selected = --accent-soft wash + --accent border/text, semibold) ------ */
+.bw-v2 .bw-cc {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.bw-v2 .bw-cc__group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+.bw-v2 .bw-cc__chip {
+  display: inline-flex;
+  align-items: center;
+  height: var(--control-h-md);
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-pill);
+  background: var(--paper-0);
+  border: 1.5px solid var(--border-soft);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-medium);
+  font-size: var(--text-sm);
+  color: var(--text-body);
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: var(--shadow-xs);
+  transition: background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    transform var(--dur-base) var(--ease-spring),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+.bw-v2 .bw-cc__chip:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+.bw-v2 .bw-cc__chip:active {
+  transform: scale(0.97);
+}
+.bw-v2 .bw-cc__chip.is-subtle {
+  background: transparent;
+  border-color: var(--border-soft);
+  color: var(--text-strong);
+  font-weight: var(--weight-medium);
+  box-shadow: none;
+}
+.bw-v2 .bw-cc__chip.is-subtle:hover {
+  border-color: var(--border-strong);
+  color: var(--text-strong);
+  background: var(--paper-0);
+  transform: translateY(-1px);
+}
+.bw-v2 .bw-cc__chip.is-selected {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: var(--weight-semibold);
+  box-shadow: none;
+}
+.bw-v2 .bw-cc__chip:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-shadow);
+}
+.bw-v2 .bw-cc__reveal {
+  animation: bw-rise var(--dur-base) var(--ease-out) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bw-v2 .bw-cc__reveal {
+    animation: none;
+  }
+}
+
 /* ---- ambient characters & twinkles (Home / Clarify, landing-hero vibe) */
 .bw-v2 .bw-float {
   position: absolute;
@@ -267,7 +341,9 @@
   box-shadow: var(--shadow-sm);
 }
 
-/* ---- Drafts: frosted-glass segmented control (Ranked/Compare/Risk map) */
+/* ---- Drafts: frosted-glass segmented control (Ranked/Compare/Risk map);
+   the Clarify-recap rail panel shares the same glass treatment ----------- */
+.bw-v2 .bw-recap-frost,
 .bw-v2 .bw-drafts-seg .bw-seg {
   background: rgba(252, 253, 255, 0.52);
   border: 1px solid rgba(255, 255, 255, 0.7);
@@ -293,6 +369,11 @@
   filter: drop-shadow(0 7px 12px rgba(28, 23, 70, 0.16));
   animation: bw-float 6s var(--ease-in-out) infinite;
   margin: 0 0 14px 2px;
+}
+
+/* ---- Drafts: Clarify recap rail (components/ClarifyRecap.jsx) ------- */
+.bw-v2 .bw-recap-row:hover .bw-recap-a {
+  text-decoration: underline;
 }
 
 /* ---- loading sweep (DS bw-shimmer keyframes, Motion spec) ----------- */
@@ -421,6 +502,16 @@
   .bw-v2 .bw-composer-rail,
   .bw-v2 .bw-clarify-rail {
     position: static !important;
+  }
+  /* Drafts rail recap: stack the side card above the drafts column (same
+     card-first order as Clarify's mobile stack) at its natural height —
+     the desktop viewport cap + clip shadow don't apply once stacked */
+  .bw-v2 .bw-drafts-rail-grid {
+    grid-template-columns: 1fr !important;
+    gap: 28px !important;
+  }
+  .bw-v2 .bw-drafts-rail-grid .bw-clarify-rail {
+    max-height: none !important;
   }
 }
 

@@ -20,8 +20,8 @@ export const DATA = {
       { id: 'harm', type: 'chips', title: 'What’s being withheld or harmed?', helper: 'Pick the closest.', options: ['My security deposit', 'Repairs aren’t done', 'I was overcharged', 'My lease terms aren’t honored'], allowCustom: true, customPlaceholder: 'Describe what’s being withheld or harmed…' },
       { id: 'urgency', type: 'chips', title: 'How time-sensitive is it?', options: ['I have time', 'Within a few weeks', 'It’s urgent'] },
       { id: 'goal', type: 'text', title: 'What outcome would resolve this for you?', helper: 'Your ideal result, in a line.', placeholder: 'e.g. my full $1,850 deposit returned within two weeks' },
-      { id: 'rel', type: 'chips', title: 'How have things been with them so far?', options: ['Cordial', 'Neutral / formal', 'Already strained'] },
-      { id: 'fear', type: 'chips', title: 'What worries you most about sending this?', options: ['Being ignored', 'A drawn-out dispute', 'Retaliation', 'Sounding too aggressive'] },
+      { id: 'rel', type: 'chips', title: 'How have things been with them so far?', options: ['Cordial', 'Neutral / formal', 'Already strained']},
+      { id: 'fear', type: 'chips', title: 'What worries you most about sending this?', options: ['Being ignored', 'A drawn-out dispute', 'Retaliation', 'Sounding too aggressive'], allowCustom: true, customPlaceholder: 'Describe what repercussion you\'re worried about…'  },
     ],
     strategies: [
       {
@@ -31,7 +31,7 @@ export const DATA = {
         reaction: 'Likely a prompt, apologetic reply — but easy to stall if they’re disorganized.',
         body: [
           { s: [
-            { soft: 'I hope you’re well. I wanted to gently follow up about the return of my security deposit for 14 Rue Pelletier, now that the lease has ended.', bal: 'I’m following up about the return of my security deposit for 14 Rue Pelletier, now that my lease has ended.', strong: 'I’m writing about the return of my security deposit for 14 Rue Pelletier, which is now due following the end of my lease.' },
+            { soft: 'I hope you’re well. I wanted to gently follow up about the return of my security deposit for 14 Pineapple Street, now that the lease has ended.', bal: 'I’m following up about the return of my security deposit for 14 Pineapple Street, now that my lease has ended.', strong: 'I’m writing about the return of my security deposit for 14 Pineapple Street, which is now due following the end of my lease.' },
             { soft: 'For reference, I moved out on 30 May and left the unit clean, with all keys returned.', bal: 'For reference, I moved out on 30 May and left the unit clean, with all keys returned.', strong: 'For reference, I moved out on 30 May and left the unit clean, with all keys returned.', detail: true },
           ] },
           { s: [
@@ -48,12 +48,12 @@ export const DATA = {
       },
       {
         name: 'The Documented Request', level: 'balanced', toneDefault: 50, risk: 42, eff: 78, recommended: true,
-        subject: 'Request to return security deposit — 14 Rue Pelletier',
+        subject: 'Request to return security deposit — 14 Pineapple Street',
         why: 'Pairs courtesy with a clear deadline and a paper trail, which most landlords act on.',
         reaction: 'Usually taken seriously; prompts either payment or a concrete itemization.',
         body: [
           { s: [
-            { soft: 'I’m writing to request the return of my $1,850 security deposit for 14 Rue Pelletier, following the end of my tenancy on 30 May.', bal: 'I’m writing to request the return of my $1,850 security deposit for 14 Rue Pelletier. My tenancy ended on 30 May and the deposit is now due.', strong: 'I’m writing to formally request the return of my $1,850 security deposit for 14 Rue Pelletier. My tenancy ended on 30 May, and the deposit is now overdue.' },
+            { soft: 'I’m writing to request the return of my $1,850 security deposit for 14 Pineapple Street, following the end of my tenancy on 30 May.', bal: 'I’m writing to request the return of my $1,850 security deposit for 14 Pineapple Street. My tenancy ended on 30 May and the deposit is now due.', strong: 'I’m writing to formally request the return of my $1,850 security deposit for 14 Pineapple Street. My tenancy ended on 30 May, and the deposit is now overdue.' },
             { soft: 'Under our lease and the applicable tenancy rules, deposits are returned — with any deductions itemized — within 21 days of move-out.', bal: 'Under our lease and the applicable tenancy rules, deposits are returned — with any deductions itemized — within 21 days of move-out.', strong: 'Under our lease and the applicable tenancy rules, deposits are returned — with any deductions itemized — within 21 days of move-out.', detail: true },
           ] },
           { s: [
@@ -70,12 +70,12 @@ export const DATA = {
       },
       {
         name: 'The Formal Notice', level: 'strong', toneDefault: 80, risk: 72, eff: 90,
-        subject: 'Formal notice — overdue security deposit, 14 Rue Pelletier',
+        subject: 'Formal notice — overdue security deposit, 14 Pineapple Street',
         why: 'Signals that you know your rights and are ready to escalate, which gets fast action.',
         reaction: 'Most landlords comply quickly; a few may become defensive or go quiet.',
         body: [
           { s: [
-            { soft: 'Please treat this as a formal notice regarding my overdue $1,850 security deposit for 14 Rue Pelletier.', bal: 'This is a formal notice regarding the overdue return of my $1,850 security deposit for 14 Rue Pelletier.', strong: 'This is a formal notice. My $1,850 security deposit for 14 Rue Pelletier is overdue and must be returned.' },
+            { soft: 'Please treat this as a formal notice regarding my overdue $1,850 security deposit for 14 Pineapple Street.', bal: 'This is a formal notice regarding the overdue return of my $1,850 security deposit for 14 Pineapple Street.', strong: 'This is a formal notice. My $1,850 security deposit for 14 Pineapple Street is overdue and must be returned.' },
             { soft: 'The 21-day deadline from my 30 May move-out has now passed without payment or a written itemization.', bal: 'The 21-day deadline from my 30 May move-out has now passed without payment or a written itemization.', strong: 'The 21-day deadline from my 30 May move-out has now passed without payment or a written itemization.', detail: true },
           ] },
           { s: [
@@ -106,10 +106,10 @@ export const DATA = {
       bg: 'var(--cream-2)',
     },
     questions: [
-      { id: 'who', type: 'chips', title: 'Who is this for?', options: ['A parent', 'A sibling', 'A close friend', 'My partner'], allowCustom: true, customPlaceholder: 'Tell us who this is for…' },
-      { id: 'say', type: 'chips', title: 'What do you need to say?', options: ['I can’t keep lending money', 'I need more space', 'I can’t make it', 'Something they did hurt me'] },
+      { id: 'who', type: 'chips', title: 'Who is this for?', options: ['A parent', 'A sibling', 'A close friend', 'My partner'], allowCustom: true, customLabel: 'Someone else', customPlaceholder: 'Tell us who this is for…' },
+      { id: 'say', type: 'chips', title: 'What do you need to say?', options: ['I can’t keep lending money', 'I need more space', 'I can’t make it', 'Something they did hurt me'], allowCustom: true, customLabel: 'Something else', customPlaceholder: 'Tell us what this is about…' },
       { id: 'understand', type: 'text', title: 'What do you most want them to understand?', helper: 'The heart of it, in your words.', placeholder: 'e.g. that this isn’t about loving them less' },
-      { id: 'fear', type: 'chips', title: 'What are you most afraid of?', options: ['Hurting them', 'Their anger', 'Guilt — feeling selfish', 'Damaging the relationship'] },
+      { id: 'fear', type: 'chips', title: 'What are you most afraid of?', options: ['Hurting them', 'Their anger', 'Guilt — feeling selfish', 'Damaging the relationship'], allowCustom: true, customLabel: 'Something else', customPlaceholder: 'Describe what worries you the most…'  },
       { id: 'directness', type: 'chips', title: 'How direct do you want to be?', options: ['Very gentle', 'Honest but warm', 'Clear and firm'] },
     ],
     strategies: [
@@ -196,10 +196,10 @@ export const DATA = {
     },
     questions: [
       { id: 'what', type: 'chips', title: 'What happened?', options: ['A coworker took credit for my work', 'I was blamed unfairly', 'I feel underpaid', 'My contribution was overlooked'], allowCustom: true, customPlaceholder: 'Describe what happened…' },
-      { id: 'to', type: 'chips', title: 'Who will receive this?', options: ['My manager', 'The coworker', 'Both / a group'] },
+      { id: 'to', type: 'chips', title: 'Who will receive this?', options: ['My manager', 'The coworker', 'Both / a group'], allowCustom: true, customLabel: 'Someone else', customPlaceholder: 'Tell us who this is for…'  },
       { id: 'seek', type: 'text', title: 'What recognition or change are you seeking?', helper: 'Be concrete if you can.', placeholder: 'e.g. my authorship noted, and to present it next time' },
       { id: 'power', type: 'chips', title: 'What’s the power dynamic?', options: ['They’re senior to me', 'We’re peers', 'I’m senior'] },
-      { id: 'fear', type: 'chips', title: 'Your biggest worry?', options: ['Looking petty', 'Political fallout', 'Not being believed', 'Damaging a relationship'] },
+      { id: 'fear', type: 'chips', title: 'Your biggest worry?', options: ['Looking petty', 'Political fallout', 'Not being believed', 'Damaging a relationship'], allowCustom: true, customLabel: 'Something else', customPlaceholder: 'Describe what you\'re afraid of…'  },
     ],
     strategies: [
       {

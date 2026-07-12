@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
 import DS2 from '../ds2'
+import ChoiceChip from '../components/ChoiceChip'
 import { useStore } from '../store'
 
 const SOMETHING_ELSE = 'Something else'
-const CHIP_STYLE = { fontSize: 'var(--text-sm)', padding: '0.6em 1.1em' }
+const CUSTOM = '__custom__'
 const SCENARIO_ART = { rights: 'ctx-dispute', personal: 'ctx-boundary', circle: 'ctx-speakup' }
 
 export default function Clarify() {
@@ -18,8 +19,14 @@ export default function Clarify() {
   const answered = isText ? true : !!ans
   const isLast = idx === qs.length - 1
 
+  // Revisiting after drafts exist: if every answer still matches the snapshot
+  // the drafts were generated from, skip regeneration and return to them.
+  const unchanged =
+    !!state.draftedAnswers &&
+    qs.every((qq) => JSON.stringify(state.answers[qq.id] ?? '') === JSON.stringify(state.draftedAnswers[qq.id] ?? ''))
+
   const next = () => {
-    if (isLast) dispatch({ type: 'GOTO', screen: 'generating' })
+    if (isLast) dispatch({ type: 'GOTO', screen: unchanged ? 'drafts' : 'generating' })
     else dispatch({ type: 'SET_STEP', step: idx + 1 })
   }
   const back = () => {
@@ -118,7 +125,7 @@ export default function Clarify() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <Button variant="ghost" size="md" onClick={back}>← Back</Button>
           <Button variant="primary" size="lg" disabled={!answered} onClick={next}>
-            {isLast ? 'Compose my options' : 'Continue'}
+            {isLast ? (unchanged ? 'View my options' : 'Compose my options') : 'Continue'}
           </Button>
         </div>
       </section>
@@ -130,39 +137,40 @@ export default function Clarify() {
 // Chips with an optional "Something else" escape hatch that opens a free-text
 // field. Keyed by question id in the parent so customMode resets per question.
 function ChipsQuestion({ q, ans, onAnswer }) {
-  const { Tag } = DS2
   const isPreset = q.options.includes(ans)
   const [customMode, setCustomMode] = useState(q.allowCustom && !!ans && !isPreset)
 
-  const pickPreset = (label) => {
-    setCustomMode(false)
-    onAnswer(label)
-  }
-  const openCustom = () => {
-    setCustomMode(true)
-    if (isPreset || !ans) onAnswer('') // clear a previous preset; await their text
+  const pick = (value) => {
+    if (value === CUSTOM) {
+      setCustomMode(true)
+      if (isPreset || !ans) onAnswer('') // clear a previous preset; await their text
+    } else {
+      setCustomMode(false)
+      onAnswer(value)
+    }
   }
 
   return (
     <div style={{ marginBottom: 40 }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-        {q.options.map((label) => (
-          <Tag key={label} selected={!customMode && ans === label} onClick={() => pickPreset(label)} style={CHIP_STYLE}>{label}</Tag>
-        ))}
-        {q.allowCustom && (
-          <Tag selected={customMode} onClick={openCustom} style={CHIP_STYLE}>{SOMETHING_ELSE}</Tag>
+      <ChoiceChip
+        label={q.title}
+        value={customMode ? CUSTOM : isPreset ? ans : null}
+        onChange={pick}
+        options={[
+          ...q.options,
+          ...(q.allowCustom ? [{ value: CUSTOM, label: q.customLabel || SOMETHING_ELSE, reveal: true, subtle: true }] : []),
+        ]}
+        renderReveal={() => (
+          <input
+            className="bw-field"
+            autoFocus
+            value={typeof ans === 'string' ? ans : ''}
+            onChange={(e) => onAnswer(e.target.value)}
+            placeholder={q.customPlaceholder || 'Describe it in your own words…'}
+            style={{ maxWidth: 520 }}
+          />
         )}
-      </div>
-      {customMode && (
-        <input
-          className="bw-field"
-          autoFocus
-          value={typeof ans === 'string' ? ans : ''}
-          onChange={(e) => onAnswer(e.target.value)}
-          placeholder={q.customPlaceholder || 'Describe it in your own words…'}
-          style={{ marginTop: 16 }}
-        />
-      )}
+      />
     </div>
   )
 }

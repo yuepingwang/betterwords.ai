@@ -13,6 +13,7 @@ const initialState = {
   clarifyStep: 0,
   answers: {},
   strategies: null, // AI-generated drafts; null → fall back to static DATA
+  draftedAnswers: null, // answers snapshot the current drafts were generated from
   genLoading: false,
   selectedIdx: 1,
   draftMode: 'list',
@@ -39,17 +40,19 @@ function reducer(state, action) {
     case 'GOTO':
       return { ...state, screen: action.screen }
     case 'GO_LANDING':
-      return { ...state, screen: 'landing', scenarioId: null, clarifyStep: 0, answers: {}, strategies: null, sent: false }
+      return { ...state, screen: 'landing', scenarioId: null, clarifyStep: 0, answers: {}, strategies: null, draftedAnswers: null, sent: false }
     case 'RESTART':
-      return { ...state, screen: 'home', scenarioId: null, clarifyStep: 0, answers: {}, strategies: null, sent: false }
+      return { ...state, screen: 'home', scenarioId: null, clarifyStep: 0, answers: {}, strategies: null, draftedAnswers: null, sent: false }
     case 'START_SCENARIO':
-      return { ...state, scenarioId: action.scenarioId, screen: 'clarify', clarifyStep: 0, answers: {}, strategies: null }
+      return { ...state, scenarioId: action.scenarioId, screen: 'clarify', clarifyStep: 0, answers: {}, strategies: null, draftedAnswers: null }
     case 'ASK_TOUR':
       return { ...state, tourAsk: state.tourAsk + 1 }
     case 'SET_GEN_LOADING':
       return { ...state, genLoading: action.value }
     case 'SET_STRATEGIES':
-      return { ...state, strategies: action.strategies, genLoading: false }
+      // Remember which answers these drafts came from, so Clarify can offer
+      // "View my options" (skip regeneration) when nothing changed since.
+      return { ...state, strategies: action.strategies, draftedAnswers: state.answers, genLoading: false }
     case 'SET_STEP':
       return { ...state, clarifyStep: action.step }
     case 'ANSWER':
@@ -136,8 +139,21 @@ function initState() {
     if (!screen) return initialState
     const scenarioId = p.get('scenario') || 'rights'
     const idx = Math.max(0, Math.min(2, Number(p.get('idx') ?? 1)))
-    const toneDefault = getScenario(scenarioId)?.strategies?.[idx]?.toneDefault ?? 50
-    return { ...initialState, screen, scenarioId, selectedIdx: idx, tone: toneDefault }
+    const sc = getScenario(scenarioId)
+    const toneDefault = sc?.strategies?.[idx]?.toneDefault ?? 50
+    // `&demo=1` prefills sample answers (first chip / de-e.g.'d placeholder)
+    // as if the clarify flow was completed, for screens that recap them.
+    let answers = {}
+    let clarifyStep = 0
+    if (p.get('demo') && sc) {
+      sc.questions.forEach((q) => {
+        answers[q.id] = q.type === 'text' ? (q.placeholder || '').replace(/^e\.g\.\s*/, '') : q.options[0]
+      })
+      clarifyStep = sc.questions.length - 1
+    }
+    // A drafts deep-link acts as if these answers already produced the drafts
+    const draftedAnswers = screen === 'drafts' && Object.keys(answers).length ? answers : null
+    return { ...initialState, screen, scenarioId, selectedIdx: idx, tone: toneDefault, answers, clarifyStep, draftedAnswers }
   } catch {
     return initialState
   }
