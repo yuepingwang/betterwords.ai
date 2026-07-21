@@ -5,13 +5,16 @@ backend:
       commands:
         # Deploy the Gen 2 backend (the chat Lambda + its Function URL).
         # Produces amplify_outputs.json with custom.chatApiUrl.
-        - npm ci --cache .npm --prefer-offline
+        # `npm install` (not `ci`): npm 10/11's `ci` sync-check false-fails
+        # on the bundled deps inside aws-cdk-lib/@aws-amplify — install
+        # still honors package-lock.json.
+        - npm install --cache .npm --prefer-offline
         - npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
 frontend:
   phases:
     preBuild:
       commands:
-        - npm ci --cache .npm --prefer-offline
+        - npm install --cache .npm --prefer-offline
     build:
       commands:
         # Read the deployed Function URL into the Vite build so advisor.js
