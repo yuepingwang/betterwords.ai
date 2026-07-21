@@ -1,0 +1,482 @@
+/* ============================================================
+   BETTERWORDS.AI DESIGN SYSTEM — "Daybreak"
+   Pulled from claude.ai/design (project: Betterwords.ai Design
+   System) and scoped to `.bw-v3` so it governs ONLY the v3 app
+   and never touches v1's Messenger tokens.
+
+   Layers below mirror the source token files (colors, typography,
+   spacing, effects, gradients). To re-sync, re-pull those files
+   and re-apply the same `:root → .bw-v3` scoping.
+   ============================================================ */
+
+/* Webfonts — global @import (same families as v1; harmless to v1). */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap');
+
+/* ============================================================
+   TOKENS — default "Paper" (warm ivory) context, scoped to .bw-v3
+   ============================================================ */
+.bw-v3 {
+  /* ---- Paper / warm neutrals ---- */
+  --paper-0: #FFFDF8;
+  --paper-1: #FBF7EF;
+  --paper-2: #F3ECDF;
+  --sand-1:  #EDE5D5;
+  --sand-2:  #DED4C0;
+
+  /* ---- Ink (indigo) ---- */
+  --ink-900: #14103A;
+  --ink-800: #1C1746;
+  --ink-700: #272159;
+  --ink-600: #3A3473;
+  --ink-500: #5B5493;
+  --ink-400: #857FAF;
+
+  /* ---- Periwinkle / blue (signature) ---- */
+  --peri-100: #E7EEFE;
+  --peri-200: #CFDDFB;
+  --peri-300: #AFC8F6;
+  --peri-400: #8AA8EF;
+  --blue-500: #5C7BEB;
+  --blue-600: #3F5AE0;
+  --blue-700: #2C43BE;
+
+  /* ---- Lilac / violet ---- */
+  --lilac-200: #EAE2FA;
+  --lilac-300: #D8CBF4;
+  --lilac-400: #BFA8ED;
+  --lilac-500: #A688E4;
+  --lilac-600: #8E6BD6;
+
+  /* ---- Peach / apricot (NEW signature warm end) ---- */
+  --peach-100: #FDECE0;
+  --peach-200: #FBD7C1;
+  --peach-300: #F9BF9E;
+  --peach-400: #F4A278;
+  --peach-500: #EE8654;
+  --peach-600: #D96A38;
+
+  /* ---- Coral / honey / mint ---- */
+  --coral-400: #F27A66;
+  --coral-500: #EC5A44;
+  --coral-600: #CD3E2A;
+  --honey-300: #FBDD93;
+  --honey-400: #F5C659;
+  --honey-500: #EDAE39;
+  --honey-600: #C98C24;
+  --mint-200: #D6F0E2;
+  --mint-300: #B4E6CD;
+  --mint-400: #85D2AD;
+  --mint-500: #52BB89;
+  --mint-600: #2F9E6D;
+
+  --white: #FFFFFF;
+  --black: #0B0826;
+
+  /* ---- Semantic aliases (Paper context) ---- */
+  --bg-base:      var(--paper-1);
+  --bg-elevated:  var(--paper-0);
+  --bg-sunken:    var(--paper-2);
+  --surface-card:  var(--paper-0);
+  --surface-panel: var(--sand-1);
+  --surface-sky:   var(--peri-300);
+  --surface-peach: var(--peach-200);
+  --surface-night: var(--ink-800);
+
+  --text-strong: var(--ink-800);
+  --text-body:   var(--ink-700);
+  --text-muted:  var(--ink-500);
+  --text-faint:  var(--ink-400);
+  --text-on-blue:  var(--paper-0);
+  --text-on-night: var(--paper-0);
+  --text-on-sky:   var(--ink-800);
+  --text-on-peach: var(--ink-800);
+  --text-on-accent: var(--paper-0);
+
+  --border-hair:   rgba(28, 23, 70, 0.10);
+  --border-soft:   rgba(28, 23, 70, 0.18);
+  --border-strong: rgba(28, 23, 70, 0.36);
+  --border-night:  rgba(231, 238, 254, 0.20);
+
+  --accent:        var(--blue-600);
+  --accent-hover:  var(--blue-500);
+  --accent-press:  var(--blue-700);
+  --accent-soft:   var(--peri-100);
+  --spark:         var(--peach-500);
+  --spark-hover:   var(--peach-400);
+  --spark-press:   var(--peach-600);
+  --foil:          var(--honey-500);
+
+  --success: var(--mint-500);
+  --warning: var(--honey-600);
+  --danger:  var(--coral-500);
+  --info:    var(--blue-600);
+
+  --focus-ring:   rgba(63, 90, 224, 0.42);
+  --selection-bg: var(--peri-200);
+
+  /* ---- Typography ---- */
+  --font-display: "Fraunces", "Hoefler Text", Garamond, serif;
+  --font-serif:   "Cormorant Garamond", "Iowan Old Style", Georgia, serif;
+  --font-sans:    "Hanken Grotesk", "Helvetica Neue", system-ui, sans-serif;
+  --display-soft: "SOFT" 4, "WONK" 1;
+
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+
+  --text-3xs: 0.6875rem;
+  --text-2xs: 0.75rem;
+  --text-xs:  0.8125rem;
+  --text-sm:  0.9375rem;
+  --text-base:1.0625rem;
+  --text-md:  1.1875rem;
+  --text-lg:  1.5rem;
+  --text-xl:  2rem;
+  --text-2xl: 2.75rem;
+  --text-3xl: 3.75rem;
+  --text-4xl: 5rem;
+  --text-5xl: 6.75rem;
+
+  --leading-tight:   1.03;
+  --leading-snug:    1.15;
+  --leading-normal:  1.42;
+  --leading-relaxed: 1.62;
+  --leading-loose:   1.8;
+
+  --tracking-tighter: -0.025em;
+  --tracking-tight:   -0.012em;
+  --tracking-normal:  0em;
+  --tracking-wide:    0.02em;
+  --tracking-wider:   0.12em;
+  --tracking-widest:  0.24em;
+
+  /* ---- Spacing & layout ---- */
+  --space-0:  0;
+  --space-1:  0.25rem;
+  --space-2:  0.5rem;
+  --space-3:  0.75rem;
+  --space-4:  1rem;
+  --space-5:  1.5rem;
+  --space-6:  2rem;
+  --space-7:  2.5rem;
+  --space-8:  3rem;
+  --space-9:  4rem;
+  --space-10: 5.5rem;
+  --space-11: 7rem;
+  --space-12: 9rem;
+  --measure-letter: 60ch;
+  --measure-prose:  66ch;
+  --container-sm: 560px;
+  --container-md: 820px;
+  --container-lg: 1120px;
+  --container-xl: 1320px;
+  --control-h-sm: 36px;
+  --control-h-md: 46px;
+  --control-h-lg: 56px;
+  --gutter: var(--space-5);
+
+  /* ---- Effects ---- */
+  --radius-xs:   6px;
+  --radius-sm:   10px;
+  --radius-md:   16px;
+  --radius-lg:   22px;
+  --radius-xl:   32px;
+  --radius-2xl:  44px;
+  --radius-pill: 999px;
+
+  --shadow-xs: 0 1px 2px rgba(28, 23, 70, 0.06);
+  --shadow-sm: 0 2px 4px rgba(28, 23, 70, 0.06), 0 4px 10px rgba(28, 23, 70, 0.06);
+  --shadow-md: 0 4px 10px rgba(28, 23, 70, 0.07), 0 12px 28px rgba(28, 23, 70, 0.10);
+  --shadow-lg: 0 10px 24px rgba(28, 23, 70, 0.10), 0 34px 70px rgba(28, 23, 70, 0.16);
+  --shadow-xl: 0 20px 44px rgba(28, 23, 70, 0.14), 0 60px 120px rgba(28, 23, 70, 0.20);
+  --glow-spark: 0 6px 22px rgba(238, 134, 84, 0.42);
+  --glow-accent: 0 6px 22px rgba(63, 90, 224, 0.36);
+  --inset-press: inset 0 2px 5px rgba(28, 23, 70, 0.14);
+  --focus-shadow: 0 0 0 3px var(--focus-ring);
+
+  --ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-bounce:   cubic-bezier(0.5, 1.5, 0.5, 1);
+  --ease-out:      cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out:   cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast:     140ms;
+  --dur-base:     220ms;
+  --dur-slow:     380ms;
+  --dur-celebrate:640ms;
+
+  /* ---- Gradients ---- */
+  --grad-daybreak: linear-gradient(155deg, #AFC8F6 0%, #C6C1F0 26%, #E7DDEE 48%, #FBEBDD 68%, #F9BF9E 100%);
+  --grad-dawn: linear-gradient(145deg, #F9BF9E 0%, #FBD7C1 34%, #FBF1E4 60%, #CFDDFB 100%);
+  --grad-dusk: linear-gradient(160deg, #5C7BEB 0%, #8A82D9 40%, #BFA8ED 70%, #F9BF9E 100%);
+  --grad-aurora: linear-gradient(120deg, #5C7BEB 0%, #A688E4 30%, #F27A66 62%, #F5C659 100%);
+  --grad-soft: linear-gradient(170deg, #FBF7EF 0%, #F1EEFB 52%, #FDECE0 100%);
+  /* ember — warm CTA sweep (Button variant="gradient-warm"); synced from
+     the DS export exports/GradientWarmButton.html */
+  --grad-ember: linear-gradient(110deg,
+    #EE8654 0%, #F4A278 14%, #F27A66 30%, #C48CC0 50%,
+    #A688E4 66%, #8AA8EF 84%, #5C7BEB 100%);
+  --glow-peri:  radial-gradient(60% 60% at 50% 0%, rgba(92,123,235,0.45), transparent 70%);
+  --glow-peach: radial-gradient(50% 50% at 80% 100%, rgba(244,162,120,0.5), transparent 72%);
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+}
+
+/* ============================================================
+   BRIDGE — maps the OLD (Messenger / v1) token names that v3's
+   copied screens still reference onto Daybreak, so the whole v3
+   app adopts Daybreak with ZERO rewrites. As you migrate a
+   component to native Daybreak tokens (--accent, --spark, --paper-1,
+   etc.), delete its aliases here.
+   ============================================================ */
+.bw-v3 {
+  --royal-500: var(--blue-500);
+  --royal-600: var(--blue-600);
+  --royal-700: var(--blue-700);
+  --cream-0: var(--paper-0);
+  --cream-1: var(--paper-1);
+  --cream-2: var(--paper-2);
+  --fog-1: var(--sand-1);
+  --fog-2: var(--sand-2);
+  --pine-500: var(--mint-500);
+  --ease-quiet: var(--ease-out);
+  --surface-letter: var(--surface-card);
+  --shadow-letter: var(--shadow-lg);
+}
+
+/* ============================================================
+   CONTEXT CLASSES — drop on any subtree to re-ground it.
+   Match both nested (.bw-v3 .night) and root (.bw-v3.night).
+   ============================================================ */
+.bw-v3 .night, .bw-v3.night {
+  --bg-base: var(--ink-800);
+  --bg-elevated: var(--ink-700);
+  --bg-sunken: var(--ink-900);
+  --surface-card: var(--ink-700);
+  --text-strong: var(--paper-0);
+  --text-body: var(--peri-100);
+  --text-muted: var(--peri-300);
+  --text-faint: #8C88B8;
+  --text-on-accent: var(--ink-800);
+  --border-hair: rgba(231, 238, 254, 0.14);
+  --border-soft: rgba(231, 238, 254, 0.22);
+  --border-strong: rgba(231, 238, 254, 0.42);
+  --accent: var(--peri-300);
+  --accent-hover: var(--peri-200);
+  --accent-press: var(--peri-400);
+  --accent-soft: rgba(175, 200, 246, 0.16);
+  --spark: var(--peach-400);
+  --spark-hover: var(--peach-300);
+  --focus-ring: rgba(175, 200, 246, 0.5);
+  --selection-bg: var(--ink-600);
+}
+.bw-v3 .sky, .bw-v3.sky {
+  --bg-base: var(--peri-300);
+  --bg-elevated: var(--peri-200);
+  --surface-card: var(--paper-0);
+  --text-strong: var(--ink-800);
+  --text-body: var(--ink-700);
+  --text-muted: var(--ink-600);
+  --border-hair: rgba(28, 23, 70, 0.14);
+  --border-soft: rgba(28, 23, 70, 0.24);
+  --accent: var(--blue-600);
+  --accent-hover: var(--blue-700);
+  --accent-soft: rgba(255, 253, 248, 0.55);
+}
+.bw-v3 .dawn, .bw-v3.dawn {
+  --bg-base: var(--peach-200);
+  --bg-elevated: var(--peach-100);
+  --surface-card: var(--paper-0);
+  --text-strong: var(--ink-800);
+  --text-body: var(--ink-700);
+  --text-muted: var(--ink-600);
+  --border-hair: rgba(28, 23, 70, 0.13);
+  --border-soft: rgba(28, 23, 70, 0.22);
+  --accent: var(--peach-600);
+  --accent-hover: var(--peach-500);
+  --accent-soft: rgba(255, 253, 248, 0.6);
+  --spark: var(--coral-500);
+}
+
+/* ============================================================
+   TYPE ROLE UTILITIES
+   ============================================================ */
+.bw-v3 .t-hero {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-variation-settings: var(--display-soft);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-5xl);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tighter);
+}
+.bw-v3 .t-display {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-variation-settings: var(--display-soft);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-3xl);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+}
+.bw-v3 .t-title {
+  font-family: var(--font-display);
+  font-variation-settings: var(--display-soft);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-xl);
+  line-height: var(--leading-snug);
+}
+.bw-v3 .t-category {
+  font-family: var(--font-serif);
+  font-weight: var(--weight-medium);
+  font-size: var(--text-lg);
+  line-height: var(--leading-snug);
+}
+.bw-v3 .t-prose {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-regular);
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
+}
+.bw-v3 .t-quote {
+  font-family: var(--font-serif);
+  font-weight: var(--weight-regular);
+  font-style: italic;
+  font-size: var(--text-2xl);
+  line-height: var(--leading-snug);
+}
+.bw-v3 .t-ui {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-medium);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+.bw-v3 .t-label {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+}
+.bw-v3 .t-kicker {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-3xs);
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+}
+
+/* ============================================================
+   MOTION — keyframes are global (only v3 mounts per page load);
+   utilities are scoped.
+   ============================================================ */
+@keyframes bw-pop-in {
+  0%   { opacity: 0; transform: scale(0.9) translateY(8px); }
+  60%  { opacity: 1; transform: scale(1.02) translateY(0); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes bw-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes bw-twinkle {
+  0%, 100% { opacity: 0.55; transform: scale(0.85) rotate(0deg); }
+  50%      { opacity: 1;    transform: scale(1.12) rotate(8deg); }
+}
+@keyframes bw-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+@keyframes bw-shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+.bw-v3 .anim-pop   { animation: bw-pop-in var(--dur-slow) var(--ease-spring) both; }
+.bw-v3 .anim-rise  { animation: bw-rise var(--dur-base) var(--ease-out) both; }
+.bw-v3 .anim-float { animation: bw-float 4.5s var(--ease-in-out) infinite; }
+.bw-v3 .anim-twinkle { animation: bw-twinkle 3s var(--ease-in-out) infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .bw-v3 .anim-pop, .bw-v3 .anim-rise, .bw-v3 .anim-float, .bw-v3 .anim-twinkle { animation: none !important; }
+}
+
+/* ============================================================
+   SURFACE HELPERS
+   ============================================================ */
+.bw-v3 .rule-hair   { border: 0; border-top: 1px solid var(--border-hair); }
+.bw-v3 .rule-dotted { border: 0; border-top: 1.5px dotted var(--border-soft); }
+.bw-v3 .chip-soft {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: var(--radius-pill);
+}
+
+/* ============================================================
+   GRADIENT SURFACES (each paints its own grain layer)
+   ============================================================ */
+.bw-v3 .grad-daybreak { background-image: var(--grad-daybreak); }
+.bw-v3 .grad-dawn     { background-image: var(--grad-dawn); }
+.bw-v3 .grad-dusk     { background-image: var(--grad-dusk); }
+.bw-v3 .grad-aurora   { background-image: var(--grad-aurora); }
+.bw-v3 .grad-soft     { background-image: var(--grad-soft); }
+
+.bw-v3 .grad-daybreak, .bw-v3 .grad-dawn, .bw-v3 .grad-dusk,
+.bw-v3 .grad-aurora, .bw-v3 .grad-soft {
+  position: relative;
+  background-size: cover;
+  isolation: isolate;
+}
+.bw-v3 .grad-daybreak::before, .bw-v3 .grad-dawn::before, .bw-v3 .grad-dusk::before,
+.bw-v3 .grad-aurora::before, .bw-v3 .grad-soft::before {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  pointer-events: none; border-radius: inherit;
+  background-image: var(--grain);
+  background-size: 180px 180px;
+  opacity: 0.16; mix-blend-mode: soft-light;
+}
+.bw-v3 .grad-dusk::before, .bw-v3 .grad-aurora::before { opacity: 0.22; mix-blend-mode: overlay; }
+
+.bw-v3 .has-grain { position: relative; }
+.bw-v3 .has-grain::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: var(--grain); background-size: 180px 180px;
+  opacity: 0.12; mix-blend-mode: multiply; border-radius: inherit;
+}
+
+.bw-v3 .grad-text {
+  background: linear-gradient(100deg, #3F5AE0, #A688E4 45%, #EE8654 88%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* Button variant="gradient-warm" — verbatim from the DS export
+   exports/GradientWarmButton.html (the bundled Button.jsx predates this
+   variant, so it renders the class but ships no rule for it; this is the
+   missing CSS). background-origin/clip: border-box + no-repeat paint the
+   oversized sweep under the 1.5px transparent border so no page color
+   rings the pill and no tile seam appears mid-slide. */
+.bw-v3 .bw-btn--gradient-warm {
+  background-image: var(--grad-ember);
+  background-repeat: no-repeat;
+  background-origin: border-box;
+  background-clip: border-box;
+  background-size: 240% 100%;
+  background-position: 6% 0;
+  color: var(--paper-0);
+  box-shadow: var(--shadow-md);
+  transition: background-position var(--dur-slow) var(--ease-out),
+              transform var(--dur-base) var(--ease-spring),
+              box-shadow var(--dur-base) var(--ease-out);
+}
+.bw-v3 .bw-btn--gradient-warm:hover { background-position: 100% 0; box-shadow: var(--shadow-lg); transform: translateY(-1.5px); }
+.bw-v3 .bw-btn--gradient-warm:active { background-position: 100% 0; box-shadow: var(--inset-press); transform: translateY(0.5px) scale(0.98); }
+.bw-v3 .bw-btn--gradient-warm:focus-visible { outline: none; box-shadow: var(--focus-shadow); }
+
+.bw-v3 .bg-night-sky {
+  background-color: var(--ink-800);
+  background-image:
+    radial-gradient(1.4px 1.4px at 18% 26%, rgba(231,238,254,0.85), transparent),
+    radial-gradient(1px 1px at 62% 18%, rgba(231,238,254,0.6), transparent),
+    radial-gradient(1.4px 1.4px at 82% 42%, rgba(245,198,89,0.6), transparent),
+    radial-gradient(1px 1px at 38% 62%, rgba(231,238,254,0.5), transparent),
+    radial-gradient(1px 1px at 74% 76%, rgba(231,238,254,0.45), transparent),
+    radial-gradient(1.4px 1.4px at 26% 84%, rgba(244,162,120,0.55), transparent),
+    radial-gradient(820px 480px at 82% -12%, rgba(92,123,235,0.5), transparent),
+    radial-gradient(680px 420px at 6% 116%, rgba(238,134,84,0.22), transparent);
+}
