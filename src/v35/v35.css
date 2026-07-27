@@ -762,6 +762,39 @@
   transform: scale(0.97);
 }
 
+/* ---- ground cross-fade --------------------------------------------
+   Landing on a sunset screen (Drafts, Composer) from a soft-ground
+   loading beat (Generating's "Composing…", ReplyFlow's "Drafting…"):
+   the soft sweep lingers as an overlay and fades out, so the ground
+   warms up instead of snapping. V35App latches .bw-ground-xfade on the
+   page wrapper for the animation's duration. */
+.bw-v35 .bw-cmp2-ground {
+  position: relative;
+}
+.bw-v35 .bw-cmp2-ground > * {
+  position: relative;
+  z-index: 1;
+}
+.bw-v35 .bw-ground-xfade .bw-cmp2-ground::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: var(--glow-peri), var(--grad-soft);
+  animation: bw-ground-fade 1s var(--ease-out) both;
+}
+@keyframes bw-ground-fade {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bw-v35 .bw-ground-xfade .bw-cmp2-ground::before {
+    animation: none;
+    opacity: 0;
+  }
+}
+
 /* ---- night footer (SiteChrome, Figma "Footer" 445:762) ----------- */
 /* Peri-300 links on the dusk-blue ground, brightening to paper on hover. */
 .bw-v35 .bw-footer-night .lp-link {

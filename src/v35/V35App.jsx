@@ -38,6 +38,23 @@ function Router() {
     window.scrollTo(0, 0)
   }, [state.screen])
 
+  // Arriving on a sunset screen from a soft-ground loading beat (Generating's
+  // "Composing…", ReplyFlow's "Drafting…") cross-fades the grounds: the soft
+  // sweep lingers as an overlay on the new screen and fades out (see
+  // .bw-ground-xfade in v35.css). Latched briefly so mid-animation re-renders
+  // can't cut it short.
+  const prevScreenRef = React.useRef(null)
+  const [groundXfade, setGroundXfade] = React.useState(false)
+  useEffect(() => {
+    const prev = prevScreenRef.current
+    prevScreenRef.current = state.screen
+    if ((state.screen === 'drafts' && prev === 'generating') || (state.screen === 'editor' && prev === 'replyflow')) {
+      setGroundXfade(true)
+      const t = setTimeout(() => setGroundXfade(false), 1150)
+      return () => clearTimeout(t)
+    }
+  }, [state.screen])
+
   if (state.screen === 'landing') {
     // The landing emits an optional scenario key: a scenario card sends the
     // user straight into that clarify flow; a generic CTA goes to home.
@@ -105,7 +122,7 @@ function Router() {
 
   return (
     <div
-      className={bgClass}
+      className={[bgClass, groundXfade && 'bw-ground-xfade'].filter(Boolean).join(' ') || undefined}
       style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--cream-1)', ...bgStyle, fontFamily: 'var(--font-sans)', color: 'var(--text-body)', position: 'relative' }}
     >
       {sendCelebrate && (

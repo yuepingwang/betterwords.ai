@@ -47,7 +47,10 @@ function CtxSection({ title, values }) {
 // Tone slider value → the label the panel shows.
 const toneLabel = (t) => (t == null ? null : t < 34 ? 'Gentle' : t < 67 ? 'Moderate' : 'Assertive')
 
-export function ContextPanel({ thread, msgs, drafts }) {
+// `frost` — the composer's reply/follow-up flow (Figma 449:6492) renders
+// this card in the clarify-recap's glass instead of solid paper, matching
+// the sidebar treatment on that screen. The conversation page keeps paper.
+export function ContextPanel({ thread, msgs, drafts, frost = false }) {
   const { Badge } = DS2
   const answers = thread.context?.answers || {}
   const status = !thread.hasSent ? { tone: 'accent', tag: 'Draft' } : thread.awaiting ? { tone: 'warning', tag: 'Awaiting reply' } : { tone: 'success', tag: 'Replied' }
@@ -100,7 +103,22 @@ export function ContextPanel({ thread, msgs, drafts }) {
   }
 
   return (
-    <aside style={{ width: 240, flexShrink: 0, boxSizing: 'border-box', background: 'var(--surface-card)', borderRadius: 'var(--radius-md)', padding: 20, display: 'flex', flexDirection: 'column', gap: 20, filter: 'drop-shadow(0 4px 5px rgba(28, 23, 70, 0.06))' }}>
+    <aside
+      className={frost ? 'bw-recap-frost' : undefined}
+      style={{
+        width: 240,
+        flexShrink: 0,
+        boxSizing: 'border-box',
+        borderRadius: frost ? 'var(--radius-lg)' : 'var(--radius-md)',
+        padding: 20,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 20,
+        ...(frost
+          ? {}
+          : { background: 'var(--surface-card)', filter: 'drop-shadow(0 4px 5px rgba(28, 23, 70, 0.06))' }),
+      }}
+    >
       {/* header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

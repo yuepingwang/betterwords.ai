@@ -79,7 +79,7 @@ export default function Drafts() {
   return (
     // Shares the composer's ground: the sunset (Figma 449:2180) fills the
     // viewport below the 68px header, teal-lipped night footer under it.
-    <div style={{ width: '100%', minHeight: 'calc(100vh - 68px)', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', backgroundImage: COMPOSER_GROUND }}>
+    <div className="bw-cmp2-ground" style={{ width: '100%', minHeight: 'calc(100vh - 68px)', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', backgroundImage: COMPOSER_GROUND }}>
     <main className="bw-sec-pad" style={{ width: '100%', boxSizing: 'border-box', maxWidth: 1280, margin: '0 auto', padding: '44px 32px 112px', flex: 1 }}>
       {/* no alignItems:start — the rail column stretches so the side card
           always reaches at least the bottom of the last draft card */}

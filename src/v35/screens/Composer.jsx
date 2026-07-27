@@ -33,7 +33,7 @@ export const COMPOSER_GROUND =
   'linear-gradient(180deg, rgba(251, 247, 239, 0.75) 85%, #EBD46A 90%, #EC7FB0 94%, #6E88E4 98%, #5FD0C0 100%), linear-gradient(90deg, var(--paper-1) 0%, var(--paper-1) 100%)'
 
 // Versioned: bump when the tour content changes so everyone sees it once more.
-const ONBOARD_KEY = 'bw_onboarded_composer4'
+const ONBOARD_KEY = 'bw_onboarded_composer5'
 const GLYPHS = '/ds-v35/assets/glyphs'
 
 const QUICK_CHIPS = [
@@ -196,6 +196,34 @@ export default function Composer() {
   const [tour, setTour] = useState(false)
   const [, setHistTick] = useState(0)
 
+  // The letter card (sheet + tools bar) is capped so its bottom keeps the
+  // same 40px window reserve as the clarify-recap summary card (see
+  // ClarifyRecap.jsx's maxHeight); the sheet sizes to the message inside
+  // that cap and scrolls only when it hits it.
+  const cardRef = useRef(null)
+  const [railCap, setRailCap] = useState(null)
+  useEffect(() => {
+    const measure = () => {
+      const el = cardRef.current
+      if (!el) return
+      const top = el.getBoundingClientRect().top + window.scrollY
+      setRailCap(Math.max(360, window.innerHeight - top - 40))
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [])
+
+  // Header frost — clear until the page scrolls and the letter card slides
+  // under it (mirrors SiteHeader's frost-on-scroll).
+  const [hdrFrosted, setHdrFrosted] = useState(false)
+  useEffect(() => {
+    const onScroll = () => setHdrFrosted(window.scrollY > 8)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
   // Bottom-bar tune trays (Figma 449:2915 / 449:3569): "Adjust your tone" /
   // "Adjust the length" expand under the pill bar. Done commits the retune;
   // Cancel puts the sliders back where the tray found them.
@@ -220,9 +248,10 @@ export default function Composer() {
   const liveRef = useRef({})
   const previewTimer = useRef(null)
   const previewSeq = useRef(0)
+  const evalSeqRef = useRef(0)
   const lastPreviewRef = useRef(null)
 
-  const runTunePreview = async ({ evaluateAfter = false } = {}) => {
+  const runTunePreview = async () => {
     const base = trayBaseRef.current
     if (!base) return
     const { tone, verbosity, tuneSel: sel } = liveRef.current
@@ -231,7 +260,7 @@ export default function Composer() {
     if (tone === base.tone && verbosity === base.verbosity) {
       const { sugs, ...letter } = base.snap
       dispatch({ type: 'RESTORE_EDIT', ...letter })
-      lastPreviewRef.current = { tone, verbosity, sel: sel?.text || null }
+      lastPreviewRef.current = { tone, verbosity, sel: sel?.find ?? sel?.text ?? null }
       return
     }
     const baseParas = base.snap.letterParas || strat.paragraphs || []
@@ -244,17 +273,17 @@ export default function Composer() {
         if (tone !== base.tone) asks.push(`shift its tone to ${TONE_WORD[bucket(tone)].toLowerCase()} — about ${tone} on a 0–100 soft-to-strong scale`)
         if (verbosity !== base.verbosity) asks.push(`make it ${verbLabel(verbosity).toLowerCase()} — about ${verbosity} on a 0–100 succinct-to-detailed scale`)
         const rep = await rewritePassage({
-          text: sel.text,
+          text: sel.find ?? sel.text,
           instruction: `Rewrite only this passage to ${asks.join(', and ')}. Keep its meaning, facts, and the writer's voice; return only the rewritten passage.`,
           context: (convo ? `${convo}\n\n` : '') + paras.join('\n\n'),
         })
         if (seq !== previewSeq.current) return
-        const replacements = [...base.snap.replacements, { find: sel.text, replace: rep }]
+        const replacements = [...base.snap.replacements, { find: sel.find ?? sel.text, replace: rep }]
         dispatch({ type: 'RESTORE_EDIT', letterParas: base.snap.letterParas, replacements, inserts: base.snap.inserts, tone, verbosity })
-        if (evaluateAfter) {
-          flash(rep)
-          evaluate(composeLetter(strat, { ...state, letterParas: base.snap.letterParas, replacements, inserts: base.snap.inserts }), { moveSliders: true })
-        }
+        // the freshly generated text is now "the selection" (still anchored
+        // to its original base passage, so repeated drags never compound)
+        setTuneSel({ text: rep, find: sel.find ?? sel.text })
+        evaluate(composeLetter(strat, { ...state, letterParas: base.snap.letterParas, replacements, inserts: base.snap.inserts }), { moveSliders: false })
       } else if (aiMode) {
         // Full-text adjustment → retuneLetter regenerates the draft (OpenAI).
         // (Static scenarios re-derive from tone variants in composeLetter,
@@ -265,18 +294,31 @@ export default function Composer() {
         const next = await retuneLetter({ scenarioId: state.scenarioId, strategy: strat, paras: baseParas, tone, verbosity, convo, fallbackParas: rfFallback })
         if (seq !== previewSeq.current) return
         dispatch({ type: 'SET_LETTER', paras: next })
-        if (evaluateAfter) {
-          evaluate(composeLetter(strat, { ...state, letterParas: next, replacements: base.snap.replacements, inserts: base.snap.inserts }), { moveSliders: false })
-        }
+        evaluate(composeLetter(strat, { ...state, letterParas: next, replacements: base.snap.replacements, inserts: base.snap.inserts }), { moveSliders: false })
       }
-      lastPreviewRef.current = { tone, verbosity, sel: sel?.text || null }
+      lastPreviewRef.current = { tone, verbosity, sel: sel?.find ?? sel?.text ?? null }
     } finally {
       if (seq === previewSeq.current) dispatch({ type: 'SET_LETTER_LOADING', value: false })
     }
   }
+  // A `?tray=` deep link skips openTray — seed the same state on mount:
+  // base snapshot for previews/Cancel, first paragraph pre-selected.
+  useEffect(() => {
+    if (!tray || trayBaseRef.current) return
+    trayBaseRef.current = {
+      tone: state.tone,
+      verbosity: state.verbosity,
+      snap: snapshot(),
+      eval: { why: state.evalWhy, reaction: state.evalReaction, pros: state.evalPros, cons: state.evalCons, risk: state.evalRisk, impact: state.evalImpact },
+    }
+    const firstPara = paras.find((p) => !isImagePara(p))
+    if (firstPara) setTuneSel({ text: firstPara, find: firstPara })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const scheduleTunePreview = () => {
     clearTimeout(previewTimer.current)
-    previewTimer.current = setTimeout(runTunePreview, 550)
+    previewTimer.current = setTimeout(runTunePreview, 350)
   }
 
   const closeTray = (commit) => {
@@ -294,21 +336,24 @@ export default function Composer() {
         // beat the debounce), run that final pass now.
         pushHistory(base.snap)
         const lp = lastPreviewRef.current
-        const sel = liveRef.current.tuneSel?.text || null
+        const cur = liveRef.current.tuneSel
+        const sel = cur ? cur.find ?? cur.text : null
         if (!lp || lp.tone !== state.tone || lp.verbosity !== state.verbosity || lp.sel !== sel) {
           trayBaseRef.current = base // runTunePreview needs the base once more
-          runTunePreview({ evaluateAfter: true }).finally(() => {
+          runTunePreview().finally(() => {
             trayBaseRef.current = null
           })
-        } else {
-          evaluate(paras, { moveSliders: Boolean(sel) })
         }
       }
     } else {
-      // Cancel — put back everything the previews touched: text, edits, and
-      // both sliders, exactly as the tray found them.
+      // Cancel — put back everything the previews touched: text, edits, both
+      // sliders, AND the evaluation (risk / impact / likely reaction), exactly
+      // as the tray found them; in-flight previews and reads are dropped.
       previewSeq.current += 1
+      evalSeqRef.current += 1
+      setEvaluating(false)
       restoreEntry(base.snap)
+      if (base.eval) dispatch({ type: 'SET_EVAL', ...base.eval })
     }
     lastPreviewRef.current = null
   }
@@ -316,9 +361,18 @@ export default function Composer() {
     setAddOpen(false)
     setPopup(null)
     if (tray === which) return closeTray(false)
-    trayBaseRef.current = { tone: state.tone, verbosity: state.verbosity, snap: snapshot() }
+    trayBaseRef.current = {
+      tone: state.tone,
+      verbosity: state.verbosity,
+      snap: snapshot(),
+      // the last saved evaluation — Cancel puts these back
+      eval: { why: state.evalWhy, reaction: state.evalReaction, pros: state.evalPros, cons: state.evalCons, risk: state.evalRisk, impact: state.evalImpact },
+    }
     lastPreviewRef.current = null
-    setTuneSel(null)
+    // behave as if the writer just selected the first paragraph — slider
+    // drags rewrite it; they can re-select to change the scope
+    const firstPara = paras.find((p) => !isImagePara(p))
+    setTuneSel(firstPara ? { text: firstPara, find: firstPara } : null)
     setTray(which)
   }
 
@@ -330,15 +384,27 @@ export default function Composer() {
     const onUp = (e) => {
       if (!bodyRef.current?.contains(e.target)) return
       const sel = window.getSelection()
-      if (!sel || sel.isCollapsed) {
-        setTuneSel(null)
-        return
+      let next = null
+      if (sel && !sel.isCollapsed) {
+        const range = sel.getRangeAt(0)
+        if (!bodyRef.current.contains(range.commonAncestorContainer)) return
+        const text = sel.toString().trim()
+        if (text.length >= 3) next = { text, find: text }
       }
-      const range = sel.getRangeAt(0)
-      if (!bodyRef.current.contains(range.commonAncestorContainer)) return
-      const text = sel.toString().trim()
-      setTuneSel(text.length >= 3 ? { text } : null)
-      scheduleTunePreview() // re-preview against the new scope
+      setTuneSel((prev) => {
+        // Re-scoping while the sliders are already moved — narrowing to a
+        // passage OR clicking back to the full-text default — re-runs the
+        // preview against the NEW scope (previews always re-derive from the
+        // tray's base, so the old scope's changes lift off first) and
+        // re-evaluates the full letter. Untouched sliders → nothing to apply.
+        if (next && (prev?.text || null) !== next.text) {
+          const base = trayBaseRef.current
+          if (base && (liveRef.current.tone !== base.tone || liveRef.current.verbosity !== base.verbosity)) {
+            scheduleTunePreview()
+          }
+        }
+        return next
+      })
     }
     document.addEventListener('mouseup', onUp)
     return () => document.removeEventListener('mouseup', onUp)
@@ -432,10 +498,10 @@ export default function Composer() {
     setTour(false)
   }
   const tourSteps = [
-    { getEl: () => letterRef.current, title: 'Work right on the letter', body: 'With the edit tool, select any passage and tell BetterWords how to reword it. With the insert tool, click between sentences or paragraphs to add something new.' },
-    { getEl: () => toolsRef.current, title: 'Your editing toolbar', body: 'Switch between the edit, insert, and image tools. Undo, copy the letter, and “Add Something Else” — suggestions written for this draft — live here too.' },
-    { getEl: () => tuneRef.current, title: 'Tune the whole draft', body: '“Adjust Your Tone” and “Adjust the Length” reshape the entire message at once, and “Add Something Else” suggests passages written for this draft.' },
-    { getEl: () => evalRef.current, title: 'Read the room before you send', body: 'Pros, cons, risk, and the likely reaction — updated as you edit, so you can decide whether it’s ready or needs another pass.' },
+    { getEl: () => letterRef.current, title: 'Work right on the letter', body: 'With the edit tool, select any passage and tell BetterWords how to reword it. With the insert tool, click between sentences or paragraphs to add something new; the image tool attaches pictures.' },
+    { getEl: () => toolsRef.current, title: 'Your editing tools', body: 'Edit, insert, and image tools on the left — the active one lights up. Undo, redo, and copy-the-letter sit on the right.' },
+    { getEl: () => tuneRef.current, title: 'Tune it with the critters', body: '“Adjust Your Tone” and “Adjust the Length” rewrite the selected passage live as you drag — the first paragraph starts selected, or select your own. “Add Something Else” suggests passages written for this draft.' },
+    { getEl: () => evalRef.current, title: 'Read the room before you send', body: 'Pros, cons, risk, impact, and the likely reaction — re-read as you edit and tune, so you can decide whether it’s ready or needs another pass.' },
     { getEl: () => topActionsRef.current, title: 'Save it, then send it', body: 'Keep this version with “Save as New Draft”, and when it feels right, “Review & Send”. You can replay this tour anytime with the smiley button in the header.' },
   ]
 
@@ -548,9 +614,11 @@ export default function Composer() {
   // Always evaluate the current wording — evaluateLetter falls back to the
   // strategy's static copy when AI is unavailable, so mock mode still works.
   const evaluate = (nextParas, { moveSliders = false } = {}) => {
+    const seq = ++evalSeqRef.current
     setEvaluating(true)
     evaluateLetter({ scenarioId: state.scenarioId, strategy: strat, paras: nextParas.filter((p) => !isImagePara(p)), convo })
       .then((res) => {
+        if (seq !== evalSeqRef.current) return
         dispatch({
           type: 'SET_EVAL',
           why: res.why,
@@ -562,7 +630,9 @@ export default function Composer() {
         })
         if (moveSliders) animateSliders(res.tone, res.verbosity)
       })
-      .finally(() => setEvaluating(false))
+      .finally(() => {
+        if (seq === evalSeqRef.current) setEvaluating(false)
+      })
   }
 
   useEffect(() => {
@@ -657,7 +727,7 @@ export default function Composer() {
 
   // ---------- INSERT tool: sentence caret + gap lines ----------
   const onBodyMove = (e) => {
-    if (tray || tool !== 'insert' || busy || popup) return
+    if (tray || addOpen || tool !== 'insert' || busy || popup) return
     const { clientX, clientY } = e
     if (rafRef.current) return
     rafRef.current = requestAnimationFrame(() => {
@@ -707,7 +777,7 @@ export default function Composer() {
       suppressOpenRef.current = false
       return
     }
-    if (tray || tool !== 'insert' || !hoverPt || busy) return
+    if (tray || addOpen || tool !== 'insert' || !hoverPt || busy) return
     setPopup({
       kind: 'insert',
       mode: 'sentence',
@@ -727,7 +797,7 @@ export default function Composer() {
       suppressOpenRef.current = false
       return
     }
-    if (tray || busy) return
+    if (tray || addOpen || busy) return
     e.stopPropagation()
     if (tool === 'image') {
       pendingGapRef.current = gapIdx
@@ -993,9 +1063,14 @@ export default function Composer() {
       <header
         style={{
           position: 'sticky', top: 0, zIndex: 50,
-          background: 'color-mix(in srgb, var(--bg-elevated) 55%, transparent)',
-          backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
-          borderBottom: '1px solid var(--border-hair)',
+          // clear over the sunset until scrolling brings the letter card
+          // under it — then the frost + hairline fade in (same contract as
+          // SiteHeader; the hairline is a shadow so the height never shifts)
+          background: hdrFrosted ? 'color-mix(in srgb, var(--bg-elevated) 55%, transparent)' : 'transparent',
+          backdropFilter: hdrFrosted ? 'blur(10px)' : 'none',
+          WebkitBackdropFilter: hdrFrosted ? 'blur(10px)' : 'none',
+          boxShadow: hdrFrosted ? '0 1px 0 var(--border-hair)' : 'none',
+          transition: 'background 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out)',
         }}
       >
         <div style={{ width: '100%', boxSizing: 'border-box', padding: '0 28px', height: 68, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
@@ -1008,7 +1083,7 @@ export default function Composer() {
                 <img src={`${GLYPHS}/question.svg`} alt="" />
               </button>
             </Tooltip>
-            <Button variant="outline" iconLeft={<Icon name="star" size={16} />} onClick={saveDraft}>
+            <Button variant="outline" iconLeft={<Icon name="star" size={15} />} onClick={saveDraft} style={{ height: 40, padding: '0 var(--space-5)', fontSize: 'var(--text-xs)' }}>
               {saved === 'err' ? 'Couldn’t save' : saved ? 'Saved ✓' : 'Save as New Draft'}
             </Button>
             <button className="bw-cmp-send" onClick={() => dispatch({ type: 'GOTO', screen: 'send' })}>
@@ -1023,6 +1098,7 @@ export default function Composer() {
           the 68px header — its sunset crests at the fold, and the teal-lipped
           night footer continues it under the fold. */}
       <div
+        className="bw-cmp2-ground"
         style={{
           width: '100%',
           minHeight: 'calc(100vh - 68px)',
@@ -1055,6 +1131,7 @@ export default function Composer() {
           </div>
           {isReplyDraft && rf?.thread ? (
             <ContextPanel
+              frost
               thread={rf.thread}
               msgs={rfMsgs.filter((m) => m.kind !== 'draft_version')}
               drafts={rfMsgs.filter((m) => m.kind === 'draft_version')}
@@ -1088,7 +1165,7 @@ export default function Composer() {
 
           {/* letter card (Figma 449:5131): white sheet on top, glass action
               bar below carrying the tool row + pill tabs + trays */}
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div ref={cardRef} style={{ display: 'flex', flexDirection: 'column', maxHeight: railCap ?? undefined }}>
             {/* letter sheet (449:5132) */}
             <div ref={letterRef} className="bw-cmp2-sheet">
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '21px 20px 14px' }}>
@@ -1106,8 +1183,8 @@ export default function Composer() {
 
             <div
               ref={bodyRef}
-              className={`bw-cmp-body bw-cmp2-body bw-cmp-body--${tool}${tray ? ' bw-cmp2-body--tune' : ''}`}
-              style={{ flex: 1, minHeight: 0, maxHeight: 'none', opacity: state.letterLoading ? 0.5 : 1, userSelect: tray || tool === 'edit' ? 'text' : 'none' }}
+              className={`bw-cmp-body bw-cmp2-body${tray || addOpen ? '' : ` bw-cmp-body--${tool}`}${tray ? ' bw-cmp2-body--tune' : ''}${addOpen ? ' bw-cmp2-body--quiet' : ''}`}
+              style={{ flex: 1, minHeight: 0, maxHeight: 'none', opacity: state.letterLoading ? 0.5 : 1, userSelect: tray ? 'text' : addOpen ? 'none' : tool === 'edit' ? 'text' : 'none' }}
               onMouseMove={tool === 'insert' ? onBodyMove : undefined}
               onMouseLeave={() => setHoverPt(null)}
               onClick={tool === 'insert' ? onBodyClick : undefined}
@@ -1172,7 +1249,7 @@ export default function Composer() {
                     </span>
                   ) : (
                     <p data-idx={i} style={{ background: i === flashIdx ? 'rgba(238,134,84,0.22)' : 'transparent', padding: i === flashIdx ? '2px 4px' : 0 }}>
-                      {tray && !tuneSel ? <span className="bw-cmp2-hl">{text}</span> : text}
+                      {tray && tuneSel?.text === text ? <span className="bw-cmp2-hl">{text}</span> : text}
                     </p>
                   )}
                 </React.Fragment>
@@ -1187,25 +1264,15 @@ export default function Composer() {
                 )}
               </div>
               <div ref={sigRef} className="bw-cmp-sig">
-                {tray && !tuneSel ? (
-                  <span className="bw-cmp2-hl">
-                    Best,
-                    <br />
-                    [Your name]
-                  </span>
-                ) : (
-                  <>
-                    Best,
-                    <br />
-                    [Your name]
-                  </>
-                )}
+                Best,
+                <br />
+                [Your name]
               </div>
             </div>
 
             {/* sentence-boundary caret (insert mode) — tracks the hover, then
                 stays frozen in place while its popup is open */}
-            {tool === 'insert' && hoverPt && !popup && (
+            {tool === 'insert' && hoverPt && !popup && !tray && !addOpen && (
               <div className="bw-cmp-caret" style={{ left: hoverPt.x, top: hoverPt.y, height: hoverPt.h }} />
             )}
             {popup?.kind === 'insert' && popup.caret && (
@@ -1279,13 +1346,13 @@ export default function Composer() {
             <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={onFile} />
 
             {/* glass action bar (449:5161): tool row + pill tabs + trays */}
-            <div ref={tuneRef} className="bw-cmp2-bar" data-keep-add="">
+            <div ref={tuneRef} className="bw-cmp2-bar bw-recap-frost" data-keep-add="">
               {/* tool row — the active tool goes quiet while a tray or the
                   add panel has the stage (449:4774) */}
               <div ref={toolsRef} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <button
-                    className={`bw-cmp2-tool${tool === 'edit' && !tray && !addOpen ? ' is-active' : ''}`}
+                    className={`bw-cmp2-tool bw-cmp2-tool--edit${tool === 'edit' && !tray && !addOpen ? ' is-active' : ''}`}
                     title="Edit text — select a passage to revise it"
                     aria-label="Edit text tool"
                     data-keep-add=""
@@ -1294,7 +1361,7 @@ export default function Composer() {
                     <span className="bw-cmp2-glyph" style={{ WebkitMaskImage: `url(${GLYPHS}/cmp-tool-edit.svg)`, maskImage: `url(${GLYPHS}/cmp-tool-edit.svg)` }} />
                   </button>
                   <button
-                    className={`bw-cmp2-tool${tool === 'insert' && !tray && !addOpen ? ' is-active' : ''}`}
+                    className={`bw-cmp2-tool bw-cmp2-tool--insert${tool === 'insert' && !tray && !addOpen ? ' is-active' : ''}`}
                     title="Insert text — click between sentences or paragraphs"
                     aria-label="Insert text tool"
                     data-keep-add=""
@@ -1303,7 +1370,7 @@ export default function Composer() {
                     <span className="bw-cmp2-glyph" style={{ WebkitMaskImage: `url(${GLYPHS}/cmp-tool-insert.svg)`, maskImage: `url(${GLYPHS}/cmp-tool-insert.svg)` }} />
                   </button>
                   <button
-                    className={`bw-cmp2-tool${tool === 'image' && !tray && !addOpen ? ' is-active' : ''}`}
+                    className={`bw-cmp2-tool bw-cmp2-tool--image${tool === 'image' && !tray && !addOpen ? ' is-active' : ''}`}
                     title="Insert image — click a gap to attach one"
                     aria-label="Insert image tool"
                     data-keep-add=""
@@ -1355,6 +1422,7 @@ export default function Composer() {
 
               {tray === 'tone' && (
                 <TuneTray
+                  noSel={!tuneSel}
                   kind="tone"
                   value={state.tone}
                   word={toneWord}
@@ -1370,6 +1438,7 @@ export default function Composer() {
               )}
               {tray === 'length' && (
                 <TuneTray
+                  noSel={!tuneSel}
                   kind="length"
                   value={state.verbosity}
                   word={verbLabel(state.verbosity)}
@@ -1388,7 +1457,7 @@ export default function Composer() {
         </div>{/* /center column */}
 
         {/* ---- right column: evaluation cards (449:2995 / 3100 / 3141) --- */}
-        <aside ref={evalRef} className="bw-composer-rail" style={{ width: 240, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 40 }}>
+        <aside ref={evalRef} className="bw-composer-rail" style={{ width: 240, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 1, paddingTop: 40 }}>
           <div className="bw-cmp2-card">
             <h2 className="bw-cmp2-card-h2">Pros &amp; Cons</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -1451,7 +1520,7 @@ function PillTab({ art, label, active, onClick }) {
 
 // ---- expanded tune tray (Figma 449:2915 / 3569) --------------------
 
-function TuneTray({ kind, value, word, startLabel, endLabel, fill, thumbColor, busy, onChange, onCancel, onDone }) {
+function TuneTray({ kind, value, word, startLabel, endLabel, fill, thumbColor, busy, noSel = false, onChange, onCancel, onDone }) {
   const pct = Math.max(0, Math.min(100, value))
   const railRef = useRef(null)
 
@@ -1464,6 +1533,7 @@ function TuneTray({ kind, value, word, startLabel, endLabel, fill, thumbColor, b
     onChange(Math.round(Math.max(0, Math.min(100, ((clientX - r.left) / r.width) * 100))))
   }
   const startHeadDrag = (e) => {
+    if (noSel) return
     e.preventDefault()
     dragTo(e.clientX)
     const move = (ev) => dragTo(ev.clientX)
@@ -1478,13 +1548,17 @@ function TuneTray({ kind, value, word, startLabel, endLabel, fill, thumbColor, b
   const DOGS = '/ds-v35/assets/characters'
   return (
     <div className="bw-cmp2-tray" data-keep-add="">
-      <div style={{ flex: '0 0 260px', position: 'relative', paddingTop: kind === 'length' ? 48 : 34 }}>
+      <div title={noSel ? 'Select some text in the letter to adjust it' : undefined} style={{ flex: '0 0 260px', position: 'relative', paddingTop: kind === 'length' ? 48 : 34, opacity: noSel ? 0.45 : 1, transition: 'opacity 0.15s var(--ease-out)' }}>
         {kind === 'tone' ? (
-          // the chameleon perches on the tone thumb
+          // the chameleon perches on the tone thumb — no transition, so it
+          // tracks the slider 1:1, and it's a drag handle itself
           <img
             src="/ds-v35/assets/characters/chameleon.svg"
-            alt=""
-            style={{ position: 'absolute', bottom: 26, left: `calc(${pct}% - 22px)`, width: 44, pointerEvents: 'none', filter: 'drop-shadow(0 3px 5px rgba(28,23,70,0.18))', transition: 'left 0.1s linear' }}
+            alt="Drag the chameleon to adjust the tone"
+            title="Drag me — softer or stronger"
+            onPointerDown={startHeadDrag}
+            onDragStart={(e) => e.preventDefault()}
+            style={{ position: 'absolute', bottom: 26, left: `calc(${pct}% - 22px)`, width: 44, cursor: noSel ? 'default' : 'ew-resize', touchAction: 'none', userSelect: 'none', filter: 'drop-shadow(0 3px 5px rgba(28,23,70,0.18))' }}
           />
         ) : (
           // stretchy dog rig — z-order: rear (1) under the body band (2)
@@ -1506,7 +1580,7 @@ function TuneTray({ kind, value, word, startLabel, endLabel, fill, thumbColor, b
               title="Drag me — longer or shorter"
               onPointerDown={startHeadDrag}
               onDragStart={(e) => e.preventDefault()}
-              style={{ position: 'absolute', left: `calc(${pct}% - 20px)`, bottom: 22, height: 50, zIndex: 3, cursor: 'ew-resize', touchAction: 'none', userSelect: 'none' }}
+              style={{ position: 'absolute', left: `calc(${pct}% - 20px)`, bottom: 22, height: 50, zIndex: 3, cursor: noSel ? 'default' : 'ew-resize', touchAction: 'none', userSelect: 'none' }}
             />
           </>
         )}
@@ -1518,6 +1592,7 @@ function TuneTray({ kind, value, word, startLabel, endLabel, fill, thumbColor, b
           className="bw-cmp2-range"
           style={{ '--fill': fill, '--pct': `${pct}%`, '--thumb': thumbColor }}
           value={value}
+          disabled={noSel}
           onChange={(e) => onChange(+e.target.value)}
           aria-label={kind === 'tone' ? 'Tone' : 'Length'}
         />
