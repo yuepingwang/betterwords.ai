@@ -9,6 +9,11 @@ export default function Generating() {
 
   useEffect(() => {
     let alive = true
+    // Dev deep-link (`?screen=generating&hold=1`): hold this transient screen
+    // instead of advancing to drafts — for design review/screenshots.
+    try {
+      if (new URLSearchParams(window.location.search).get('hold')) return
+    } catch {}
     dispatch({ type: 'SET_GEN_LOADING', value: true })
     // Real AI generation (falls back to the mock internally if the key is
     // missing or the call fails), tailored to the clarify-step answers.

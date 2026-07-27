@@ -19,7 +19,7 @@ const NAV_LINKS = [['How it works', 'how'], ['Examples', 'examples']]
 // full text size (hero concepts header) and the small raised sparkle of the
 // Logo lockup (the gradient wordmark on the app screens). Keyframes live in
 // Landing.css (.lp-logo-star).
-export function LandingWordmark({ size = 21, onClick }) {
+export function LandingWordmark({ size = 21, color = 'var(--ink-800)', onClick }) {
   return (
     <span
       onClick={onClick}
@@ -30,7 +30,7 @@ export function LandingWordmark({ size = 21, onClick }) {
         fontSize: size,
         letterSpacing: '-0.02em',
         lineHeight: 1,
-        color: 'var(--ink-800)',
+        color,
         cursor: onClick ? 'pointer' : undefined,
         userSelect: 'none',
       }}
@@ -52,7 +52,10 @@ const FROST_BG = 'color-mix(in srgb, var(--bg-elevated) 50%, transparent)'
 // cluster falls back to the spark "Start free".
 // Headers start clear over the page ground and frost on scroll; the landing
 // waits until its hero gradient has scrolled past.
-export function SiteHeader({ landing = false, onLogo, onNav, onStart }) {
+// On the conversations flow (`appNav`, Figma "My Conversations" 423:2764) the
+// marketing links give way to the app cluster: a "My Conversations" link
+// (accent + underline while the list is open), a spark "+ New", the avatar.
+export function SiteHeader({ landing = false, appNav = false, appActive = false, onLogo, onNav, onStart, onConversations }) {
   const { Button } = DS2
   const { configured } = useAuth()
 
@@ -92,12 +95,30 @@ export function SiteHeader({ landing = false, onLogo, onNav, onStart }) {
           doesn't read as centered next to the wider page content below */}
       <div style={{ width: '100%', padding: '0 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 68 }}>
         <LandingWordmark size={24} onClick={onLogo} />
-        <nav className="lp-navlinks lp-nav-accent" style={{ display: 'flex', alignItems: 'center', gap: 26 }}>
-          {NAV_LINKS.map(([label, id]) => (
-            <a key={id} className="lp-link" onClick={() => onNav(id)} style={{ cursor: 'pointer', fontSize: 15, fontWeight: 500 }}>{label}</a>
-          ))}
+        <nav className="lp-navlinks lp-nav-accent" style={{ display: 'flex', alignItems: 'center', gap: appNav ? 24 : 26 }}>
+          {appNav ? (
+            <>
+              <a
+                className={appActive ? undefined : 'lp-link'}
+                onClick={onConversations}
+                style={{
+                  cursor: 'pointer', fontSize: 15, paddingBottom: 2,
+                  ...(appActive
+                    ? { fontWeight: 700, color: 'var(--accent)', borderBottom: '1px solid var(--accent)' }
+                    : { fontWeight: 500 }),
+                }}
+              >
+                My Conversations
+              </a>
+              <Button variant="spark" size="sm" onClick={onStart} style={{ fontSize: 14.5, fontWeight: 600 }}>+ New</Button>
+            </>
+          ) : (
+            NAV_LINKS.map(([label, id]) => (
+              <a key={id} className="lp-link" onClick={() => onNav(id)} style={{ cursor: 'pointer', fontSize: 15, fontWeight: 500 }}>{label}</a>
+            ))
+          )}
           <AccountControl />
-          {!configured && (
+          {!configured && !appNav && (
             <Button variant="spark" size="sm" onClick={onStart} style={{ fontSize: 14.5, fontWeight: 600 }}>Start free</Button>
           )}
         </nav>
@@ -106,21 +127,39 @@ export function SiteHeader({ landing = false, onLogo, onNav, onStart }) {
   )
 }
 
-export function SiteFooter({ onLogo, onNav }) {
+// `night` (Figma "Footer" 445:762) — shown under the daybreak-edge grounds
+// (e.g. My Conversations), where the rainbow's last stop is blue-500: the
+// footer continues that sweep into dusk. Blue-500 lip blending to blue-700
+// by 5%, paper-1 wordmark, peri-300 text, paper-2 hairline at 25%.
+// `lip` overrides the 0% stop for grounds whose sweep ends on another color
+// (the composer's sunset ends on teal — Figma 449:2115).
+export function SiteFooter({ night = false, lip, onLogo, onNav }) {
   const { Logo, Divider } = DS2
+  const textColor = night ? 'var(--peri-300)' : 'var(--text-muted)'
   return (
-    <footer style={{ marginTop: 'auto', background: FROST_BG, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', borderTop: '1px solid var(--border-hair)', padding: '56px 0 40px' }}>
+    <footer
+      className={night ? 'bw-footer-night' : undefined}
+      style={{
+        marginTop: 'auto',
+        padding: '56px 0 40px',
+        ...(night
+          // no top border — the ground's sweep above ends on the lip color,
+          // so the footer continues it seamlessly
+          ? { background: `linear-gradient(180deg, ${lip || 'var(--blue-500)'} 0%, var(--blue-700) 5%)` }
+          : { background: FROST_BG, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', borderTop: '1px solid var(--border-hair)' }),
+      }}
+    >
       <div className="wrap" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 32 }}>
         <div style={{ maxWidth: 320 }}>
           <span style={{ display: 'inline-flex', cursor: onLogo ? 'pointer' : undefined }} onClick={onLogo}>
-            <Logo size={22} />
+            {night ? <LandingWordmark size={22} color="var(--paper-1)" /> : <Logo size={22} />}
           </span>
-          <p style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 14, lineHeight: 1.6 }}>The right words, warmer. BetterWords helps you say the things that matter.</p>
+          <p style={{ fontSize: 14, color: textColor, marginTop: 14, lineHeight: 1.6 }}>The right words, warmer. BetterWords helps you say the things that matter.</p>
         </div>
         <div style={{ display: 'flex', gap: 56, flexWrap: 'wrap' }}>
           {FOOTER_COLS.map(([h, items]) => (
             <div key={h}>
-              <div className="site-kick" style={{ marginBottom: 14, color: 'var(--text-muted)' }}>{h}</div>
+              <div className="site-kick" style={{ marginBottom: 14, color: textColor }}>{h}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {items.map(([label, target]) => (
                   <a
@@ -137,8 +176,14 @@ export function SiteFooter({ onLogo, onNav }) {
           ))}
         </div>
       </div>
-      <div className="wrap" style={{ marginTop: 40 }}><Divider /></div>
-      <div className="wrap" style={{ marginTop: 20, fontSize: 13, color: 'var(--text-faint)' }}>© 2026 BetterWords · Say the hard thing, well ✦</div>
+      <div className="wrap" style={{ marginTop: 40 }}>
+        {night ? (
+          <div style={{ borderTop: '1px solid color-mix(in srgb, var(--paper-2) 25%, transparent)' }} />
+        ) : (
+          <Divider />
+        )}
+      </div>
+      <div className="wrap" style={{ marginTop: 20, fontSize: 13, color: night ? 'var(--peri-300)' : 'var(--text-faint)' }}>© 2026 BetterWords · Say the hard thing, well ✦</div>
     </footer>
   )
 }

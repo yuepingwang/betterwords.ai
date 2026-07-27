@@ -645,6 +645,132 @@
   min-height: 76px;
 }
 
+/* ---- My Conversations list (Figma "My Conversations", 423:2763) --- */
+/* Row card hover: the same quiet lift as .bw-convo-card, minus the
+   resting shadow (the whole stack shares one drop-shadow). */
+.bw-v35 .bw-cvr-main {
+  transition: box-shadow 0.2s var(--ease-quiet), transform 0.2s var(--ease-quiet);
+}
+.bw-v35 .bw-cvr-main:hover,
+.bw-v35 .bw-cvr-main:focus-visible {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+  outline: none;
+}
+/* Action rail buttons — 28px hover chip, glyphs follow currentColor
+   (DS Icon strokes + mask-image spans, same trick as .bw-acct-glyph). */
+.bw-v35 .bw-cvr-act {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--ink-400);
+  opacity: 0.55;
+  transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out),
+    opacity 0.15s var(--ease-out);
+}
+.bw-v35 .bw-cvr-act:hover,
+.bw-v35 .bw-cvr-act:focus-visible {
+  opacity: 1;
+  background: var(--peri-100);
+  color: var(--accent);
+  outline: none;
+}
+.bw-v35 .bw-cvr-act.is-on {
+  opacity: 1;
+}
+.bw-v35 .bw-cvr-act--pin.is-on {
+  color: var(--honey-500);
+}
+/* pinned: fill the DS line star so it reads as "on" */
+.bw-v35 .bw-cvr-act--pin.is-on svg g {
+  fill: currentColor;
+}
+.bw-v35 .bw-cvr-act--pin.is-on:hover {
+  background: color-mix(in srgb, var(--honey-300) 55%, transparent);
+  color: var(--honey-500);
+}
+.bw-v35 .bw-cvr-act.is-copied {
+  opacity: 1;
+  color: var(--mint-600);
+}
+.bw-v35 .bw-cvr-glyph {
+  width: 16px;
+  height: 16px;
+  background-color: currentColor;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+/* Pill search field ("Search your letters…") */
+.bw-v35 .bw-cvsearch {
+  position: relative;
+  display: inline-flex;
+  width: 192px;
+}
+.bw-v35 .bw-cvsearch input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 42px;
+  border-radius: var(--radius-pill);
+  background: var(--paper-0);
+  border: 1.5px solid var(--border-hair);
+  padding: 0 16px 0 38px;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  color: var(--text-body);
+  outline: none;
+  transition: border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+.bw-v35 .bw-cvsearch input::placeholder {
+  color: var(--text-faint);
+}
+.bw-v35 .bw-cvsearch input:focus {
+  border-color: var(--accent);
+  box-shadow: var(--focus-shadow);
+}
+.bw-v35 .bw-cvsearch__i {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  color: var(--ink-500);
+  pointer-events: none;
+}
+
+/* ---- conversation timeline pills (Figma 445:1389 / 445:1395) ------ */
+.bw-v35 .bw-cvt-pill {
+  transition: filter 0.15s var(--ease-out), background 0.15s var(--ease-out),
+    transform 0.2s var(--ease-spring);
+}
+.bw-v35 .bw-cvt-pill:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+.bw-v35 .bw-cvt-pill:active {
+  transform: scale(0.97);
+}
+
+/* ---- night footer (SiteChrome, Figma "Footer" 445:762) ----------- */
+/* Peri-300 links on the dusk-blue ground, brightening to paper on hover. */
+.bw-v35 .bw-footer-night .lp-link {
+  color: var(--peri-300);
+}
+.bw-v35 .bw-footer-night .lp-link:hover {
+  color: var(--paper-0);
+}
+
 /* ---- account menu items (auth.jsx) ------------------------------ */
 /* Neutral at rest; the accent text + peri wash appear ONLY on hover.
    Glyphs are currentColor-filled masks, so they always match the text. */

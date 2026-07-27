@@ -33,6 +33,15 @@ const T3_DRAFT = [
   'Could we look at the schedule together this week and spread the load more evenly?',
 ].join('\n\n')
 
+const T4_SENT = [
+  'Our shared fence on the north side started leaning badly after the last storm, so I went ahead and got a repair quote from Hartley Fencing.',
+  'Would you be open to splitting the repair cost? Happy to send the quote over and coordinate the work so it’s painless for both of us.',
+].join('\n\n')
+
+const T4_REPLY = [
+  'Thanks for flagging it — I’d noticed the lean too. Splitting the cost seems fair to me. Send the quote over and let’s pick a week that works.',
+].join('\n\n')
+
 export const DEMO_THREADS = [
   {
     id: 'demo-replied',
@@ -104,6 +113,38 @@ export const DEMO_THREADS = [
       { id: 'demo-d-d1', kind: 'draft_version', body: T3_DRAFT, context: { tone: 55, verbosity: 40 }, created_at: daysAgo(1) },
     ],
   },
+  {
+    id: 'demo-fence',
+    scenarioId: 'rights',
+    recipient: 'Your neighbor',
+    subject: 'The shared fence',
+    context: {
+      answers: {
+        harm: 'The fence we share needs a repair',
+        urgency: 'I have time',
+        goal: 'split the fence repair cost evenly',
+        rel: 'Cordial',
+      },
+    },
+    createdAt: daysAgo(8),
+    updatedAt: daysAgo(3, 16),
+    counts: { drafts: 2, sent: 1, replies: 1 },
+    lastActivityAt: daysAgo(3, 16),
+    hasSent: true,
+    awaiting: false,
+    messages: [
+      { id: 'demo-f-d1', kind: 'draft_version', body: T4_SENT, context: { tone: 46, verbosity: 42 }, created_at: daysAgo(8) },
+      { id: 'demo-f-s1', kind: 'sent', body: T4_SENT, context: { tone: 46, verbosity: 42 }, created_at: daysAgo(6) },
+      { id: 'demo-f-r1', kind: 'reply', body: T4_REPLY, context: { pasted: true }, created_at: daysAgo(3, 16) },
+    ],
+  },
 ]
+
+// Mirror db.js summarizeThread(): the list cards quote the first line of the
+// latest message, and their copy action grabs the whole body.
+DEMO_THREADS.forEach((t) => {
+  t.lastBody = t.messages[t.messages.length - 1]?.body || ''
+  t.snippet = t.lastBody.split('\n')[0]
+})
 
 export const getDemoThread = (id) => DEMO_THREADS.find((t) => t.id === id) || null

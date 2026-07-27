@@ -1,25 +1,35 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import DS2 from '../ds2'
 import { useStore } from '../store'
 import { useAuth } from '../lib/auth'
 import { fetchThread, recordReply } from '../lib/db'
 import { getDemoThread, DEMO_THREADS } from '../lib/demo'
-import { timeAgo, daysSince } from '../lib/advisor'
+import { ContextPanel, SLATE_WELL, shortName, initialOf } from '../components/ContextPanel'
 
 // ------------------------------------------------------------------
-// Conversation — one thread's timeline, and the branch that drives the
-// whole v3.5 flow: what you can do next depends on whether they've
-// replied since your last message. Wireframes: "Open an existing
-// conversation — …has gotten a response / …no reply yet".
+// Conversation — one thread's timeline (Figma "My Messages", 445:1209):
+// a 240px Context panel beside a chat-style timeline card. The card's
+// footer bar is the branch that drives the whole v3.5 flow — what you
+// can do next depends on whether they've replied since your last
+// message:
+//   drafts only → continue drafting
+//   awaiting    → "Still waiting?" (follow-up) · "They replied?"
+//                 (inline paste → respond flow)
+//   replied     → "Help me respond ✦"
+// Shares the My Conversations ground: main body fills the viewport,
+// daybreak rainbow at the fold, night footer below.
 // ------------------------------------------------------------------
 
-const dateLabel = (iso) =>
-  new Date(iso).toLocaleDateString(undefined, { month: 'long', day: 'numeric' })
+// "Jan 15, 2:14 PM"
+const stampLabel = (iso) => {
+  const d = new Date(iso)
+  return `${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}, ${d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`
+}
 
 export default function Conversation() {
   const { state, dispatch } = useStore()
   const auth = useAuth()
-  const { Button, Icon } = DS2
+  const { Button } = DS2
 
   const [thread, setThread] = useState(null)
   const [error, setError] = useState(null)
@@ -46,7 +56,7 @@ export default function Conversation() {
     return (
       <main style={{ maxWidth: 780, margin: '0 auto', padding: '60px 32px', textAlign: 'center', flex: 1 }}>
         <p style={{ fontFamily: 'var(--font-serif)', fontSize: 17, color: 'var(--text-muted)' }}>Couldn’t open this conversation — {error}</p>
-        <Button variant="ghost" size="md" onClick={() => dispatch({ type: 'OPEN_CONVERSATIONS' })}>← All conversations</Button>
+        <Button variant="ghost" size="md" onClick={() => dispatch({ type: 'OPEN_CONVERSATIONS' })}>← My Conversations</Button>
       </main>
     )
   }
@@ -57,9 +67,6 @@ export default function Conversation() {
   const msgs = (thread.messages || []).filter((m) => m.kind !== 'draft_version')
   const drafts = (thread.messages || []).filter((m) => m.kind === 'draft_version')
   const lastReply = [...msgs].reverse().find((m) => m.kind === 'reply')
-  const lastEvent = msgs[msgs.length - 1]
-  const answers = thread.context?.answers || {}
-  const sinceDays = lastEvent ? daysSince(lastEvent.created_at) : 0
 
   const startFlow = (mode, replyText) =>
     dispatch({ type: 'START_REPLY_FLOW', mode, replyText, thread })
@@ -76,273 +83,247 @@ export default function Conversation() {
     })
   }
 
+  // Pasted reply → keep the timeline truthful (best-effort when signed in),
+  // then the respond flow takes over.
+  const submitPastedReply = (text) => {
+    if (auth.signedIn) {
+      recordReply({ threadId: thread.id, body: text }).catch((err) => console.warn('[record reply]', err?.message || err))
+    }
+    startFlow('respond', text)
+  }
+
   return (
-    <main style={{ maxWidth: 880, width: '100%', margin: '0 auto', padding: '48px 32px 90px', boxSizing: 'border-box', flex: 1 }}>
-      {/* back link */}
-      <a
-        onClick={() => dispatch({ type: 'OPEN_CONVERSATIONS' })}
-        style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, color: 'var(--accent)', cursor: 'pointer', display: 'inline-block', marginBottom: 20 }}
-      >
-        ← All conversations
-      </a>
+    // Same ground contract as My Conversations: the main body (Figma
+    // 445:1210) fills the viewport below the 68px header, rainbow at the
+    // fold, night footer under it.
+    <div
+      style={{
+        width: '100%',
+        minHeight: 'calc(100vh - 68px)',
+        display: 'flex',
+        flexDirection: 'column',
+        boxSizing: 'border-box',
+        backgroundImage:
+          'linear-gradient(180deg, var(--paper-1) 90%, var(--honey-400) 93%, var(--coral-400) 96%, var(--lilac-500) 98%, var(--blue-500) 100%)',
+      }}
+    >
+      <main style={{ maxWidth: 1152, width: '100%', margin: '0 auto', padding: '14px 24px 44px', boxSizing: 'border-box', flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <a
+          onClick={() => dispatch({ type: 'OPEN_CONVERSATIONS' })}
+          style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, color: 'var(--accent)', cursor: 'pointer', display: 'inline-block', margin: '0 0 20px', alignSelf: 'flex-start' }}
+        >
+          ← My Conversations
+        </a>
 
-      {/* header */}
-      <header style={{ marginBottom: 8 }}>
-        <div style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--text-muted)', marginBottom: 6 }}>
-          To: <span style={{ color: 'var(--text-body)', fontWeight: 600 }}>{thread.recipient || 'Someone'}</span>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap', flex: 1 }}>
+          <ContextPanel thread={thread} msgs={msgs} drafts={drafts} />
+          <TimelineCard
+            thread={thread}
+            msgs={msgs}
+            drafts={drafts}
+            lastReply={lastReply}
+            onFollowup={() => startFlow('followup')}
+            onRespond={() => startFlow('respond', lastReply?.body || '')}
+            onPasteReply={submitPastedReply}
+            onContinueDrafting={continueDrafting}
+          />
         </div>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontVariationSettings: 'var(--display-soft)', fontWeight: 600, fontSize: 36, lineHeight: 1.1, color: 'var(--text-strong)', margin: 0 }}>
-            Re: {thread.subject || 'Untitled'}
-          </h1>
-          {thread.hasSent && (
-            <Button
-              variant="primary"
-              size="md"
-              iconRight={<Icon name="plus" size={14} />}
-              onClick={() => startFlow('followup')}
-            >
-              New message
-            </Button>
-          )}
-        </div>
-        {lastEvent && (
-          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13.5, color: 'var(--text-muted)', marginTop: 10 }}>
-            Last correspondence: {timeAgo(lastEvent.created_at)}
-          </div>
-        )}
-        {/* context chips — the thread remembers why you're writing */}
-        {Object.keys(answers).length > 0 && (
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
-            {[
-              ['Goal', answers.goal || answers.hope],
-              ['Concern', answers.fear],
-              ['So far', answers.rel],
-            ]
-              .filter(([, v]) => v)
-              .map(([k, v]) => (
-                <span key={k} style={{ fontFamily: 'var(--font-sans)', fontSize: 12.5, background: 'var(--surface-card)', border: '1px solid var(--border-hair)', borderRadius: 999, padding: '6px 12px', color: 'var(--text-body)' }}>
-                  <b style={{ fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', fontSize: 10.5, color: 'var(--accent)', marginRight: 6 }}>{k}</b>
-                  {v}
-                </span>
-              ))}
-          </div>
-        )}
-      </header>
-
-      <div style={{ borderBottom: '1px solid var(--border-hair)', margin: '20px 0 26px' }} />
-
-      {/* timeline */}
-      <div style={{ position: 'relative', paddingLeft: 22 }}>
-        {/* the dotted spine */}
-        <span aria-hidden style={{ position: 'absolute', left: 3, top: 8, bottom: 8, borderLeft: '2px dotted color-mix(in srgb, var(--accent) 35%, transparent)' }} />
-
-        {msgs.length === 0 && (
-          <TimelineNote label="Not sent yet">
-            This message is still taking shape — {drafts.length} draft version{drafts.length === 1 ? '' : 's'} so far.
-          </TimelineNote>
-        )}
-
-        {msgs.map((m) => (
-          <TimelineEntry key={m.id} msg={m} thread={thread} draftsCount={m.kind !== 'reply' ? drafts.length : 0} />
-        ))}
-
-        {/* today marker + the branch */}
-        <div style={{ position: 'relative', marginTop: 26 }}>
-          <TimelineDot />
-          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13.5, marginBottom: 14 }}>
-            <b style={{ color: 'var(--text-strong)' }}>Today</b>{' '}
-            <span style={{ color: 'var(--text-muted)' }}>
-              {!thread.hasSent
-                ? 'Ready when you are.'
-                : thread.awaiting
-                  ? `It’s been ${sinceDays} day${sinceDays === 1 ? '' : 's'} since you messaged ${shortName(thread.recipient)}.`
-                  : `It’s been ${sinceDays} day${sinceDays === 1 ? '' : 's'} since their reply.`}
-            </span>
-          </div>
-
-          {!thread.hasSent ? (
-            <NextCard tint="peri">
-              <div style={{ flex: 1, minWidth: 220 }}>
-                <NextTitle>Still in drafts</NextTitle>
-                <NextBody>Pick up where you left off — your context and drafts are saved here.</NextBody>
-              </div>
-              <Button variant="primary" size="md" onClick={continueDrafting}>Continue drafting</Button>
-            </NextCard>
-          ) : thread.awaiting ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
-              <PasteReplyCard
-                onSubmit={(text) => {
-                  // Keep the timeline truthful before drafting: the pasted
-                  // reply becomes part of the thread (best-effort when
-                  // signed in), then the respond flow takes over.
-                  if (auth.signedIn) {
-                    recordReply({ threadId: thread.id, body: text }).catch((err) => console.warn('[record reply]', err?.message || err))
-                  }
-                  startFlow('respond', text)
-                }}
-              />
-              <NextCard tint="warm">
-                <div style={{ flex: 1, minWidth: 200 }}>
-                  <NextTitle>Are you still waiting?</NextTitle>
-                  <NextBody>Let Betterwords help you determine how to follow up.</NextBody>
-                </div>
-                <Button variant="spark" size="md" onClick={() => startFlow('followup')}>Help me draft the follow-up ✦</Button>
-              </NextCard>
-            </div>
-          ) : (
-            <NextCard tint="warm">
-              <div style={{ flex: 1, minWidth: 240 }}>
-                <NextTitle>They replied — want a hand?</NextTitle>
-                <NextBody>Let Betterwords read {shortName(thread.recipient)}’s message with you and shape the response.</NextBody>
-              </div>
-              <Button variant="spark" size="lg" onClick={() => startFlow('respond', lastReply?.body || '')}>
-                Help me draft a response ✦
-              </Button>
-            </NextCard>
-          )}
-        </div>
-      </div>
-    </main>
-  )
-}
-
-// "Your landlord — Mr. Aubert" → "your landlord" for mid-sentence use.
-function shortName(recipient) {
-  const r = (recipient || 'them').split(/[—·]/)[0].trim()
-  return r.charAt(0).toLowerCase() + r.slice(1)
-}
-
-function TimelineDot() {
-  return (
-    <span aria-hidden style={{ position: 'absolute', left: -26, top: 3, width: 10, height: 10, borderRadius: '50%', background: 'var(--accent)', boxShadow: '0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent)' }} />
-  )
-}
-
-function TimelineNote({ label, children }) {
-  return (
-    <div style={{ position: 'relative', marginBottom: 26 }}>
-      <TimelineDot />
-      <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13.5, marginBottom: 8 }}>
-        <b style={{ color: 'var(--text-strong)' }}>{label}</b>
-      </div>
-      <div style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--text-muted)' }}>{children}</div>
+      </main>
     </div>
   )
 }
 
-const KIND_META = {
-  sent: { who: 'You', status: 'Marked as sent' },
-  followup: { who: 'You', status: 'Follow-up · sent' },
-  reply: { who: null, status: null },
-}
+// ---- Timeline card (Figma 445:1260) --------------------------------
 
-function TimelineEntry({ msg, thread, draftsCount }) {
-  const [open, setOpen] = useState(false)
-  const meta = KIND_META[msg.kind] || KIND_META.sent
-  const isYou = msg.kind !== 'reply'
-  const who = isYou ? 'You' : (thread.recipient || 'Them').split(/[—·]/)[0].trim()
-  // Avatar initial — for "Your landlord" use L, not Y (which is You's).
-  const initial = (isYou ? 'Y' : who.replace(/^your\s+/i, '').charAt(0)).toUpperCase()
-  const paras = (msg.body || '').split(/\n\n+/)
-  const preview = !open && paras.length > 1
+function TimelineCard({ thread, msgs, drafts, lastReply, onFollowup, onRespond, onPasteReply, onContinueDrafting }) {
+  const name = shortName(thread.recipient)
+  const properName = name.charAt(0).toUpperCase() + name.slice(1)
+  const [pasting, setPasting] = useState(false)
 
   return (
-    <div style={{ position: 'relative', marginBottom: 26 }}>
-      <TimelineDot />
-      <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13.5, marginBottom: 10 }}>
-        <b style={{ color: 'var(--text-strong)' }}>{dateLabel(msg.created_at)}</b>
-      </div>
-      <article style={{ background: isYou ? 'var(--surface-card)' : 'color-mix(in srgb, var(--peach-100, #FBEDE3) 60%, var(--surface-card))', border: '1px solid var(--border-hair)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm, 0 1px 4px rgba(28,23,70,0.05))', overflow: 'hidden' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', borderBottom: '1px solid var(--border-hair)' }}>
-          <span aria-hidden style={{ width: 34, height: 34, borderRadius: '50%', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 15, color: 'var(--ink-800)', background: isYou ? 'var(--peri-200, #DCD9F6)' : 'var(--peach-200, #F6D9C4)' }}>
-            {initial}
-          </span>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontFamily: 'var(--font-serif)', fontWeight: 600, fontSize: 15.5, color: 'var(--text-strong)' }}>{who}</div>
-            {isYou && <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12.5, color: 'var(--text-muted)' }}>To: {(thread.recipient || '').split(/[—·]/)[0].trim()}</div>}
-          </div>
-          {meta.status && (
-            <span style={{ fontFamily: 'var(--font-sans)', fontSize: 11.5, fontWeight: 700, padding: '5px 10px', borderRadius: 999, background: 'var(--peri-100, #EBE9FA)', color: 'var(--ink-700)', whiteSpace: 'nowrap' }}>
-              {meta.status}
-            </span>
-          )}
-          <button
-            onClick={() => setOpen((o) => !o)}
-            style={{ fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, color: 'var(--accent)', background: 'transparent', border: '1px solid var(--border-hair)', borderRadius: 999, padding: '6px 14px', cursor: 'pointer', whiteSpace: 'nowrap' }}
-          >
-            {open ? 'Collapse' : 'View message'}
-          </button>
+    <section style={{ flex: 1, minWidth: 380, display: 'flex', flexDirection: 'column', minHeight: 620, filter: 'drop-shadow(0 4px 5px rgba(28, 23, 70, 0.06))' }}>
+      {/* header */}
+      <div style={{ background: 'var(--surface-card)', borderBottom: '1px solid rgba(28, 23, 70, 0.06)', borderRadius: 'var(--radius-md) var(--radius-md) 0 0', padding: '16px 20px' }}>
+        <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 500, fontSize: 12, color: 'var(--ink-600)', marginBottom: 2 }}>
+          To: {(thread.recipient || 'Someone').split(/[—·]/)[0].trim()}
         </div>
-        <div style={{ padding: '16px 20px 18px' }}>
-          {(open ? paras : paras.slice(0, 1)).map((p, i) => (
-            <p key={i} style={{ fontFamily: 'var(--font-serif)', fontSize: 15.5, lineHeight: 1.6, color: 'var(--text-body)', margin: i === 0 ? 0 : '12px 0 0', ...(preview && i === 0 ? { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : {}) }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontVariationSettings: 'var(--display-soft)', fontWeight: 600, fontSize: 17, lineHeight: 1.15, color: 'var(--ink-900)' }}>
+          Re: {thread.subject || 'Untitled'}
+        </div>
+      </div>
+
+      {/* chat canvas */}
+      <div style={{ background: SLATE_WELL, flex: 1, overflowY: 'auto', padding: '12px 48px 12px 24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {msgs.length === 0 && (
+            <CenterNote
+              art="/ds-v35/assets/characters/ctx-waiting.svg"
+              title="Nothing sent yet"
+              caption={`${drafts.length} draft version${drafts.length === 1 ? '' : 's'} shaped so far — pick it up below when you’re ready.`}
+            />
+          )}
+
+          {msgs.map((m) => (
+            <TimelineSegment key={m.id} msg={m} thread={thread} />
+          ))}
+
+          {thread.hasSent && thread.awaiting && (
+            <CenterNote
+              art="/ds-v35/assets/characters/convo-waiting-snail.svg"
+              title={`Have you heard back from ${name}?`}
+              caption="Draft a polite nudge or paste their response when they reply below."
+            />
+          )}
+          {thread.hasSent && !thread.awaiting && (
+            <CenterNote
+              title="What would you like to say back?"
+              caption="Betterwords can read their reply with you and shape the response below."
+            />
+          )}
+        </div>
+      </div>
+
+      {/* action bar — the branch */}
+      <div style={{ background: 'var(--surface-card)', borderTop: '1px solid rgba(28, 23, 70, 0.06)', borderRadius: '0 0 var(--radius-md) var(--radius-md)', padding: 16 }}>
+        {!thread.hasSent ? (
+          <PromptCard tint="peri" title="Still in drafts" caption="Pick up where you left off — your context and drafts are saved here.">
+            <PillButton kind="accent" onClick={onContinueDrafting}>Continue drafting</PillButton>
+          </PromptCard>
+        ) : pasting ? (
+          <PastePanel
+            name={name}
+            onCancel={() => setPasting(false)}
+            onSubmit={(text) => {
+              setPasting(false)
+              onPasteReply(text)
+            }}
+          />
+        ) : thread.awaiting ? (
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            <PromptCard tint="warm" title="Still waiting?" caption="Get help writing a gentle reminder follow-up.">
+              <PillButton kind="spark" onClick={onFollowup}>Polish nudge ✦</PillButton>
+            </PromptCard>
+            <PromptCard tint="peri" title="They replied?" caption="Paste their answer to craft your reply draft.">
+              <PillButton kind="accent" onClick={() => setPasting(true)}>Draft response</PillButton>
+            </PromptCard>
+          </div>
+        ) : (
+          <PromptCard tint="peri" title={`${properName} replied — want a hand?`} caption="Betterwords reads their message with you and shapes the response.">
+            <PillButton kind="ghost" onClick={onFollowup}>Follow up instead</PillButton>
+            <PillButton kind="accent" onClick={onRespond}>Help me respond ✦</PillButton>
+          </PromptCard>
+        )}
+      </div>
+    </section>
+  )
+}
+
+function TimelineSegment({ msg, thread }) {
+  const isYou = msg.kind !== 'reply'
+  const properName = (() => {
+    const n = shortName(thread.recipient)
+    return n.charAt(0).toUpperCase() + n.slice(1)
+  })()
+  const header = msg.kind === 'sent' ? 'You sent a message' : msg.kind === 'followup' ? 'You sent a follow-up' : `${properName} replied`
+  const paras = (msg.body || '').split(/\n\n+/)
+  return (
+    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', filter: 'drop-shadow(0 4px 5px rgba(28, 23, 70, 0.06))' }}>
+      <span
+        aria-hidden
+        style={{ width: 27, height: 27, borderRadius: '50%', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14, color: '#fff', background: isYou ? 'var(--accent)' : 'var(--peach-500)' }}
+      >
+        {isYou ? 'Y' : initialOf(thread.recipient)}
+      </span>
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8, padding: '5px 0' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
+          <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 14, color: 'var(--text-muted)' }}>{header}</span>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--text-faint)', whiteSpace: 'nowrap' }}>{stampLabel(msg.created_at)}</span>
+        </div>
+        <div style={{ background: isYou ? 'var(--peri-100)' : 'var(--paper-0)', border: isYou ? 'none' : '1px solid var(--border-hair)', borderRadius: 10, padding: 16 }}>
+          {paras.map((p, i) => (
+            <p key={i} style={{ fontFamily: 'var(--font-sans)', fontSize: 14, lineHeight: '20px', color: 'var(--ink-700)', margin: i === 0 ? 0 : '10px 0 0' }}>
               {p}
             </p>
           ))}
-          {preview && (
-            <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12.5, color: 'var(--text-faint)', marginTop: 8 }}>…</div>
-          )}
-          {isYou && draftsCount > 0 && (
-            <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12.5, color: 'var(--text-faint)', marginTop: 12 }}>
-              {draftsCount} earlier draft version{draftsCount === 1 ? '' : 's'} kept
-            </div>
-          )}
         </div>
-      </article>
+      </div>
     </div>
   )
 }
 
-// The action cards under "Today".
-function NextCard({ tint, children }) {
+// Centered note on the chat canvas (the snail "have you heard back?" beat).
+function CenterNote({ art, title, caption }) {
   return (
-    <div
-      style={{
-        background: tint === 'warm' ? 'color-mix(in srgb, var(--peach-100, #FBEDE3) 45%, var(--surface-card))' : 'var(--surface-card)',
-        border: '1px solid var(--border-hair)',
-        borderRadius: 'var(--radius-lg)',
-        boxShadow: 'var(--shadow-md)',
-        padding: '20px 22px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 18,
-        flexWrap: 'wrap',
-      }}
-    >
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '24px 0', textAlign: 'center' }}>
+      {art && <img src={art} alt="" style={{ width: 116, maxHeight: 78, objectFit: 'contain' }} />}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontVariationSettings: 'var(--display-soft)', fontWeight: 600, fontSize: 16, color: 'var(--ink-800)' }}>{title}</div>
+        <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--text-muted)' }}>{caption}</div>
+      </div>
+    </div>
+  )
+}
+
+// ---- action-bar prompt cards (Figma 445:1385 / 445:1391) -----------
+
+function PromptCard({ tint, title, caption, children }) {
+  // warm: the follow-up nudge; peri: the respond path. Warm's exact fills sit
+  // between Daybreak tokens, so the bg stays literal with peach-100 edging.
+  const skin =
+    tint === 'warm'
+      ? { background: '#FFF9ED', border: '1px solid var(--peach-100)' }
+      : { background: 'var(--peri-100)', border: '1px solid var(--peri-200)' }
+  return (
+    <div style={{ ...skin, flex: 1, minWidth: 300, borderRadius: 12, padding: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <span style={{ fontFamily: 'var(--font-display)', fontVariationSettings: 'var(--display-soft)', fontWeight: 600, fontSize: 15, color: 'var(--ink-800)' }}>{title}</span>
+        <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--text-muted)' }}>{caption}</span>
+      </div>
       {children}
     </div>
   )
 }
-const NextTitle = ({ children }) => (
-  <div style={{ fontFamily: 'var(--font-serif)', fontWeight: 600, fontSize: 17.5, color: 'var(--text-strong)', marginBottom: 4 }}>{children}</div>
-)
-const NextBody = ({ children }) => (
-  <div style={{ fontFamily: 'var(--font-sans)', fontSize: 14, lineHeight: 1.5, color: 'var(--text-muted)' }}>{children}</div>
-)
 
-function PasteReplyCard({ onSubmit }) {
-  const { Button } = DS2
+function PillButton({ kind, onClick, children }) {
+  const skins = {
+    accent: { background: 'var(--accent)', color: 'var(--text-on-accent)' },
+    spark: { background: 'var(--spark)', color: 'var(--paper-0)' },
+    ghost: { background: 'transparent', color: 'var(--accent)' },
+  }
+  return (
+    <button
+      onClick={onClick}
+      className="bw-cvt-pill"
+      style={{ ...skins[kind], border: 0, borderRadius: 'var(--radius-pill)', padding: '10px 16px', fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap', cursor: 'pointer', flexShrink: 0 }}
+    >
+      {children}
+    </button>
+  )
+}
+
+// The "They replied? Paste their answer" gap-fill: the action bar itself
+// becomes the paste surface, then hands off to the respond flow.
+function PastePanel({ name, onCancel, onSubmit }) {
   const [text, setText] = useState('')
   return (
-    <NextCard tint="peri">
-      <div style={{ flex: 1, minWidth: 240 }}>
-        <NextTitle>Have they replied?</NextTitle>
-        <NextBody>Paste their message here so Betterwords can help you respond.</NextBody>
-        <textarea
-          className="bw-field"
-          rows={3}
-          placeholder="Paste their message here…"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          style={{ width: '100%', boxSizing: 'border-box', marginTop: 12, resize: 'vertical', fontFamily: 'var(--font-serif)', fontSize: 14.5, lineHeight: 1.5 }}
-        />
-        <div style={{ marginTop: 12 }}>
-          <Button variant="primary" size="md" disabled={!text.trim()} onClick={() => text.trim() && onSubmit(text.trim())}>
-            Draft response
-          </Button>
-        </div>
+    <div style={{ background: 'var(--peri-100)', border: '1px solid var(--peri-200)', borderRadius: 12, padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <span style={{ fontFamily: 'var(--font-display)', fontVariationSettings: 'var(--display-soft)', fontWeight: 600, fontSize: 15, color: 'var(--ink-800)' }}>What did {name} say?</span>
+        <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--text-muted)' }}>Paste their reply — Betterwords reads it with you, then shapes your response.</span>
       </div>
-    </NextCard>
+      <textarea
+        className="bw-field"
+        autoFocus
+        rows={4}
+        placeholder="Paste their message here…"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical', fontFamily: 'var(--font-sans)', fontSize: 13.5, lineHeight: 1.5, background: 'var(--paper-0)' }}
+      />
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+        <PillButton kind="ghost" onClick={onCancel}>Cancel</PillButton>
+        <PillButton kind="accent" onClick={() => text.trim() && onSubmit(text.trim())}>Interpret &amp; draft ✦</PillButton>
+      </div>
+    </div>
   )
 }

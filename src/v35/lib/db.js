@@ -176,6 +176,10 @@ export function summarizeThread(t) {
     createdAt: t.created_at,
     updatedAt: t.updated_at,
     counts: { drafts: count('draft_version'), sent: count('sent') + count('followup'), replies: count('reply') },
+    // The latest message's words — the conversations list quotes the first
+    // line and its copy action grabs the whole body.
+    snippet: (lastEvent?.body || '').split('\n')[0],
+    lastBody: lastEvent?.body || '',
     lastActivityAt: lastEvent?.created_at || t.updated_at || t.created_at,
     hasSent: outbound.length > 0,
     awaiting, // true → "still waiting" moves; false + replies>0 → "help me respond"

@@ -786,3 +786,320 @@
     flex-wrap: wrap;
   }
 }
+
+/* ============================================================
+   Composer v2 (Figma 449:1945 / 449:3569 / 449:3223)
+   Glass toolbar · white sheet · glass action bar with pill tabs
+   ============================================================ */
+
+.bw-v35 .bw-cmp2-tool {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--ink-600);
+  transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out);
+}
+.bw-v35 .bw-cmp2-tool:hover {
+  background: rgba(21, 18, 62, 0.05);
+}
+/* engaged tool — the frame's mint-filled chip (449:6223): #10B981 is the
+   same green the edit tool paints selections with */
+.bw-v35 .bw-cmp2-tool.is-active {
+  background: #10b981;
+  color: #fff;
+  box-shadow: 0 2px 5px rgba(21, 18, 62, 0.07), 0 18px 44px rgba(21, 18, 62, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+.bw-v35 .bw-cmp2-glyph {
+  width: 24px;
+  height: 24px;
+  background-color: currentColor;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+.bw-v35 .bw-cmp2-mini {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50px;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--ink-600);
+  transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out);
+}
+.bw-v35 .bw-cmp2-mini:hover:not(:disabled) {
+  background: rgba(21, 18, 62, 0.05);
+  color: var(--accent);
+}
+.bw-v35 .bw-cmp2-mini:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* the white letter sheet — now the top of the card (449:5132) */
+.bw-v35 .bw-cmp2-sheet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 480px;
+  background: #fff;
+  border-radius: 22px 22px 0 0;
+  filter: drop-shadow(0 4px 5px rgba(21, 18, 62, 0.06));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+/* the sheet's letter voice (Figma: Hanken light 14 / line 2) */
+.bw-v35 .bw-cmp2-body {
+  padding: 16px 28px 8px 20px;
+}
+.bw-v35 .bw-cmp2-body p {
+  font-family: var(--font-sans);
+  font-weight: 300;
+  font-size: 14px;
+  line-height: 2;
+  color: var(--ink-900);
+}
+.bw-v35 .bw-cmp2-body .bw-cmp-sig {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 2;
+  color: var(--ink-900);
+}
+
+/* tune mode (a tone/length tray is open, Figma 449:4774/6234): the magic
+   cursor over the letter, the whole text reading as selected by default —
+   peri-300 bars behind the words, text color untouched */
+.bw-v35 .bw-cmp2-body--tune,
+.bw-v35 .bw-cmp2-body--tune p,
+.bw-v35 .bw-cmp2-body--tune .bw-cmp-sig {
+  cursor: url('/ds-v35/assets/glyphs/cursor-magic.svg') 16 18, text;
+}
+.bw-v35 .bw-cmp2-hl {
+  background: var(--peri-300);
+  padding: 3px 4px;
+  margin: -3px -4px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+/* narrowing the adjustment by dragging: the native selection paints in the
+   same peri-300, and the letter ink stays ink */
+.bw-v35 .bw-cmp2-body--tune p::selection,
+.bw-v35 .bw-cmp2-body--tune .bw-cmp-sig::selection,
+.bw-v35 .bw-cmp2-body--tune span::selection {
+  background: var(--peri-300);
+  color: var(--ink-900);
+}
+
+/* glass action bar under the sheet — barely-there white→lilac band with a
+   frosted border (the frame's raster band, rebuilt as CSS) */
+.bw-v35 .bw-cmp2-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-top: 1px solid rgba(28, 23, 70, 0.06);
+  border-radius: 0 0 22px 22px;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.2)),
+    linear-gradient(180deg, #ffffff 0%, #fbf6fa 55%, #f8f2f9 100%);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 4px 10px rgba(21, 18, 62, 0.06);
+}
+.bw-v35 .bw-cmp2-pill {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 48px;
+  border: 1px solid transparent;
+  border-radius: 99px;
+  background: #fff;
+  filter: drop-shadow(0 2px 2.5px rgba(21, 18, 62, 0.07));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: background 0.15s var(--ease-out), border-color 0.15s var(--ease-out),
+    transform 0.2s var(--ease-spring);
+}
+.bw-v35 .bw-cmp2-pill:hover {
+  transform: translateY(-1px);
+}
+.bw-v35 .bw-cmp2-pill:active {
+  transform: scale(0.98);
+}
+.bw-v35 .bw-cmp2-pill.is-active {
+  background: var(--peri-100);
+  border-color: var(--accent);
+}
+.bw-v35 .bw-cmp2-pill-art {
+  height: 30px;
+  width: 50px;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: flex-start;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.bw-v35 .bw-cmp2-pill-art img {
+  height: 36px;
+  width: auto;
+  object-fit: cover;
+  object-position: top;
+}
+.bw-v35 .bw-cmp2-pill-label {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: 10px;
+  letter-spacing: 0.1px;
+  text-transform: uppercase;
+  color: var(--ink-500);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bw-v35 .bw-cmp2-pill.is-active .bw-cmp2-pill-label {
+  color: var(--accent);
+}
+
+/* expanded trays (tone / length / add-something-else) */
+.bw-v35 .bw-cmp2-tray {
+  background: #fff;
+  border-radius: 20px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  animation: bw-rise var(--dur-base) var(--ease-out) both;
+}
+.bw-v35 .bw-cmp2-traybtn {
+  height: 36px;
+  padding: 0 15px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  color: var(--accent);
+  cursor: pointer;
+  transition: background 0.15s var(--ease-out), filter 0.15s var(--ease-out);
+}
+.bw-v35 .bw-cmp2-traybtn:hover:not(:disabled) {
+  background: rgba(21, 18, 62, 0.04);
+}
+.bw-v35 .bw-cmp2-traybtn.is-done {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--paper-0);
+  filter: drop-shadow(0 2px 2px rgba(28, 23, 70, 0.06));
+}
+.bw-v35 .bw-cmp2-traybtn.is-done:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.bw-v35 .bw-cmp2-traybtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* tray slider — sunken paper track, gradient fill, ringed white thumb */
+.bw-v35 .bw-cmp2-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 12px;
+  margin: 4px 0 6px;
+  background-image: linear-gradient(to right, transparent var(--pct), var(--paper-2) var(--pct)), var(--fill);
+  box-shadow: 0 1px 4px rgba(21, 18, 62, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  outline: none;
+  cursor: pointer;
+}
+.bw-v35 .bw-cmp2-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 12px;
+  background: #fffdf7;
+  border: 2px solid var(--thumb, #3d52d6);
+  box-shadow: 0 2px 5px rgba(21, 18, 62, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+}
+.bw-v35 .bw-cmp2-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 12px;
+  background: #fffdf7;
+  border: 2px solid var(--thumb, #3d52d6);
+  box-shadow: 0 2px 5px rgba(21, 18, 62, 0.1);
+  cursor: pointer;
+}
+.bw-v35 .bw-cmp2-range:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* right-rail evaluation cards */
+.bw-v35 .bw-cmp2-card {
+  background: #fff;
+  border-radius: 22px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  filter: drop-shadow(0 4px 5px rgba(28, 23, 70, 0.06));
+}
+.bw-v35 .bw-cmp2-card-h2 {
+  font-family: var(--font-display);
+  font-variation-settings: 'SOFT' 0, 'WONK' 1;
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 20px;
+  color: var(--ink-900);
+  margin: 0;
+}
+.bw-v35 .bw-cmp2-eval-kicker {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.bw-v35 .bw-cmp2-evalchip {
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+/* stack the three columns when the viewport can't fit them */
+@media (max-width: 1080px) {
+  .bw-v35 .bw-composer {
+    flex-wrap: wrap !important;
+  }
+  .bw-v35 .bw-composer > div:first-child {
+    width: 100% !important;
+  }
+  .bw-v35 .bw-composer-rail {
+    width: 100% !important;
+    padding-top: 0 !important;
+  }
+}

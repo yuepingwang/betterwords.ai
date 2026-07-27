@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useMemo, useReducer } from 'react'
 import { getScenario } from './data/advocate'
+import { DEMO_THREADS } from './lib/demo'
 
 // ------------------------------------------------------------------
 // BetterWords app store — mirrors the state model in Advocate.dc.html.
@@ -192,7 +193,36 @@ function initState() {
     const draftedAnswers = screen === 'drafts' && Object.keys(answers).length ? answers : null
     // Conversation deep-links: `?screen=conversation&thread=demo-replied`
     const activeThreadId = p.get('thread') || null
-    return { ...initialState, screen, scenarioId, selectedIdx: idx, tone: toneDefault, answers, clarifyStep, draftedAnswers, activeThreadId }
+    // Reply-mode composer deep-link: `?screen=editor&reply=respond|followup`
+    // boots the composer as if the reply flow drafted from a demo thread —
+    // for design review of the in-conversation composer (Figma 449:3223).
+    let replyFlow = null
+    const replyMode = p.get('reply')
+    if (screen === 'editor' && (replyMode === 'respond' || replyMode === 'followup')) {
+      const thread = DEMO_THREADS[replyMode === 'respond' ? 0 : 1]
+      const lastOut = [...thread.messages].reverse().find((m) => m.kind === 'sent' || m.kind === 'followup')
+      replyFlow = {
+        mode: replyMode,
+        replyText: thread.messages.find((m) => m.kind === 'reply')?.body || null,
+        thread,
+        draftParas: (lastOut?.body || '').split(/\n\n+/),
+        moveTitle: replyMode === 'followup' ? 'The Gentle Nudge' : 'The Warm Confirm',
+      }
+    }
+    return {
+      ...initialState,
+      screen,
+      scenarioId: replyFlow?.thread?.scenarioId || scenarioId,
+      selectedIdx: idx,
+      tone: toneDefault,
+      answers: replyFlow ? replyFlow.thread.context?.answers || {} : answers,
+      clarifyStep,
+      draftedAnswers,
+      activeThreadId: replyFlow?.thread?.id || activeThreadId,
+      threadId: replyFlow?.thread?.id || null,
+      subjectOverride: replyFlow?.thread?.subject || null,
+      replyFlow,
+    }
   } catch {
     return initialState
   }

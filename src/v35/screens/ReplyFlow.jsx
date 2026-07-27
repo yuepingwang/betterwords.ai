@@ -119,7 +119,7 @@ export default function ReplyFlow() {
           }
           style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, color: 'var(--accent)', cursor: 'pointer' }}
         >
-          ‹ {step === 'moves' && mode === 'respond' ? 'Interpretation' : 'Conversation'}
+          ← {step === 'moves' && mode === 'respond' ? 'Interpretation' : 'Conversation'}
         </a>
         <span style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--text-muted)' }}>{stepLabel}</span>
       </div>
@@ -142,7 +142,7 @@ export default function ReplyFlow() {
             <p style={leadStyle}>Couldn’t read the reply — {error}</p>
           </Centered>
         ) : (
-          <Interpretation reading={reading} thread={thread} onNext={() => setStep('moves')} />
+          <Interpretation reading={reading} thread={thread} replyText={replyText} onNext={() => setStep('moves')} />
         )
       ) : (
         <MovesStep mode={mode} moves={moves} reading={reading} waitedDays={waitedDays} error={error} onDraft={draftMove} />
@@ -153,9 +153,10 @@ export default function ReplyFlow() {
 
 // ---- step 1 · "Here's what we're hearing" -------------------------
 
-function Interpretation({ reading, thread, onNext }) {
+function Interpretation({ reading, thread, replyText, onNext }) {
   const { Button } = DS2
   const from = (thread?.recipient || 'their').split(/[—·]/)[0].trim().toLowerCase()
+  const [showReply, setShowReply] = useState(true)
   return (
     <>
       <header style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
@@ -167,6 +168,28 @@ function Interpretation({ reading, thread, onNext }) {
           </div>
         </div>
       </header>
+
+      {/* the words being interpreted — quoted in the conversation timeline's
+          message-box style, so this step visibly continues that page */}
+      {replyText && (
+        <section style={{ ...cardStyle, padding: '16px 20px', marginBottom: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: showReply ? 10 : 0 }}>
+            <Kicker>Their reply</Kicker>
+            <a onClick={() => setShowReply((s) => !s)} style={{ fontFamily: 'var(--font-sans)', fontSize: 12.5, fontWeight: 600, color: 'var(--accent)', cursor: 'pointer' }}>
+              {showReply ? 'Hide' : 'Show'}
+            </a>
+          </div>
+          {showReply && (
+            <div style={{ background: 'var(--peri-100)', borderRadius: 10, padding: 16 }}>
+              {replyText.split(/\n\n+/).map((p, i) => (
+                <p key={i} style={{ fontFamily: 'var(--font-sans)', fontSize: 14, lineHeight: '20px', color: 'var(--ink-700)', margin: i === 0 ? 0 : '10px 0 0' }}>
+                  {p}
+                </p>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       <section style={cardStyle}>
         {/* classification chips */}

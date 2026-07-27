@@ -18,12 +18,22 @@ import {
   rephrase,
 } from '../lib/advisor'
 import Onboarding from '../components/Onboarding'
+import { RecapRail } from '../components/ClarifyRecap'
+import { ContextPanel } from '../components/ContextPanel'
 import { useAuth, AccountControl } from '../lib/auth'
 import { saveDraftVersion } from '../lib/db'
 import './Composer.css'
 
+// The composer's own sunset (Figma "main body" 449:2180): translucent paper
+// over the base, cresting honey → pink → periwinkle → teal at the fold. The
+// stops are this screen's palette, not Daybreak tokens; the night footer's
+// lip picks up the same teal so the sweep continues.
+export const COMPOSER_SUNSET_LIP = '#5FD0C0'
+export const COMPOSER_GROUND =
+  'linear-gradient(180deg, rgba(251, 247, 239, 0.75) 85%, #EBD46A 90%, #EC7FB0 94%, #6E88E4 98%, #5FD0C0 100%), linear-gradient(90deg, var(--paper-1) 0%, var(--paper-1) 100%)'
+
 // Versioned: bump when the tour content changes so everyone sees it once more.
-const ONBOARD_KEY = 'bw_onboarded_composer3'
+const ONBOARD_KEY = 'bw_onboarded_composer4'
 const GLYPHS = '/ds-v35/assets/glyphs'
 
 const QUICK_CHIPS = [
@@ -186,6 +196,155 @@ export default function Composer() {
   const [tour, setTour] = useState(false)
   const [, setHistTick] = useState(0)
 
+  // Bottom-bar tune trays (Figma 449:2915 / 449:3569): "Adjust your tone" /
+  // "Adjust the length" expand under the pill bar. Done commits the retune;
+  // Cancel puts the sliders back where the tray found them.
+  // Dev deep-link (matches `?tour=0`): `&tray=tone|length` opens a tray on
+  // load for design review/screenshots.
+  const [tray, setTray] = useState(() => {
+    try {
+      const t = new URLSearchParams(window.location.search).get('tray')
+      return t === 'tone' || t === 'length' ? t : null
+    } catch {
+      return null
+    }
+  })
+  const trayBaseRef = useRef(null)
+  // While a tray is open the whole letter is "selected" by default (peri
+  // highlight, magic cursor); dragging with the magic cursor narrows the
+  // adjustment to that passage instead. null → the full text.
+  const [tuneSel, setTuneSel] = useState(null)
+  // Live preview while dragging: every slider settle re-derives the letter
+  // FROM THE TRAY'S BASE SNAPSHOT (so previews never compound), debounced so
+  // the model isn't called at drag rate. `previewSeq` drops stale responses.
+  const liveRef = useRef({})
+  const previewTimer = useRef(null)
+  const previewSeq = useRef(0)
+  const lastPreviewRef = useRef(null)
+
+  const runTunePreview = async ({ evaluateAfter = false } = {}) => {
+    const base = trayBaseRef.current
+    if (!base) return
+    const { tone, verbosity, tuneSel: sel } = liveRef.current
+    const seq = ++previewSeq.current
+    // Back at the baseline → put the base text back verbatim.
+    if (tone === base.tone && verbosity === base.verbosity) {
+      const { sugs, ...letter } = base.snap
+      dispatch({ type: 'RESTORE_EDIT', ...letter })
+      lastPreviewRef.current = { tone, verbosity, sel: sel?.text || null }
+      return
+    }
+    const baseParas = base.snap.letterParas || strat.paragraphs || []
+    dispatch({ type: 'SET_LETTER_LOADING', value: true })
+    try {
+      if (sel?.text) {
+        // Passage-only adjustment → rewritePassage (OpenAI; heuristic
+        // fallback without a key), applied over the base replacements.
+        const asks = []
+        if (tone !== base.tone) asks.push(`shift its tone to ${TONE_WORD[bucket(tone)].toLowerCase()} — about ${tone} on a 0–100 soft-to-strong scale`)
+        if (verbosity !== base.verbosity) asks.push(`make it ${verbLabel(verbosity).toLowerCase()} — about ${verbosity} on a 0–100 succinct-to-detailed scale`)
+        const rep = await rewritePassage({
+          text: sel.text,
+          instruction: `Rewrite only this passage to ${asks.join(', and ')}. Keep its meaning, facts, and the writer's voice; return only the rewritten passage.`,
+          context: (convo ? `${convo}\n\n` : '') + paras.join('\n\n'),
+        })
+        if (seq !== previewSeq.current) return
+        const replacements = [...base.snap.replacements, { find: sel.text, replace: rep }]
+        dispatch({ type: 'RESTORE_EDIT', letterParas: base.snap.letterParas, replacements, inserts: base.snap.inserts, tone, verbosity })
+        if (evaluateAfter) {
+          flash(rep)
+          evaluate(composeLetter(strat, { ...state, letterParas: base.snap.letterParas, replacements, inserts: base.snap.inserts }), { moveSliders: true })
+        }
+      } else if (aiMode) {
+        // Full-text adjustment → retuneLetter regenerates the draft (OpenAI).
+        // (Static scenarios re-derive from tone variants in composeLetter,
+        // so their text already tracks the sliders live.)
+        const rfFallback = isReplyDraft
+          ? baseParas.map((p) => rephrase(p, bucket(tone) === 'soft' ? 'soften' : bucket(tone) === 'strong' ? 'firmer' : verbosity < 50 ? 'shorten' : 'detail'))
+          : null
+        const next = await retuneLetter({ scenarioId: state.scenarioId, strategy: strat, paras: baseParas, tone, verbosity, convo, fallbackParas: rfFallback })
+        if (seq !== previewSeq.current) return
+        dispatch({ type: 'SET_LETTER', paras: next })
+        if (evaluateAfter) {
+          evaluate(composeLetter(strat, { ...state, letterParas: next, replacements: base.snap.replacements, inserts: base.snap.inserts }), { moveSliders: false })
+        }
+      }
+      lastPreviewRef.current = { tone, verbosity, sel: sel?.text || null }
+    } finally {
+      if (seq === previewSeq.current) dispatch({ type: 'SET_LETTER_LOADING', value: false })
+    }
+  }
+  const scheduleTunePreview = () => {
+    clearTimeout(previewTimer.current)
+    previewTimer.current = setTimeout(runTunePreview, 550)
+  }
+
+  const closeTray = (commit) => {
+    const base = trayBaseRef.current
+    trayBaseRef.current = null
+    clearTimeout(previewTimer.current)
+    setTray(null)
+    setTuneSel(null)
+    if (!base) return
+    if (commit) {
+      const changed = base.tone !== state.tone || base.verbosity !== state.verbosity
+      if (changed) {
+        // Keep what the live preview produced; undo returns to the pre-tray
+        // letter in one step. If the last drag hasn't previewed yet (Done
+        // beat the debounce), run that final pass now.
+        pushHistory(base.snap)
+        const lp = lastPreviewRef.current
+        const sel = liveRef.current.tuneSel?.text || null
+        if (!lp || lp.tone !== state.tone || lp.verbosity !== state.verbosity || lp.sel !== sel) {
+          trayBaseRef.current = base // runTunePreview needs the base once more
+          runTunePreview({ evaluateAfter: true }).finally(() => {
+            trayBaseRef.current = null
+          })
+        } else {
+          evaluate(paras, { moveSliders: Boolean(sel) })
+        }
+      }
+    } else {
+      // Cancel — put back everything the previews touched: text, edits, and
+      // both sliders, exactly as the tray found them.
+      previewSeq.current += 1
+      restoreEntry(base.snap)
+    }
+    lastPreviewRef.current = null
+  }
+  const openTray = (which) => {
+    setAddOpen(false)
+    setPopup(null)
+    if (tray === which) return closeTray(false)
+    trayBaseRef.current = { tone: state.tone, verbosity: state.verbosity, snap: snapshot() }
+    lastPreviewRef.current = null
+    setTuneSel(null)
+    setTray(which)
+  }
+
+  // Magic-cursor selection while a tray is open: drag in the letter to limit
+  // the adjustment to a passage; a plain click in the letter goes back to
+  // the full-text default. Interacting with the tray keeps the selection.
+  useEffect(() => {
+    if (!tray) return
+    const onUp = (e) => {
+      if (!bodyRef.current?.contains(e.target)) return
+      const sel = window.getSelection()
+      if (!sel || sel.isCollapsed) {
+        setTuneSel(null)
+        return
+      }
+      const range = sel.getRangeAt(0)
+      if (!bodyRef.current.contains(range.commonAncestorContainer)) return
+      const text = sel.toString().trim()
+      setTuneSel(text.length >= 3 ? { text } : null)
+      scheduleTunePreview() // re-preview against the new scope
+    }
+    document.addEventListener('mouseup', onUp)
+    return () => document.removeEventListener('mouseup', onUp)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tray])
+
   // Reply/follow-up drafts (from the reply flow) become a first-class AI
   // strategy: the generated draft is its `paragraphs`, so every composer
   // tool (retune, rewrite, insert, evaluate, suggest) takes the real model
@@ -216,6 +375,10 @@ export default function Composer() {
   const aiMode = Boolean(strat?.paragraphs?.length)
   const paras = composeLetter(strat, state)
   const flashIdx = flashText ? paras.findIndex((p) => p.includes(flashText)) : -1
+
+  // Fresh values for the debounced tune previews (closures in setTimeout
+  // would otherwise read a stale render).
+  liveRef.current = { tone: state.tone, verbosity: state.verbosity, tuneSel }
 
   // Meters and pros/cons prefer the model's fresh read of the CURRENT letter
   // (store.eval*), falling back to slider heuristics / per-stance copy.
@@ -271,7 +434,7 @@ export default function Composer() {
   const tourSteps = [
     { getEl: () => letterRef.current, title: 'Work right on the letter', body: 'With the edit tool, select any passage and tell BetterWords how to reword it. With the insert tool, click between sentences or paragraphs to add something new.' },
     { getEl: () => toolsRef.current, title: 'Your editing toolbar', body: 'Switch between the edit, insert, and image tools. Undo, copy the letter, and “Add Something Else” — suggestions written for this draft — live here too.' },
-    { getEl: () => tuneRef.current, title: 'Tune the whole draft', body: 'Drag Tone and Length to reshape the entire message at once — undo and redo are right here too.' },
+    { getEl: () => tuneRef.current, title: 'Tune the whole draft', body: '“Adjust Your Tone” and “Adjust the Length” reshape the entire message at once, and “Add Something Else” suggests passages written for this draft.' },
     { getEl: () => evalRef.current, title: 'Read the room before you send', body: 'Pros, cons, risk, and the likely reaction — updated as you edit, so you can decide whether it’s ready or needs another pass.' },
     { getEl: () => topActionsRef.current, title: 'Save it, then send it', body: 'Keep this version with “Save as New Draft”, and when it feels right, “Review & Send”. You can replay this tour anytime with the smiley button in the header.' },
   ]
@@ -414,6 +577,7 @@ export default function Composer() {
   }
 
   const onLetterUp = () => {
+    if (tray || addOpen) return // tune selections belong to the tray, not the rewrite popup
     if (tool !== 'edit') return
     const sel = window.getSelection()
     if (!sel || sel.isCollapsed) return
@@ -490,9 +654,10 @@ export default function Composer() {
     if (note) runRewrite({ instruction: note })
   }
 
+
   // ---------- INSERT tool: sentence caret + gap lines ----------
   const onBodyMove = (e) => {
-    if (tool !== 'insert' || busy || popup) return
+    if (tray || tool !== 'insert' || busy || popup) return
     const { clientX, clientY } = e
     if (rafRef.current) return
     rafRef.current = requestAnimationFrame(() => {
@@ -542,7 +707,7 @@ export default function Composer() {
       suppressOpenRef.current = false
       return
     }
-    if (tool !== 'insert' || !hoverPt || busy) return
+    if (tray || tool !== 'insert' || !hoverPt || busy) return
     setPopup({
       kind: 'insert',
       mode: 'sentence',
@@ -562,7 +727,7 @@ export default function Composer() {
       suppressOpenRef.current = false
       return
     }
-    if (busy) return
+    if (tray || busy) return
     e.stopPropagation()
     if (tool === 'image') {
       pendingGapRef.current = gapIdx
@@ -781,7 +946,7 @@ export default function Composer() {
   // "Add Something Else" — suggestions + a custom ask; sits below the letter
   // sheet but inside the frosted draft panel, via DraftPanel's footer slot.
   const addPanel = !addOpen ? null : (
-    <div ref={addPanelRef} className="bw-cmp-addpanel">
+    <div>
       <div style={{ ...T_LABEL, fontSize: 'var(--text-3xs)', color: 'var(--text-muted)', marginBottom: 10 }}>
         Suggested for this draft
       </div>
@@ -854,46 +1019,95 @@ export default function Composer() {
           </div>
         </div>
       </header>
+      {/* The composer's "main body" (Figma 449:2180) fills the viewport below
+          the 68px header — its sunset crests at the fold, and the teal-lipped
+          night footer continues it under the fold. */}
       <div
-        className="bw-composer bw-sec-pad"
-        style={{ maxWidth: 1280, margin: '0 auto', padding: '24px 32px 96px', display: 'grid', gridTemplateColumns: '1fr 360px', gap: 24, alignItems: 'start' }}
+        style={{
+          width: '100%',
+          minHeight: 'calc(100vh - 68px)',
+          display: 'flex',
+          flexDirection: 'column',
+          boxSizing: 'border-box',
+          backgroundImage: COMPOSER_GROUND,
+        }}
       >
-        {/* back link — where it leads depends on how the composer was
-            reached: the reply flow returns to "What you could do next"
-            (and from there to the interpretation), a resumed draft returns
-            to its conversation, a fresh scenario run to the drafts overview */}
-        <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center' }}>
-          {state.replyFlow?.mode === 'respond' || state.replyFlow?.mode === 'followup' ? (
-            <button className="bw-cmp-back" onClick={() => dispatch({ type: 'GOTO', screen: 'replyflow' })}>← Next Steps</button>
-          ) : state.replyFlow?.mode === 'draft' && state.threadId ? (
-            <button className="bw-cmp-back" onClick={() => dispatch({ type: 'OPEN_CONVERSATION', threadId: state.threadId })}>← Conversation</button>
+      <div
+        className="bw-composer"
+        style={{ width: '100%', maxWidth: 1236, margin: '0 auto', padding: '20px 28px 64px', boxSizing: 'border-box', flex: 1, display: 'flex', gap: 16, alignItems: 'flex-start', justifyContent: 'center' }}
+      >
+        {/* ---- left column: back link + the writing context ------------
+            New conversation → the frosted Clarify recap (Figma Sidebar,
+            449:2788). Reply / follow-up → the thread's Context panel
+            (449:3223), same card as the conversation page. */}
+        {/* reply mode's ContextPanel is 240 wide (vs the 256 recap) — size the
+            column to match so the gap to the letter card stays exactly 16px,
+            the same as the gap to the evaluation cards on the right */}
+        <div style={{ width: isReplyDraft && rf?.thread ? 240 : 256, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ height: 24, display: 'flex', alignItems: 'center' }}>
+            {state.replyFlow?.mode === 'respond' || state.replyFlow?.mode === 'followup' ? (
+              <button className="bw-cmp-back" onClick={() => dispatch({ type: 'GOTO', screen: 'replyflow' })}>← All Options</button>
+            ) : state.replyFlow?.mode === 'draft' && state.threadId ? (
+              <button className="bw-cmp-back" onClick={() => dispatch({ type: 'OPEN_CONVERSATION', threadId: state.threadId })}>← Conversation</button>
+            ) : (
+              <button className="bw-cmp-back" onClick={() => dispatch({ type: 'GOTO', screen: 'drafts' })}>← All Drafts</button>
+            )}
+          </div>
+          {isReplyDraft && rf?.thread ? (
+            <ContextPanel
+              thread={rf.thread}
+              msgs={rfMsgs.filter((m) => m.kind !== 'draft_version')}
+              drafts={rfMsgs.filter((m) => m.kind === 'draft_version')}
+            />
           ) : (
-            <button className="bw-cmp-back" onClick={() => dispatch({ type: 'GOTO', screen: 'drafts' })}>← All Options</button>
+            <RecapRail />
           )}
         </div>
 
-        {/* ---- draft panel — DS2.DraftPanel renders the glass shell, meta,
-            title row (stance badge + recommended tag) and the letter sheet;
-            the interactive letter body below stays app-owned as children */}
-        <DraftPanel
-          meta={state.replyFlow ? (state.replyFlow.mode === 'followup' ? 'Follow-up draft · Edited just now' : 'Response draft · Edited just now') : 'Draft · Edited just now'}
-          title={isReplyDraft ? strat.name : `Option ${String(state.selectedIdx + 1).padStart(2, '0')}: ${strat.name}`}
-          stance={strat.level}
-          stanceLabel={stanceLabel(strat.level)}
-          recommended={!!strat.recommended}
-          shadeSrc="/ds-v35/assets/glass-shade.png"
-          letterRef={letterRef}
-          fields={[
-            { label: 'To', value: (state.replyFlow?.thread?.recipient || recipientLabel(scenario) || '').split(/[—·]/)[0].trim() },
-            { label: 'Re', value: state.subjectOverride || strat.subject },
-          ]}
-          footer={addPanel}
-        >
+        {/* ---- center column: option header + the letter card ---------- */}
+        <div style={{ flex: '1 1 644px', maxWidth: 644, minWidth: 460, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* option header row (Figma 449:3201) */}
+          <div style={{ height: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+              <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 16, color: 'var(--ink-700)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {isReplyDraft ? strat.name : `Option ${String(state.selectedIdx + 1).padStart(2, '0')}: ${strat.name}`}
+              </span>
+              <span style={{ flexShrink: 0, background: 'rgba(169, 201, 244, 0.5)', borderRadius: 'var(--radius-pill)', padding: '5px 10px', fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 9, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--accent)' }}>
+                {stanceLabel(strat.level)}
+              </span>
+              {!!strat.recommended && (
+                <span style={{ flexShrink: 0, backgroundImage: 'var(--grad-aurora)', borderRadius: 'var(--radius-pill)', padding: '5px 10px', display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 9, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--paper-0)', boxShadow: 'var(--shadow-xs)' }}>
+                  <Sparkle size={9} style={{ color: 'var(--paper-0)' }} /> Recommended
+                </span>
+              )}
+            </div>
+            <span style={{ flexShrink: 0, fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 14, letterSpacing: '1px', color: 'var(--ink-400)', whiteSpace: 'nowrap' }}>
+              {state.replyFlow ? (state.replyFlow.mode === 'followup' ? 'Follow-up · Edited just now' : 'Response · Edited just now') : 'Draft · Edited just now'}
+            </span>
+          </div>
+
+          {/* letter card (Figma 449:5131): white sheet on top, glass action
+              bar below carrying the tool row + pill tabs + trays */}
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {/* letter sheet (449:5132) */}
+            <div ref={letterRef} className="bw-cmp2-sheet">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '21px 20px 14px' }}>
+                {[
+                  ['TO', (state.replyFlow?.thread?.recipient || recipientLabel(scenario) || '').split(/[—·]/)[0].trim()],
+                  ['RE', state.subjectOverride || strat.subject],
+                ].map(([label, value]) => (
+                  <div key={label} style={{ display: 'flex', gap: 24, alignItems: 'baseline' }}>
+                    <span style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'rgba(115, 115, 115, 0.8)', width: 20, flexShrink: 0 }}>{label}</span>
+                    <span style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--ink-900)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{ margin: '0 20px', borderBottom: '1.5px solid rgba(21, 18, 62, 0.1)' }} />
 
             <div
               ref={bodyRef}
-              className={`bw-cmp-body bw-cmp-body--${tool}`}
-              style={{ opacity: state.letterLoading ? 0.5 : 1, userSelect: tool === 'edit' ? 'text' : 'none' }}
+              className={`bw-cmp-body bw-cmp2-body bw-cmp-body--${tool}${tray ? ' bw-cmp2-body--tune' : ''}`}
+              style={{ flex: 1, minHeight: 0, maxHeight: 'none', opacity: state.letterLoading ? 0.5 : 1, userSelect: tray || tool === 'edit' ? 'text' : 'none' }}
               onMouseMove={tool === 'insert' ? onBodyMove : undefined}
               onMouseLeave={() => setHoverPt(null)}
               onClick={tool === 'insert' ? onBodyClick : undefined}
@@ -958,7 +1172,7 @@ export default function Composer() {
                     </span>
                   ) : (
                     <p data-idx={i} style={{ background: i === flashIdx ? 'rgba(238,134,84,0.22)' : 'transparent', padding: i === flashIdx ? '2px 4px' : 0 }}>
-                      {text}
+                      {tray && !tuneSel ? <span className="bw-cmp2-hl">{text}</span> : text}
                     </p>
                   )}
                 </React.Fragment>
@@ -973,9 +1187,19 @@ export default function Composer() {
                 )}
               </div>
               <div ref={sigRef} className="bw-cmp-sig">
-                Best,
-                <br />
-                [Your name]
+                {tray && !tuneSel ? (
+                  <span className="bw-cmp2-hl">
+                    Best,
+                    <br />
+                    [Your name]
+                  </span>
+                ) : (
+                  <>
+                    Best,
+                    <br />
+                    [Your name]
+                  </>
+                )}
               </div>
             </div>
 
@@ -1050,174 +1274,274 @@ export default function Composer() {
               </div>
             )}
 
-            {/* toolbar */}
-            <div ref={toolsRef} className="bw-cmp-tools">
-              <button
-                className={`bw-cmp-tool bw-cmp-tool--edit${tool === 'edit' ? ' is-active' : ''}`}
-                title="Edit text — select a passage to revise it"
-                aria-label="Edit text tool"
-                data-keep-add=""
-                onClick={() => { setTool('edit'); setPopup(null); setHoverPt(null) }}
-              >
-                <img src={`${GLYPHS}/edit-text-btn.svg`} alt="" />
-              </button>
-              <button
-                className={`bw-cmp-tool bw-cmp-tool--insert${tool === 'insert' ? ' is-active' : ''}`}
-                title="Insert text — click between sentences or paragraphs"
-                aria-label="Insert text tool"
-                data-keep-add=""
-                onClick={() => { setTool('insert'); setPopup(null) }}
-              >
-                <img src={`${GLYPHS}/insert-text-btn.svg`} alt="" />
-              </button>
-              <button
-                className={`bw-cmp-tool bw-cmp-tool--image${tool === 'image' ? ' is-active' : ''}`}
-                title="Insert image — click a gap to attach one"
-                aria-label="Insert image tool"
-                data-keep-add=""
-                onClick={() => { setTool('image'); setPopup(null); setHoverPt(null) }}
-              >
-                <img src={`${GLYPHS}/insert-image-btn.svg`} alt="" />
-              </button>
-
-              <div style={{ flex: 1 }} />
-
-              <button className="bw-cmp-mini" title="Undo" aria-label="Undo" data-keep-add="" disabled={!canUndo || busy || state.letterLoading} onClick={doUndo}>
-                <RotateCcwIcon />
-              </button>
-              <button className="bw-cmp-mini" title="Copy the letter" aria-label="Copy the letter" onClick={copyLetter}>
-                {copied ? <CheckIcon /> : <CopyIcon />}
-              </button>
-              <span ref={addWrapRef} style={{ display: 'inline-flex', marginLeft: 4 }}>
-                <button className="bw-cmp-addbtn" onClick={toggleAdd}>
-                  <img src="/ds-v35/assets/glyphs/logo-star.svg" alt="" width={12} height={12} style={{ display: 'block' }} />
-                  Add Something Else
-                </button>
-              </span>
-            </div>
+            </div>{/* /sheet */}
 
             <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={onFile} />
-        </DraftPanel>
 
-        {/* ---- right rail ---- */}
-        <aside className="bw-composer-rail" style={{ position: 'sticky', top: 92, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div className="bw-cmp-panel" ref={tuneRef} data-keep-add="">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, margin: '0 4px 16px' }}>
-              <h2 className="bw-cmp-panel-h2">Full-Text Tuning</h2>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className="bw-cmp-round" title="Undo" aria-label="Undo" data-keep-add="" disabled={!canUndo || busy || state.letterLoading} onClick={doUndo}>
-                  <RotateCcwIcon size={15} />
-                </button>
-                <button className="bw-cmp-round" title="Redo" aria-label="Redo" data-keep-add="" disabled={!canRedo || busy || state.letterLoading} onClick={doRedo}>
-                  <RotateCwIcon size={15} />
-                </button>
+            {/* glass action bar (449:5161): tool row + pill tabs + trays */}
+            <div ref={tuneRef} className="bw-cmp2-bar" data-keep-add="">
+              {/* tool row — the active tool goes quiet while a tray or the
+                  add panel has the stage (449:4774) */}
+              <div ref={toolsRef} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <button
+                    className={`bw-cmp2-tool${tool === 'edit' && !tray && !addOpen ? ' is-active' : ''}`}
+                    title="Edit text — select a passage to revise it"
+                    aria-label="Edit text tool"
+                    data-keep-add=""
+                    onClick={() => { setTool('edit'); setPopup(null); setHoverPt(null); closeTray(false); setAddOpen(false) }}
+                  >
+                    <span className="bw-cmp2-glyph" style={{ WebkitMaskImage: `url(${GLYPHS}/cmp-tool-edit.svg)`, maskImage: `url(${GLYPHS}/cmp-tool-edit.svg)` }} />
+                  </button>
+                  <button
+                    className={`bw-cmp2-tool${tool === 'insert' && !tray && !addOpen ? ' is-active' : ''}`}
+                    title="Insert text — click between sentences or paragraphs"
+                    aria-label="Insert text tool"
+                    data-keep-add=""
+                    onClick={() => { setTool('insert'); setPopup(null); closeTray(false); setAddOpen(false) }}
+                  >
+                    <span className="bw-cmp2-glyph" style={{ WebkitMaskImage: `url(${GLYPHS}/cmp-tool-insert.svg)`, maskImage: `url(${GLYPHS}/cmp-tool-insert.svg)` }} />
+                  </button>
+                  <button
+                    className={`bw-cmp2-tool${tool === 'image' && !tray && !addOpen ? ' is-active' : ''}`}
+                    title="Insert image — click a gap to attach one"
+                    aria-label="Insert image tool"
+                    data-keep-add=""
+                    onClick={() => { setTool('image'); setPopup(null); setHoverPt(null); closeTray(false); setAddOpen(false) }}
+                  >
+                    <span className="bw-cmp2-glyph" style={{ WebkitMaskImage: `url(${GLYPHS}/cmp-tool-image.svg)`, maskImage: `url(${GLYPHS}/cmp-tool-image.svg)` }} />
+                  </button>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <button className="bw-cmp2-mini" title="Undo" aria-label="Undo" data-keep-add="" disabled={!canUndo || busy || state.letterLoading} onClick={doUndo}>
+                    <RotateCcwIcon size={18} />
+                  </button>
+                  <button className="bw-cmp2-mini" title="Redo" aria-label="Redo" data-keep-add="" disabled={!canRedo || busy || state.letterLoading} onClick={doRedo}>
+                    <RotateCwIcon size={18} />
+                  </button>
+                  <button className="bw-cmp2-mini" title="Copy the letter" aria-label="Copy the letter" onClick={copyLetter}>
+                    {copied ? <CheckIcon size={19} /> : <CopyIcon size={19} />}
+                  </button>
+                </div>
               </div>
-            </div>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <span ref={addWrapRef} style={{ display: 'flex', flex: 1, minWidth: 0 }}>
+                  <PillTab
+                    art="/ds-v35/assets/characters/cmp-add-octo.png"
+                    label="Add Something Else"
+                    active={addOpen}
+                    onClick={() => { closeTray(false); toggleAdd() }}
+                  />
+                </span>
+                <PillTab
+                  art="/ds-v35/assets/characters/cmp-pill-tone.png"
+                  label="Adjust Your Tone"
+                  active={tray === 'tone'}
+                  onClick={() => openTray('tone')}
+                />
+                <PillTab
+                  art="/ds-v35/assets/characters/cmp-pill-length.png"
+                  label="Adjust the Length"
+                  active={tray === 'length'}
+                  onClick={() => openTray('length')}
+                />
+              </div>
 
-            <div className="bw-cmp-inner">
-              <TuneSlider
-                label="Tone"
-                icon="/ds-v35/assets/characters/chameleon.svg"
-                word={toneWord}
-                value={state.tone}
-                startLabel="Soft"
-                endLabel="Strong"
-                onStart={startDrag}
-                onChange={(v) => dispatch({ type: 'SET_TONE', value: v })}
-                onCommit={commitTune}
-              />
-              <div style={{ height: 16 }} />
-              <TuneSlider
-                label="Length"
-                icon="/ds-v35/assets/characters/dog.svg"
-                word={verbLabel(state.verbosity)}
-                value={state.verbosity}
-                startLabel="Succinct"
-                endLabel="Detailed"
-                onStart={startDrag}
-                onChange={(v) => dispatch({ type: 'SET_VERB', value: v })}
-                onCommit={commitTune}
-              />
+              {addOpen && (
+                <div ref={addPanelRef} className="bw-cmp2-tray" style={{ display: 'block' }}>
+                  {addPanel}
+                </div>
+              )}
+
+              {tray === 'tone' && (
+                <TuneTray
+                  kind="tone"
+                  value={state.tone}
+                  word={toneWord}
+                  startLabel="Soft"
+                  endLabel="Strong"
+                  fill="linear-gradient(90deg, var(--blue-700) 0%, var(--mint-600) 47%, #FFAA22 92%, #FF6224 130%)"
+                  thumbColor="#3D52D6"
+                  busy={state.letterLoading}
+                  onChange={(v) => { dispatch({ type: 'SET_TONE', value: v }); scheduleTunePreview() }}
+                  onCancel={() => closeTray(false)}
+                  onDone={() => closeTray(true)}
+                />
+              )}
+              {tray === 'length' && (
+                <TuneTray
+                  kind="length"
+                  value={state.verbosity}
+                  word={verbLabel(state.verbosity)}
+                  startLabel="Succinct"
+                  endLabel="Detailed"
+                  fill="linear-gradient(90deg, var(--peach-300), var(--peach-500))"
+                  thumbColor="var(--peach-500)"
+                  busy={state.letterLoading}
+                  onChange={(v) => { dispatch({ type: 'SET_VERB', value: v }); scheduleTunePreview() }}
+                  onCancel={() => closeTray(false)}
+                  onDone={() => closeTray(true)}
+                />
+              )}
+            </div>
+          </div>{/* /letter card */}
+        </div>{/* /center column */}
+
+        {/* ---- right column: evaluation cards (449:2995 / 3100 / 3141) --- */}
+        <aside ref={evalRef} className="bw-composer-rail" style={{ width: 240, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 40 }}>
+          <div className="bw-cmp2-card">
+            <h2 className="bw-cmp2-card-h2">Pros &amp; Cons</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0' }}>
+                <span className="bw-cmp2-eval-kicker">Pros</span>
+                <img src={`${GLYPHS}/cmp-thumbs-up.svg`} alt="" width={12} height={12} />
+              </div>
+              {pros.map((p, i) => (
+                <div key={i} className="bw-cmp2-evalchip" style={{ background: 'var(--mint-200)', color: 'var(--mint-600)' }}>{p}</div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0' }}>
+                <span className="bw-cmp2-eval-kicker">Cons</span>
+                <img src={`${GLYPHS}/cmp-thumbs-down.svg`} alt="" width={12} height={12} />
+              </div>
+              {cons.map((c, i) => (
+                <div key={i} className="bw-cmp2-evalchip" style={{ background: 'var(--peach-100)', color: 'var(--spark)' }}>{c}</div>
+              ))}
             </div>
           </div>
 
-          <div className="bw-cmp-panel" ref={evalRef} style={{ paddingTop: 24 }}>
-            <h2 className="bw-cmp-panel-h2" style={{ margin: '0 4px 16px' }}>Evaluation</h2>
-
-            <div className="bw-cmp-inner">
-              <div className="bw-cmp-eval-label" style={{ color: 'var(--mint-600)' }}>Pros</div>
-              <ul className="bw-cmp-eval-list" style={{ marginBottom: 14 }}>
-                {pros.map((p, i) => <li key={i}>{p}</li>)}
-              </ul>
-              <div className="bw-cmp-eval-label" style={{ color: 'var(--honey-600)' }}>Cons</div>
-              <ul className="bw-cmp-eval-list">
-                {cons.map((c, i) => <li key={i}>{c}</li>)}
-              </ul>
+          <div className="bw-cmp2-card">
+            <h2 className="bw-cmp2-card-h2">Risk &amp; Impact</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <span className="bw-cmp2-eval-kicker">Risk</span>
+              <MeterBar value={lr} fill="linear-gradient(90deg, var(--honey-500), var(--coral-400))" />
             </div>
-
-            <div className="bw-cmp-inner">
-              <Meter label="Risk" value={lr} fill="var(--spark)" />
-              <div style={{ height: 16 }} />
-              <Meter label="Impact" value={le} fill="var(--accent)" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <span className="bw-cmp2-eval-kicker">Impact</span>
+              <MeterBar value={le} fill="linear-gradient(90deg, var(--blue-700), var(--blue-500))" />
             </div>
+          </div>
 
-            <div className="bw-cmp-inner">
-              <div className="bw-cmp-eval-label" style={{ color: 'var(--accent)' }}>Likely reaction</div>
-              <p style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 'var(--text-base)', lineHeight: 'var(--leading-normal)', color: 'var(--text-body)', margin: 0 }}>
-                {state.evalReaction ?? strat.reaction}
-              </p>
-            </div>
+          <div className="bw-cmp2-card">
+            <h2 className="bw-cmp2-card-h2">Likely Reaction</h2>
+            <p style={{ fontFamily: 'var(--font-display)', fontVariationSettings: 'var(--display-soft)', fontStyle: 'italic', fontSize: 13, lineHeight: '20px', color: 'var(--accent)', margin: 0 }}>
+              {state.evalReaction ?? strat.reaction}
+            </p>
           </div>
         </aside>
       </div>
+      </div>{/* /ground */}
 
       {tour && <Onboarding steps={tourSteps} onDone={endTour} />}
     </main>
   )
 }
 
-function TuneSlider({ label, icon, word, value, startLabel, endLabel, onStart, onChange, onCommit }) {
-  const pct = Math.max(0, Math.min(100, value))
+// ---- bottom-bar pill tab (Figma 449:2905) --------------------------
+
+function PillTab({ art, label, active, onClick }) {
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <span style={{ ...T_LABEL, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-          {icon && <img src={icon} alt="" style={{ height: 17, width: 'auto' }} />}
-          {label}
-        </span>
-        <span style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontWeight: 600, fontSize: 'var(--text-md)', color: 'var(--text-strong)' }}>{word}</span>
+    <button type="button" className={`bw-cmp2-pill${active ? ' is-active' : ''}`} data-keep-add="" onClick={onClick} aria-pressed={active}>
+      <span className="bw-cmp2-pill-art"><img src={art} alt="" /></span>
+      <span className="bw-cmp2-pill-label">{label}</span>
+    </button>
+  )
+}
+
+// ---- expanded tune tray (Figma 449:2915 / 3569) --------------------
+
+function TuneTray({ kind, value, word, startLabel, endLabel, fill, thumbColor, busy, onChange, onCancel, onDone }) {
+  const pct = Math.max(0, Math.min(100, value))
+  const railRef = useRef(null)
+
+  // Length tray (Figma 449:6234 short / 449:6492 long): the dog IS the
+  // slider — grab its head and drag; the rear stays pinned at "succinct"
+  // while the body stretches to wherever the head goes.
+  const dragTo = (clientX) => {
+    const r = railRef.current?.getBoundingClientRect()
+    if (!r || !r.width) return
+    onChange(Math.round(Math.max(0, Math.min(100, ((clientX - r.left) / r.width) * 100))))
+  }
+  const startHeadDrag = (e) => {
+    e.preventDefault()
+    dragTo(e.clientX)
+    const move = (ev) => dragTo(ev.clientX)
+    const up = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+  }
+
+  const DOGS = '/ds-v35/assets/characters'
+  return (
+    <div className="bw-cmp2-tray" data-keep-add="">
+      <div style={{ flex: '0 0 260px', position: 'relative', paddingTop: kind === 'length' ? 48 : 34 }}>
+        {kind === 'tone' ? (
+          // the chameleon perches on the tone thumb
+          <img
+            src="/ds-v35/assets/characters/chameleon.svg"
+            alt=""
+            style={{ position: 'absolute', bottom: 26, left: `calc(${pct}% - 22px)`, width: 44, pointerEvents: 'none', filter: 'drop-shadow(0 3px 5px rgba(28,23,70,0.18))', transition: 'left 0.1s linear' }}
+          />
+        ) : (
+          // stretchy dog rig — z-order: rear (1) under the body band (2)
+          // under the draggable head (3)
+          <>
+            <img
+              src={`${DOGS}/dog_end.svg`}
+              alt=""
+              aria-hidden
+              style={{ position: 'absolute', left: -6, bottom: 22, height: 54, zIndex: 1, pointerEvents: 'none' }}
+            />
+            <div
+              aria-hidden
+              style={{ position: 'absolute', left: 16, width: `max(0px, calc(${pct}% - 16px))`, bottom: 32, height: 36, boxSizing: 'border-box', background: '#F9BF9E', borderTop: '4px solid #1C1746', borderBottom: '4px solid #1C1746', zIndex: 2, pointerEvents: 'none' }}
+            />
+            <img
+              src={`${DOGS}/dog_head.svg`}
+              alt="Drag the dog's head to adjust the length"
+              title="Drag me — longer or shorter"
+              onPointerDown={startHeadDrag}
+              onDragStart={(e) => e.preventDefault()}
+              style={{ position: 'absolute', left: `calc(${pct}% - 20px)`, bottom: 22, height: 50, zIndex: 3, cursor: 'ew-resize', touchAction: 'none', userSelect: 'none' }}
+            />
+          </>
+        )}
+        <input
+          ref={railRef}
+          type="range"
+          min="0"
+          max="100"
+          className="bw-cmp2-range"
+          style={{ '--fill': fill, '--pct': `${pct}%`, '--thumb': thumbColor }}
+          value={value}
+          onChange={(e) => onChange(+e.target.value)}
+          aria-label={kind === 'tone' ? 'Tone' : 'Length'}
+        />
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 10, letterSpacing: '0.1px', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+          <span>{startLabel}</span>
+          <span>{endLabel}</span>
+        </div>
       </div>
-      <input
-        type="range"
-        min="0"
-        max="100"
-        className="bw-cmp-range"
-        style={{ background: `linear-gradient(90deg, var(--accent) 0% ${pct}%, var(--bg-sunken) ${pct}% 100%)` }}
-        value={value}
-        onMouseDown={onStart}
-        onTouchStart={onStart}
-        onKeyDown={onStart}
-        onChange={(e) => onChange(+e.target.value)}
-        onMouseUp={onCommit}
-        onTouchEnd={onCommit}
-        onKeyUp={onCommit}
-        aria-label={label}
-      />
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-sans)', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-        <span>{startLabel}</span>
-        <span>{endLabel}</span>
+      <span style={{ flex: 1, textAlign: 'center', fontFamily: 'var(--font-display)', fontVariationSettings: 'var(--display-soft)', fontStyle: 'italic', fontSize: 20, letterSpacing: '0.2px', color: '#16246E' }}>
+        {word}
+      </span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <button type="button" className="bw-cmp2-traybtn" onClick={onCancel} disabled={busy}>Cancel</button>
+        <button type="button" className="bw-cmp2-traybtn is-done" onClick={onDone} disabled={busy}>{busy ? '…' : 'Done'}</button>
       </div>
     </div>
   )
 }
 
-function Meter({ label, value, fill }) {
+function MeterBar({ value, fill }) {
   return (
-    <div>
-      <div style={{ ...T_LABEL, color: 'var(--text-muted)', marginBottom: 7 }}>{label}</div>
-      <div style={{ height: 8, background: 'var(--bg-sunken)', borderRadius: 'var(--radius-pill)', overflow: 'hidden' }}>
-        <div style={{ width: `${value}%`, height: '100%', background: fill, borderRadius: 'var(--radius-pill)', transition: 'width var(--dur-slow) var(--ease-out)' }} />
-      </div>
+    <div style={{ position: 'relative', height: 8, background: 'var(--paper-2)', borderRadius: 12, boxShadow: '0 1px 4px rgba(21,18,62,0.05), inset 0 1px 0 rgba(255,255,255,0.3)' }}>
+      <div style={{ width: `${value}%`, height: '100%', backgroundImage: fill, borderRadius: 12, boxShadow: '0 1px 4px rgba(21,18,62,0.05)', transition: 'width var(--dur-slow) var(--ease-out)' }} />
     </div>
   )
 }
+

@@ -66,7 +66,10 @@ function Router() {
   // under the frosted translucent footer at the bottom. Home gets the warm
   // dawn welcome, the editor its daybreak + sparkles, and every other flow
   // screen shares the calm "soft" focus ground.
-  const SOFT_SCREENS = ['clarify', 'generating', 'drafts', 'conversations', 'conversation', 'replyflow']
+  const SOFT_SCREENS = ['clarify', 'generating', 'replyflow']
+  // Conversations flow — these screens swap the marketing header links for
+  // the app cluster (My Conversations · + New · avatar).
+  const CONVO_SCREENS = ['conversations', 'conversation', 'replyflow']
   // Post-send moments (the sent celebration and the what-comes-next page)
   // get the excited grad-soft variant with breathing glows. The pre-send
   // review shares the composer's daybreak + sparkle ground. On the send
@@ -75,9 +78,11 @@ function Router() {
   // instead of snapping.
   const sendCelebrate = state.screen === 'send' && state.sent
   const celebrating = state.screen === 'next'
+  // The editor paints its own sunset ground inside Composer.jsx (Figma
+  // 449:2180); only the send screen still uses the daybreak+sparkle sweep.
   const bgClass = celebrating
     ? 'bw-celebrate-bg'
-    : { home: 'grad-dawn', editor: 'bw-cmp-bg', send: 'bw-cmp-bg' }[state.screen] ||
+    : { home: 'grad-dawn', send: 'bw-cmp-bg' }[state.screen] ||
       (SOFT_SCREENS.includes(state.screen) ? 'grad-soft' : undefined)
   const bgStyle = celebrating || sendCelebrate
     ? undefined
@@ -86,6 +91,17 @@ function Router() {
       : SOFT_SCREENS.includes(state.screen)
         ? { backgroundImage: 'var(--glow-peri), var(--grad-soft)' }
         : undefined
+  // Screens whose main portion carries the daybreak-edge ground (the Figma
+  // "main body" frame: paper with the rainbow cresting at the fold — painted
+  // by the screen itself, e.g. Conversations). Under that rainbow the footer
+  // flips to its night-blue scheme so the sweep lands on dusk, not cream.
+  const DAYBREAK_EDGE_SCREENS = ['conversations', 'conversation']
+  // Drafts shares the composer's sunset ground (painted in each screen), so
+  // both get the teal-lipped night footer.
+  const SUNSET_SCREENS = ['editor', 'drafts']
+  const nightFooter = DAYBREAK_EDGE_SCREENS.includes(state.screen) || SUNSET_SCREENS.includes(state.screen)
+  // The composer sunset ends on teal, not blue-500 — its footer lip follows.
+  const footerLip = SUNSET_SCREENS.includes(state.screen) ? '#5FD0C0' : undefined
 
   return (
     <div
@@ -100,13 +116,16 @@ function Router() {
           the marketing-style SiteHeader */}
       {state.screen !== 'editor' && (
         <SiteHeader
+          appNav={CONVO_SCREENS.includes(state.screen)}
+          appActive={state.screen === 'conversations'}
+          onConversations={() => dispatch({ type: 'OPEN_CONVERSATIONS' })}
           onLogo={() => dispatch({ type: 'GO_LANDING' })}
           onNav={goLandingSection}
           onStart={() => dispatch({ type: 'RESTART' })}
         />
       )}
       <Screen />
-      <SiteFooter onLogo={() => dispatch({ type: 'GO_LANDING' })} onNav={goLandingSection} />
+      <SiteFooter night={nightFooter} lip={footerLip} onLogo={() => dispatch({ type: 'GO_LANDING' })} onNav={goLandingSection} />
     </div>
   )
 }
