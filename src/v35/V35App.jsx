@@ -133,7 +133,6 @@ function Router() {
           the marketing-style SiteHeader */}
       {state.screen !== 'editor' && (
         <SiteHeader
-          appNav={CONVO_SCREENS.includes(state.screen)}
           appActive={state.screen === 'conversations'}
           onConversations={() => dispatch({ type: 'OPEN_CONVERSATIONS' })}
           onLogo={() => dispatch({ type: 'GO_LANDING' })}

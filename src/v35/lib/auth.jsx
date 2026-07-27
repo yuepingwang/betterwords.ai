@@ -254,7 +254,7 @@ export function AccountControl({ compact = false }) {
   if (!signedIn) {
     return (
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 26 }}>
-        <a className="lp-link" onClick={() => openSignIn()} style={{ cursor: 'pointer', fontSize: 15, fontWeight: 500 }}>
+        <a className="lp-link" onClick={() => openSignIn()} style={{ cursor: 'pointer', fontSize: 15, fontWeight: 500, paddingBottom: 2 }}>
           Login
         </a>
         <Button variant="spark" size="sm" onClick={() => openSignIn()} style={{ fontSize: 14.5, fontWeight: 600 }}>

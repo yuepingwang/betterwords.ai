@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useContext } from 'react'
 import DS2 from '../ds2'
 import { AccountControl, useAuth } from '../lib/auth'
+import { StoreContext } from '../store'
 
 // Shared v3 site chrome — the same header and footer on every screen
 // (landing, clarify, composer, generating, next, send, …). The header follows
@@ -52,12 +53,18 @@ const FROST_BG = 'color-mix(in srgb, var(--bg-elevated) 50%, transparent)'
 // cluster falls back to the spark "Start free".
 // Headers start clear over the page ground and frost on scroll; the landing
 // waits until its hero gradient has scrolled past.
-// On the conversations flow (`appNav`, Figma "My Conversations" 423:2764) the
-// marketing links give way to the app cluster: a "My Conversations" link
-// (accent + underline while the list is open), a spark "+ New", the avatar.
-export function SiteHeader({ landing = false, appNav = false, appActive = false, onLogo, onNav, onStart, onConversations }) {
+// One consistent header everywhere (the composer brings its own): "How it
+// works · Examples" always; signed in, the app cluster from the My
+// Conversations header (Figma 423:2764) — a "My Conversations" link (accent
+// + underline while the list is open) and the spark "+ New" — slots between
+// Examples and the account button.
+export function SiteHeader({ landing = false, appActive = false, onLogo, onNav, onStart, onConversations }) {
   const { Button } = DS2
-  const { configured } = useAuth()
+  const { configured, signedIn } = useAuth()
+  // Fallback for callers that don't pass onConversations (e.g. the landing's
+  // own header) — the store is present everywhere in v3.5.
+  const store = useContext(StoreContext)
+  const goConversations = onConversations || (() => store?.dispatch({ type: 'OPEN_CONVERSATIONS' }))
 
   const [frosted, setFrosted] = React.useState(false)
   React.useEffect(() => {
@@ -95,12 +102,17 @@ export function SiteHeader({ landing = false, appNav = false, appActive = false,
           doesn't read as centered next to the wider page content below */}
       <div style={{ width: '100%', padding: '0 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 68 }}>
         <LandingWordmark size={24} onClick={onLogo} />
-        <nav className="lp-navlinks lp-nav-accent" style={{ display: 'flex', alignItems: 'center', gap: appNav ? 24 : 26 }}>
-          {appNav ? (
+        <nav className="lp-navlinks lp-nav-accent" style={{ display: 'flex', alignItems: 'center', gap: signedIn ? 24 : 26 }}>
+          {/* same box metrics as the My Conversations link (incl. its 2px
+              baseline pad) so all nav items share one height and centerline */}
+          {NAV_LINKS.map(([label, id]) => (
+            <a key={id} className="lp-link" onClick={() => onNav(id)} style={{ cursor: 'pointer', fontSize: 15, fontWeight: 500, paddingBottom: 2 }}>{label}</a>
+          ))}
+          {signedIn && (
             <>
               <a
                 className={appActive ? undefined : 'lp-link'}
-                onClick={onConversations}
+                onClick={goConversations}
                 style={{
                   cursor: 'pointer', fontSize: 15, paddingBottom: 2,
                   ...(appActive
@@ -112,13 +124,9 @@ export function SiteHeader({ landing = false, appNav = false, appActive = false,
               </a>
               <Button variant="spark" size="sm" onClick={onStart} style={{ fontSize: 14.5, fontWeight: 600 }}>+ New</Button>
             </>
-          ) : (
-            NAV_LINKS.map(([label, id]) => (
-              <a key={id} className="lp-link" onClick={() => onNav(id)} style={{ cursor: 'pointer', fontSize: 15, fontWeight: 500 }}>{label}</a>
-            ))
           )}
           <AccountControl />
-          {!configured && !appNav && (
+          {!configured && (
             <Button variant="spark" size="sm" onClick={onStart} style={{ fontSize: 14.5, fontWeight: 600 }}>Start free</Button>
           )}
         </nav>
