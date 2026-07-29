@@ -44,10 +44,14 @@ against the **v3** app only; v1/v2 are untouched.*
    to your project), or navigate: left sidebar → **Authentication** (shield
    icon) → under *Configuration*, **Emails** (called *Email Templates* in
    older dashboard layouts; note it is NOT under Project Settings). Open the
-   **Magic Link** template and replace the `{{ .ConfirmationURL }}` link with
-   the one-time-code variable `{{ .Token }}`. The project's OTP length
-   (Authentication → Providers → Email) is set to 6 digits to match the
-   sign-in sheet's `maxLength`. E.g.:
+   **Magic Link** template AND the **Confirm signup** template, and in both
+   replace the `{{ .ConfirmationURL }}` link with the one-time-code variable
+   `{{ .Token }}`. Both are needed: `signInWithOtp` sends *Confirm signup* to
+   brand-new users and *Magic Link* to returning ones — if only Magic Link is
+   edited, first-time users get a confirmation link built from the Site URL
+   (default `http://localhost:3000`), which won't open for them. The
+   project's OTP length (Authentication → Providers → Email) is set to 6
+   digits to match the sign-in sheet's `maxLength`. E.g.:
 
    ```html
    <h2>Your BetterWords sign-in code</h2>
@@ -58,6 +62,12 @@ against the **v3** app only; v1/v2 are untouched.*
    The app's sign-in sheet asks for this code. Removing the link entirely is
    also Supabase's recommended fix for email providers that prefetch links
    and accidentally consume them.
+
+   While you're there, set Authentication → **URL Configuration** → Site URL
+   to `https://betterwords.ai` (and add `http://localhost:5173` under
+   Redirect URLs for local dev). With code-only templates the link is gone,
+   but any future link-based email (recovery, email change) builds its URL
+   from this setting.
 
 4. **Wire the keys.** Dashboard → Settings → API: copy the Project URL and
    the `anon` public key into:
