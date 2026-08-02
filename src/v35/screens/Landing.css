@@ -88,8 +88,10 @@
 .bw-v35 .center {
   text-align: center;
 }
+/* section rhythm nudged up 16px from the base --space-11 (7rem) so the
+   page sections breathe a touch more (hero is not a .section — untouched) */
 .bw-v35 .section {
-  padding: var(--space-11) 0;
+  padding: calc(var(--space-11) + var(--space-4)) 0;
 }
 .bw-v35 .grid3 {
   display: grid;
@@ -501,6 +503,42 @@
     display: none;
   }
   .bw-v35 .section {
-    padding: var(--space-9) 0;
+    padding: calc(var(--space-9) + var(--space-4)) 0;
   }
+}
+
+/* ---- hero sparkle overlay — the composer's glistening diamond field
+   (tiles + counter-phase glisten shared from Composer.css via
+   .bw-sparkle-field), contained to the hero section: the overlay sits at
+   z -1 inside the hero's isolated stacking context (above the section's
+   grain ::before, below all content), and its layers switch from the
+   composer's viewport-fixed placement to absolute within the section. */
+/* clip wrapper — sits under the section's grain ::before (z -2 vs the
+   grain's -1 inside the hero's isolated stacking context) and crops the
+   parallax-slid layers at the section's edges */
+.bw-v35 .lp-hero-parallax {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+  pointer-events: none;
+}
+/* the hero gradient, as its own translatable layer (the section's own
+   background-image is switched off inline in Landing.jsx) */
+.bw-v35 .lp-hero-grad {
+  position: absolute;
+  inset: 0;
+  background-image: var(--grad-daybreak);
+  background-size: cover;
+  will-change: transform;
+}
+.bw-v35 .lp-hero-sparkle {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+}
+/* doubled class beats Composer.css's later-loaded `position: fixed` */
+.bw-v35 .bw-sparkle-field.lp-hero-sparkle::before,
+.bw-v35 .bw-sparkle-field.lp-hero-sparkle::after {
+  position: absolute;
 }

@@ -6,6 +6,7 @@ import { AuthProvider } from './lib/auth'
 import { SiteHeader, SiteFooter } from './components/SiteChrome'
 import Landing from './screens/Landing'
 import Home from './screens/Home'
+import HomeDashboard from './screens/HomeDashboard'
 import Clarify from './screens/Clarify'
 import Generating from './screens/Generating'
 import Drafts from './screens/Drafts'
@@ -15,9 +16,12 @@ import Next from './screens/Next'
 import Conversations from './screens/Conversations'
 import Conversation from './screens/Conversation'
 import ReplyFlow from './screens/ReplyFlow'
+import Account from './screens/Account'
+import Settings from './screens/Settings'
 
 const SCREENS = {
   home: Home,
+  dashboard: HomeDashboard, // signed-in home (Figma 489:3991)
   clarify: Clarify,
   generating: Generating,
   drafts: Drafts,
@@ -28,6 +32,9 @@ const SCREENS = {
   conversations: Conversations,
   conversation: Conversation,
   replyflow: ReplyFlow,
+  // signed-in utility pages (reached from the avatar menu / dashboard pills)
+  account: Account,
+  settings: Settings,
 }
 
 function Router() {
@@ -110,9 +117,17 @@ function Router() {
         : undefined
   // Screens whose main portion carries the daybreak-edge ground (the Figma
   // "main body" frame: paper with the rainbow cresting at the fold — painted
-  // by the screen itself, e.g. Conversations). Under that rainbow the footer
-  // flips to its night-blue scheme so the sweep lands on dusk, not cream.
-  const DAYBREAK_EDGE_SCREENS = ['conversations', 'conversation']
+  // by the screen itself). Under that rainbow the footer flips to its
+  // night-blue scheme so the sweep lands on dusk, not cream. The
+  // conversations LIST moved to the home ground (warm footer, below).
+  const DAYBREAK_EDGE_SCREENS = ['conversation']
+  // The signed-in home + conversations list (Figma 490:4345 / 490:4601):
+  // both paint the home ground themselves, pull up under the clear header
+  // (which frosts only past the hero card), and end on the warm footer.
+  const HOME_SCREENS = ['dashboard', 'conversations']
+  // Account/Settings share the home ground + warm footer but have no image
+  // hero, so the header frosts on scroll as usual (no heroSelector).
+  const WARM_SCREENS = [...HOME_SCREENS, 'account', 'settings']
   // Drafts shares the composer's sunset ground (painted in each screen), so
   // both get the teal-lipped night footer.
   const SUNSET_SCREENS = ['editor', 'drafts']
@@ -133,15 +148,14 @@ function Router() {
           the marketing-style SiteHeader */}
       {state.screen !== 'editor' && (
         <SiteHeader
-          appActive={state.screen === 'conversations'}
-          onConversations={() => dispatch({ type: 'OPEN_CONVERSATIONS' })}
+          heroSelector={HOME_SCREENS.includes(state.screen) ? '.bw-v35 .bw-home-hero' : null}
           onLogo={() => dispatch({ type: 'GO_LANDING' })}
           onNav={goLandingSection}
           onStart={() => dispatch({ type: 'RESTART' })}
         />
       )}
       <Screen />
-      <SiteFooter night={nightFooter} lip={footerLip} onLogo={() => dispatch({ type: 'GO_LANDING' })} onNav={goLandingSection} />
+      <SiteFooter night={nightFooter} warm={WARM_SCREENS.includes(state.screen)} lip={footerLip} onLogo={() => dispatch({ type: 'GO_LANDING' })} onNav={goLandingSection} />
     </div>
   )
 }

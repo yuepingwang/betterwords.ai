@@ -53,22 +53,27 @@ const FROST_BG = 'color-mix(in srgb, var(--bg-elevated) 50%, transparent)'
 // cluster falls back to the spark "Start free".
 // Headers start clear over the page ground and frost on scroll; the landing
 // waits until its hero gradient has scrolled past.
-// One consistent header everywhere (the composer brings its own): "How it
-// works · Examples" always; signed in, the app cluster from the My
-// Conversations header (Figma 423:2764) — a "My Conversations" link (accent
-// + underline while the list is open) and the spark "+ New" — slots between
-// Examples and the account button.
-export function SiteHeader({ landing = false, appActive = false, onLogo, onNav, onStart, onConversations }) {
-  const { Button } = DS2
+// One consistent header everywhere (the composer brings its own). Signed
+// out: "How it works · Examples" plus Login/Sign up. Signed in (Figma
+// 490:4503) the marketing links drop away and only the spark "+ New" and
+// the avatar remain — Home / My Conversations moved into the avatar's
+// dropdown menu (see AccountControl in lib/auth.jsx).
+// `heroSelector` (the signed-in home + conversations pages): stay clear
+// while that element (the image hero card) is still under the header, and
+// frost only once it has scrolled past — same contract as the landing hero.
+export function SiteHeader({ landing = false, heroSelector = null, onLogo, onNav, onStart }) {
+  const { Button, Logo } = DS2
   const { configured, signedIn } = useAuth()
-  // Fallback for callers that don't pass onConversations (e.g. the landing's
-  // own header) — the store is present everywhere in v3.5.
-  const store = useContext(StoreContext)
-  const goConversations = onConversations || (() => store?.dispatch({ type: 'OPEN_CONVERSATIONS' }))
+  const store = useContext(StoreContext) // present everywhere in v3.5
 
   const [frosted, setFrosted] = React.useState(false)
   React.useEffect(() => {
     const onScroll = () => {
+      if (heroSelector) {
+        const hero = document.querySelector(heroSelector)
+        setFrosted(hero ? hero.getBoundingClientRect().bottom <= 68 : window.scrollY > 8)
+        return
+      }
       if (!landing) {
         setFrosted(window.scrollY > 8)
         return
@@ -83,47 +88,48 @@ export function SiteHeader({ landing = false, appActive = false, onLogo, onNav, 
       window.removeEventListener('scroll', onScroll)
       window.removeEventListener('resize', onScroll)
     }
-  }, [landing])
+  }, [landing, heroSelector])
 
   const shell = {
     position: 'sticky', top: 0, zIndex: 50,
     backdropFilter: frosted ? 'blur(10px)' : 'none',
     WebkitBackdropFilter: frosted ? 'blur(10px)' : 'none',
     background: frosted ? FROST_BG : 'transparent',
-    // the frost hairline is a shadow, not a border — a border adds 1px to
-    // the header's height, which peeked out as a light line above the
-    // landing hero (pulled up exactly 68px under the header)
-    boxShadow: frosted ? '0 1px 0 var(--border-hair)' : 'none',
-    transition: 'background 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out)',
+    // no bottom hairline on the frosted state — the blur + tint alone mark
+    // the edge, so the glass fades into the page with no dividing line
+    transition: 'background 0.25s var(--ease-out)',
   }
   return (
     <header style={shell}>
       {/* header content hugs the screen edges (wider than .wrap) so it
           doesn't read as centered next to the wider page content below */}
       <div style={{ width: '100%', padding: '0 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 68 }}>
-        <LandingWordmark size={24} onClick={onLogo} />
+        {/* signed in, the mark flips to the gradient Logo the composer
+            header uses; signed out it stays the solid-ink wordmark */}
+        {signedIn ? (
+          <span onClick={onLogo} style={{ display: 'inline-flex', cursor: onLogo ? 'pointer' : undefined, userSelect: 'none' }}>
+            <Logo variant="gradient" size={24} />
+          </span>
+        ) : (
+          <LandingWordmark size={24} onClick={onLogo} />
+        )}
         <nav className="lp-navlinks lp-nav-accent" style={{ display: 'flex', alignItems: 'center', gap: signedIn ? 24 : 26 }}>
-          {/* same box metrics as the My Conversations link (incl. its 2px
-              baseline pad) so all nav items share one height and centerline */}
-          {NAV_LINKS.map(([label, id]) => (
-            <a key={id} className="lp-link" onClick={() => onNav(id)} style={{ cursor: 'pointer', fontSize: 15, fontWeight: 500, paddingBottom: 2 }}>{label}</a>
-          ))}
+          {/* all links share the same box metrics (incl. the 2px baseline
+              pad) so nav items keep one height and centerline */}
+          {!signedIn &&
+            NAV_LINKS.map(([label, id]) => (
+              <a key={id} className="lp-link" onClick={() => onNav(id)} style={{ cursor: 'pointer', fontSize: 15, fontWeight: 500, paddingBottom: 2 }}>{label}</a>
+            ))}
           {signedIn && (
-            <>
-              <a
-                className={appActive ? undefined : 'lp-link'}
-                onClick={goConversations}
-                style={{
-                  cursor: 'pointer', fontSize: 15, paddingBottom: 2,
-                  ...(appActive
-                    ? { fontWeight: 700, color: 'var(--accent)', borderBottom: '1px solid var(--accent)' }
-                    : { fontWeight: 500 }),
-                }}
-              >
-                My Conversations
-              </a>
-              <Button variant="spark" size="sm" onClick={onStart} style={{ fontSize: 14.5, fontWeight: 600 }}>+ New</Button>
-            </>
+            // Forms/BUTTONS/GRADIENT-WARM (DS exports/GradientWarmButton.html):
+            // ember sweep slides peach→blue on hover, springy lift, inset press.
+            // Variant CSS lives in daybreak.css (.bw-btn--gradient-warm).
+            // alignSelf: stretch (with the fixed --_h height cleared) makes
+            // the pill fill the nav cluster's height — i.e. the avatar's 42px.
+            // paddingBottom rides the label ~1px above geometric center — the
+            // same optical placement as the "Nudge them ✦" button (39px pill,
+            // 11px above / 13px below its label).
+            <Button variant="gradient-warm" size="sm" onClick={onStart} style={{ fontSize: 14.5, fontWeight: 600, alignSelf: 'stretch', height: 'auto', paddingBottom: 2, paddingLeft: 20, paddingRight: 20 }}>+ New</Button>
           )}
           <AccountControl />
           {!configured && (
@@ -141,7 +147,10 @@ export function SiteHeader({ landing = false, appActive = false, onLogo, onNav, 
 // by 5%, paper-1 wordmark, peri-300 text, paper-2 hairline at 25%.
 // `lip` overrides the 0% stop for grounds whose sweep ends on another color
 // (the composer's sunset ends on teal — Figma 449:2115).
-export function SiteFooter({ night = false, lip, onLogo, onNav }) {
+// `warm` (Figma "Footer" 489:4176, under the signed-in home) — that ground's
+// rainbow ends on lilac, and the footer carries it into a peach dawn: lilac
+// lip blending to peach-400 by 5%, with the day scheme's ink text on top.
+export function SiteFooter({ night = false, warm = false, lip, onLogo, onNav }) {
   const { Logo, Divider } = DS2
   const textColor = night ? 'var(--peri-300)' : 'var(--text-muted)'
   return (
@@ -154,15 +163,17 @@ export function SiteFooter({ night = false, lip, onLogo, onNav }) {
           // no top border — the ground's sweep above ends on the lip color,
           // so the footer continues it seamlessly
           ? { background: `linear-gradient(180deg, ${lip || 'var(--blue-500)'} 0%, var(--blue-700) 5%)` }
-          : { background: FROST_BG, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', borderTop: '1px solid var(--border-hair)' }),
+          : warm
+            ? { background: 'linear-gradient(180deg, var(--lilac-500) 0%, var(--peach-400) 5%)' }
+            : { background: FROST_BG, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', borderTop: '1px solid var(--border-hair)' }),
       }}
     >
       <div className="wrap" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 32 }}>
         <div style={{ maxWidth: 320 }}>
           <span style={{ display: 'inline-flex', cursor: onLogo ? 'pointer' : undefined }} onClick={onLogo}>
-            {night ? <LandingWordmark size={22} color="var(--paper-1)" /> : <Logo size={22} />}
+            {night ? <LandingWordmark size={22} color="var(--paper-1)" /> : warm ? <LandingWordmark size={22} color="var(--ink-700)" /> : <Logo size={22} />}
           </span>
-          <p style={{ fontSize: 14, color: textColor, marginTop: 14, lineHeight: 1.6 }}>The right words, warmer. BetterWords helps you say the things that matter.</p>
+          <p style={{ fontSize: 14, color: warm ? 'var(--ink-600)' : textColor, marginTop: 14, lineHeight: 1.6 }}>The right words, warmer. BetterWords helps you say the things that matter.</p>
         </div>
         <div style={{ display: 'flex', gap: 56, flexWrap: 'wrap' }}>
           {FOOTER_COLS.map(([h, items]) => (
@@ -191,7 +202,7 @@ export function SiteFooter({ night = false, lip, onLogo, onNav }) {
           <Divider />
         )}
       </div>
-      <div className="wrap" style={{ marginTop: 20, fontSize: 13, color: night ? 'var(--peri-300)' : 'var(--text-faint)' }}>© 2026 BetterWords · Say the hard thing, well ✦</div>
+      <div className="wrap" style={{ marginTop: 20, fontSize: 13, color: night ? 'var(--peri-300)' : warm ? 'var(--text-muted)' : 'var(--text-faint)' }}>© 2026 BetterWords · Say the hard thing, well ✦</div>
     </footer>
   )
 }

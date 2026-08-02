@@ -86,6 +86,26 @@ export default function Landing({ onStart }) {
     if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 72, behavior: 'smooth' })
   }
 
+  // Hero parallax: scrolling up, the sparkle field rises at 0.85× the page
+  // and the gradient at 0.775× (its extra lag = half the sparkle's 0.15
+  // delta). Implemented as downward translations that grow with scrollY —
+  // the layers' top gaps stay above the viewport, the clip wrapper handles
+  // the bottom. rAF-throttled; skipped for reduced-motion.
+  const heroGradRef = React.useRef(null)
+  const heroSparkleRef = React.useRef(null)
+  React.useEffect(() => {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+    const apply = () => {
+      const y = Math.max(0, window.scrollY)
+      if (y > 2000) return // hero long gone — skip the style writes
+      if (heroSparkleRef.current) heroSparkleRef.current.style.transform = `translateY(${(y * 0.2).toFixed(1)}px)`
+      if (heroGradRef.current) heroGradRef.current.style.transform = `translateY(${(y * 0.4).toFixed(1)}px)`
+    }
+    apply()
+    window.addEventListener('scroll', apply, { passive: true })
+    return () => window.removeEventListener('scroll', apply)
+  }, [])
+
   return (
     <div style={{ position: 'relative', background: 'var(--bg-base)', color: 'var(--text-body)', fontFamily: 'var(--font-sans)' }}>
       {/* header — shared sticky chrome, landing variant (solid wordmark,
@@ -96,7 +116,19 @@ export default function Landing({ onStart }) {
       {/* hero — grainy Daybreak gradient. Pulled up under the 68px sticky
           header (with matching padding) so the gradient runs from the very
           top of the screen, showing through the frosted header. */}
-      <section className="grad-daybreak" style={{ marginTop: -68, paddingTop: 68 }}>
+      <section className="grad-daybreak" style={{ marginTop: -68, paddingTop: 68, backgroundImage: 'none' }}>
+        {/* Parallax ground — the hero gradient moved into a translatable
+            layer (the section keeps its grain ::before; its own gradient is
+            switched off above), plus the composer's glistening diamond
+            field (.bw-sparkle-field tiles from Composer.css). On scroll the
+            sparkles rise a touch slower than the page (0.85×) and the
+            gradient slower still (0.775× — half the sparkle delta again);
+            see the scroll effect below. The wrapper clips the slid layers
+            at the section's edges. */}
+        <div className="lp-hero-parallax" aria-hidden>
+          <div ref={heroGradRef} className="lp-hero-grad" />
+          <div ref={heroSparkleRef} className="bw-sparkle-field lp-hero-sparkle" />
+        </div>
         <div className="lp2-hero">
           <img className="lp2-float d1" src="/ds-v35/assets/characters/ctx-sent.svg" style={{ width: 118, top: 64, right: '12%' }} alt="" />
           <img className="lp2-float d2" src="/ds-v35/assets/characters/ctx-waiting.svg" style={{ width: 112, bottom: 44, left: '9%' }} alt="" />

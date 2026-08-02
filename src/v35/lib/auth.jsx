@@ -31,22 +31,46 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [sheetOpen, setSheetOpen] = useState(false)
   const onSuccessRef = useRef(null)
+  // Present whenever the provider mounts inside the app's StoreProvider
+  // (everywhere in v3.5) — drives the post-sign-in landing on Home.
+  const store = useContext(StoreContext)
 
   useEffect(() => {
+    // A `?mockuser` review session owns the auth state — don't let the real
+    // Supabase session (usually null) overwrite it.
+    try {
+      if (new URLSearchParams(window.location.search).get('mockuser')) return
+    } catch {}
     const sb = getSupabase()
     if (!sb) return
-    sb.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null))
+    sb.auth.getSession().then(({ data }) => {
+      const u = data.session?.user ?? null
+      setUser(u)
+      // A returning signed-in visitor lands on the Home dashboard, not the
+      // marketing landing — unless a `?screen=` deep link took over.
+      try {
+        if (u && !new URLSearchParams(window.location.search).get('screen')) store?.dispatch({ type: 'OPEN_HOME' })
+      } catch {}
+    })
     const { data: sub } = sb.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
     })
     return () => sub.subscription.unsubscribe()
   }, [])
 
-  // Dev deep-link (matches the store's `?screen=` pattern): `&signin=1`
-  // opens the sheet on load for design review.
+  // Dev deep-links (match the store's `?screen=` pattern): `&signin=1`
+  // opens the sheet on load; `&mockuser=1` (or `&mockuser=a@b.c`) fakes a
+  // signed-in session so the app chrome/home can be design-reviewed
+  // without an account. Both are review-only affordances.
   useEffect(() => {
     try {
-      if (new URLSearchParams(window.location.search).get('signin')) setSheetOpen(true)
+      const p = new URLSearchParams(window.location.search)
+      if (p.get('signin')) setSheetOpen(true)
+      const mock = p.get('mockuser')
+      if (mock) {
+        setUser({ email: mock.includes('@') ? mock : 'yueping.design@gmail.com' })
+        if (!p.get('screen')) store?.dispatch({ type: 'OPEN_HOME' })
+      }
     } catch {}
   }, [])
 
@@ -75,7 +99,10 @@ export function AuthProvider({ children }) {
             setSheetOpen(false)
             const cb = onSuccessRef.current
             onSuccessRef.current = null
+            // A gated action (e.g. the composer's save) resumes where it was;
+            // a plain header sign-in lands on the signed-in Home dashboard.
             if (cb) cb()
+            else store?.dispatch({ type: 'OPEN_HOME' })
           }}
         />
       )}
@@ -304,12 +331,12 @@ export function AccountControl({ compact = false }) {
         onClick={() => setMenuOpen((o) => !o)}
         style={{ border: 0, padding: 0, background: 'transparent', cursor: 'pointer', display: 'inline-flex' }}
       >
-        {avatar(36, 16)}
+        {avatar(42, 18)}
       </button>
       {menuOpen && (
         <div
           style={{
-            position: 'absolute', top: 46, right: 0, width: 264, zIndex: 60,
+            position: 'absolute', top: 50, right: 0, width: 264, zIndex: 60,
             background: 'var(--surface-card)', border: '1px solid var(--border-hair)',
             borderRadius: 'var(--radius-lg, 16px)', boxShadow: 'var(--shadow-lg, var(--shadow-md))', padding: 12,
           }}
@@ -322,23 +349,40 @@ export function AccountControl({ compact = false }) {
               <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12.5, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{emailAddr}</div>
             </div>
           </div>
+          {/* Home + My conversations live here now — the signed-in header
+              carries only "+ New" and this avatar (Figma 490:4503). */}
           {store && (
-            <button
-              className="bw-acct-item"
-              onClick={() => { setMenuOpen(false); store.dispatch({ type: 'OPEN_CONVERSATIONS' }) }}
-            >
-              {glyph('/ds-v35/assets/glyphs/conversations.svg')}
-              My conversations
-            </button>
+            <>
+              <button
+                className="bw-acct-item"
+                onClick={() => { setMenuOpen(false); store.dispatch({ type: 'OPEN_HOME' }) }}
+              >
+                {glyph('/ds-v35/assets/glyphs/home.svg')}
+                Home
+              </button>
+              <button
+                className="bw-acct-item"
+                onClick={() => { setMenuOpen(false); store.dispatch({ type: 'OPEN_CONVERSATIONS' }) }}
+              >
+                {glyph('/ds-v35/assets/glyphs/conversations.svg')}
+                My conversations
+              </button>
+            </>
           )}
-          {/* Account & profile page isn't built yet — the item is here (per
-              the wireframe) but marked; the other menu items (Settings,
-              Upgrade plan, Help & feedback) stay hidden until they exist. */}
-          <div className="bw-acct-item bw-acct-item--soon">
-            {glyph('/ds-v35/assets/glyphs/account.svg')}
-            <span style={{ flex: 1 }}>Account &amp; profile</span>
-            <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-faint)', border: '1px solid var(--border-hair)', borderRadius: 999, padding: '2px 7px' }}>Soon</span>
-          </div>
+          {store &&
+            [
+              ['Account', 'account', '/ds-v35/assets/glyphs/account.svg'],
+              ['Settings', 'settings', '/ds-v35/assets/glyphs/settings.svg'],
+            ].map(([label, screen, icon]) => (
+              <button
+                key={screen}
+                className="bw-acct-item"
+                onClick={() => { setMenuOpen(false); store.dispatch({ type: 'GOTO', screen }) }}
+              >
+                {glyph(icon)}
+                {label}
+              </button>
+            ))}
           <div style={{ borderTop: '1px solid var(--border-hair)', margin: '8px 0' }} />
           <button className="bw-acct-item bw-acct-item--danger" onClick={() => { setMenuOpen(false); signOut() }}>
             <span aria-hidden style={{ width: 16, textAlign: 'center' }}>←</span>

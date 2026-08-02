@@ -52,6 +52,11 @@ function reducer(state, action) {
       return { ...state, screen: 'home', scenarioId: null, clarifyStep: 0, answers: {}, strategies: null, draftedAnswers: null, sent: false, threadId: null, activeThreadId: null, replyFlow: null, subjectOverride: null }
     case 'START_SCENARIO':
       return { ...state, scenarioId: action.scenarioId, screen: 'clarify', clarifyStep: 0, answers: {}, strategies: null, draftedAnswers: null, threadId: null, activeThreadId: null, replyFlow: null, subjectOverride: null }
+    case 'OPEN_HOME':
+      // Signed-in home (Figma 489:3991) — the dashboard the header's "Home"
+      // link and a completed sign-in land on. Clears flow state like
+      // OPEN_CONVERSATIONS so a later "+ New" starts fresh.
+      return { ...state, screen: 'dashboard', activeThreadId: null, replyFlow: null, subjectOverride: null, sent: false, convoRefresh: state.convoRefresh + 1 }
     // --- conversations (v3.5) ---
     case 'OPEN_CONVERSATIONS':
       return { ...state, screen: 'conversations', activeThreadId: null, replyFlow: null, subjectOverride: null, sent: false, convoRefresh: state.convoRefresh + 1 }
