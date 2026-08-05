@@ -284,7 +284,9 @@ export function AccountControl({ compact = false }) {
         <a className="lp-link" onClick={() => openSignIn()} style={{ cursor: 'pointer', fontSize: 15, fontWeight: 500, paddingBottom: 2 }}>
           Login
         </a>
-        <Button variant="spark" size="sm" onClick={() => openSignIn()} style={{ fontSize: 14.5, fontWeight: 600 }}>
+        {/* dressed like the signed-in header's "+ New" pill (42px, 20px pads)
+            on the accent color — the header nav links' font color */}
+        <Button variant="primary" size="md" onClick={() => openSignIn()} style={{ height: 42, paddingLeft: 20, paddingRight: 20 }}>
           Sign up free
         </Button>
       </span>
