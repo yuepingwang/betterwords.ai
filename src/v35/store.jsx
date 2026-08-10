@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo, useReducer } from 'react'
+import React, { createContext, useContext, useEffect, useMemo, useReducer, useRef } from 'react'
 import { getScenario } from './data/advocate'
 import { DEMO_THREADS } from './lib/demo'
 
@@ -42,10 +42,39 @@ const initialState = {
   subjectOverride: null, // thread subject carried into the composer for replies/follow-ups
 }
 
+// Browser back/forward (see the history sync in StoreProvider). Within a
+// session the flow state is usually still in memory, so restoring is mostly
+// just pointing `screen` back; screens whose required state is gone — or that
+// are transient, like the generating spinner — fall back to the nearest safe
+// ancestor instead of stranding the user on a broken screen.
+function navRestore(state, action) {
+  let screen = action.screen
+  const threadId = action.threadId || state.activeThreadId
+  if (screen === 'generating') screen = state.scenarioId ? 'clarify' : 'dashboard'
+  if (['clarify', 'drafts', 'editor', 'send', 'next'].includes(screen) && !state.scenarioId) screen = 'dashboard'
+  if (screen === 'replyflow' && !state.replyFlow) screen = threadId ? 'conversation' : 'conversations'
+  if (screen === 'conversation' && !threadId) screen = 'conversations'
+  const next = { ...state, screen }
+  if (screen === 'conversation') {
+    next.activeThreadId = threadId
+    next.threadId = threadId
+    next.convoRefresh = state.convoRefresh + 1
+  }
+  // Like OPEN_HOME / OPEN_CONVERSATIONS: landing back on a list screen
+  // closes the open thread (and refetches), so the URL drops `thread`.
+  if (screen === 'conversations' || screen === 'dashboard') {
+    next.activeThreadId = null
+    next.convoRefresh = state.convoRefresh + 1
+  }
+  return next
+}
+
 function reducer(state, action) {
   switch (action.type) {
     case 'GOTO':
       return { ...state, screen: action.screen }
+    case 'NAV_RESTORE':
+      return navRestore(state, action)
     case 'GO_LANDING':
       return { ...state, screen: 'landing', scenarioId: null, clarifyStep: 0, answers: {}, strategies: null, draftedAnswers: null, sent: false, threadId: null, activeThreadId: null, replyFlow: null, subjectOverride: null }
     case 'RESTART':
@@ -235,6 +264,55 @@ function initState() {
 
 export function StoreProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initState())
+
+  // ---- history sync — the browser back/forward buttons work ----
+  // State → URL: every screen change writes a `?screen=` history entry
+  // (matching the deep-link format initState already reads, so reloads
+  // restore too). The `v` fork param and everything else in the query
+  // string ride along untouched.
+  const popRef = useRef(false) // true while applying a popstate restore
+  const firstRef = useRef(true)
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search)
+    p.set('screen', state.screen)
+    if (state.activeThreadId) p.set('thread', state.activeThreadId)
+    else p.delete('thread')
+    // `scenario` only matters to the composer-flow deep links — keep the
+    // other screens' URLs clean of it (initState defaults it anyway).
+    if (state.scenarioId && ['clarify', 'generating', 'drafts', 'editor', 'send', 'next'].includes(state.screen)) p.set('scenario', state.scenarioId)
+    else p.delete('scenario')
+    const qs = `?${p.toString()}`
+    const entry = { screen: state.screen, thread: state.activeThreadId, scenario: state.scenarioId }
+    // Replace instead of push when: seeding the initial entry, landing on a
+    // popped entry (the browser already moved; pushing would orphan the
+    // forward stack — this also realigns the URL after a fallback restore),
+    // or the URL already matches (just seed the entry state).
+    if (firstRef.current || popRef.current || qs === window.location.search) {
+      firstRef.current = false
+      window.history.replaceState(entry, '', qs)
+    } else {
+      window.history.pushState(entry, '', qs)
+    }
+  }, [state.screen, state.activeThreadId, state.scenarioId])
+
+  // URL → state: back/forward restores the entry's screen via NAV_RESTORE.
+  useEffect(() => {
+    const onPop = (e) => {
+      popRef.current = true
+      // Effects run before timers, so this clears the flag right after the
+      // restore commits — even when the restore turns out to be a no-op.
+      setTimeout(() => { popRef.current = false }, 0)
+      const p = new URLSearchParams(window.location.search)
+      dispatch({
+        type: 'NAV_RESTORE',
+        screen: e.state?.screen || p.get('screen') || 'landing',
+        threadId: e.state?.thread ?? p.get('thread') ?? null,
+      })
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+
   const value = useMemo(() => {
     const scenario = state.scenarioId ? getScenario(state.scenarioId) : null
     // AI-generated strategies take precedence; the static DATA is the fallback.

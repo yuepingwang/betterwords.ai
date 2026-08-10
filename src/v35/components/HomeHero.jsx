@@ -43,7 +43,7 @@ export default function HomeHero({ active = 'home' }) {
       {/* welcome card (490:4348) */}
       <div className="bw-home-hero" style={{ position: 'relative', height: 286, borderRadius: 16, overflow: 'hidden', filter: 'drop-shadow(0 4px 5px rgba(28, 23, 70, 0.06))' }}>
         <img
-          src="/ds-v35/assets/home-background.png"
+          src="/ds-v35/assets/home-background.jpg"
           alt=""
           style={{ position: 'absolute', left: 0, top: '-13.6%', width: '100%', pointerEvents: 'none' }}
         />

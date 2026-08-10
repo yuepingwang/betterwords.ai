@@ -5,6 +5,7 @@ import { useAuth } from '../lib/auth'
 import { fetchThread, listThreads } from '../lib/db'
 import { DEMO_THREADS } from '../lib/demo'
 import HomeHero, { HOME_GROUND } from '../components/HomeHero'
+import PlanBox from '../components/PlanBox'
 import { displayName, usePrefs } from '../lib/prefs'
 
 // ------------------------------------------------------------------
@@ -275,25 +276,9 @@ export default function HomeDashboard() {
                 <span style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--ink-400)' }}>No password — sign in with a code</span>
               </div>
             </div>
-            {/* plan box (489:4291) — static demo copy until billing exists */}
-            <div style={{ borderRadius: 8, padding: 20, display: 'flex', flexDirection: 'column', gap: 12, backgroundImage: 'linear-gradient(100deg, var(--paper-1) 0%, #F1EEFB 50%, var(--peach-100) 100%)' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <span style={{ ...kickerStyle, letterSpacing: '0.05em' }}>My plan</span>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <span style={{ fontFamily: 'var(--font-display)', fontVariationSettings: 'var(--display-soft)', fontWeight: 600, fontSize: 18, color: 'var(--ink-800)' }}>Free</span>
-                  <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--ink-600)' }}>12 out of 20 messages used this cycle</span>
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <div style={{ background: 'var(--paper-0)', borderRadius: 12, boxShadow: '0 1px 4px rgba(21, 18, 62, 0.05)', overflow: 'hidden', width: '100%' }}>
-                  <div style={{ height: 8, width: '59.5%', borderRadius: 12, boxShadow: '0 1px 4px rgba(21, 18, 62, 0.05)', backgroundImage: 'linear-gradient(90deg, var(--blue-500) 0%, var(--peri-400) 20%, var(--lilac-500) 40%, #C48CC0 60%, var(--coral-400) 75%, var(--peach-400) 100%)' }} />
-                </div>
-                <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--ink-500)' }}>8 messages left · Resets Sep 1</span>
-              </div>
-              <Button variant="primary" size="md" disabled title="Coming soon" style={{ width: '100%', fontSize: 15, fontWeight: 600, letterSpacing: '0.02em' }}>
-                (Coming soon) Upgrade to Unlimited
-              </Button>
-            </div>
+            {/* plan box (489:4291) — live free-plan usage, shared with the
+                Account page (see components/PlanBox.jsx) */}
+            <PlanBox />
           </DashCard>
           </div>
 

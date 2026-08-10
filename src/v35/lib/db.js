@@ -107,6 +107,26 @@ export async function isSignedIn() {
   return Boolean(await currentUserId())
 }
 
+// Free-plan usage: how many messages this account has produced since the
+// 1st of the month — every saved draft version plus every sent letter and
+// follow-up. Replies aren't counted; those are the other side's words.
+export async function countMessagesThisCycle() {
+  const sb = getSupabase()
+  const userId = await currentUserId()
+  if (!sb || !userId) throw new Error('not signed in')
+  const start = new Date()
+  start.setDate(1)
+  start.setHours(0, 0, 0, 0)
+  const { count, error } = await sb
+    .from('messages')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .in('kind', ['draft_version', 'sent', 'followup'])
+    .gte('created_at', start.toISOString())
+  if (error) throw error
+  return count ?? 0
+}
+
 // Every thread the user owns, newest activity first, with the message
 // rollups the conversations screen shows on each card. Counts are
 // aggregated client-side — per-user data stays small.

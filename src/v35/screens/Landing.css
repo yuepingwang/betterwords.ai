@@ -532,13 +532,3 @@
   background-size: cover;
   will-change: transform;
 }
-.bw-v35 .lp-hero-sparkle {
-  position: absolute;
-  inset: 0;
-  will-change: transform;
-}
-/* doubled class beats Composer.css's later-loaded `position: fixed` */
-.bw-v35 .bw-sparkle-field.lp-hero-sparkle::before,
-.bw-v35 .bw-sparkle-field.lp-hero-sparkle::after {
-  position: absolute;
-}

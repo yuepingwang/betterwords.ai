@@ -68,7 +68,7 @@ export default function Next() {
         </h1>
         <p style={{ fontFamily: 'var(--font-serif)', fontSize: 19, color: 'var(--text-muted)', margin: '0 auto', maxWidth: 540 }}>
           {pitch
-            ? 'Your message is out the door, but the conversation is just starting. Sign up free and BetterWords saves what you sent and keeps track of the next steps with you.'
+            ? 'Your message is out the door, but the conversation is just starting. Sign up and BetterWords saves what you sent and keeps track of the next steps with you.'
             : 'A conversation rarely ends with one message. Here’s how BetterWords helps once you’ve sent yours.'}
         </p>
       </div>
@@ -90,7 +90,7 @@ export default function Next() {
               {/* inline-flex keeps the sparkle from inflating the line box,
                   so this label centers exactly like its neighbor's */}
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, lineHeight: 1 }}>
-                Sign up free — save this conversation <Sparkle size={14} style={{ color: 'var(--paper-0)', display: 'block' }} />
+                Sign up — save this conversation <Sparkle size={14} style={{ color: 'var(--paper-0)', display: 'block' }} />
               </span>
             </Button>
             <Button variant="outline" size="lg" onClick={() => dispatch({ type: 'RESTART' })}>Start another message</Button>

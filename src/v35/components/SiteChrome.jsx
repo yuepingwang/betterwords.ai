@@ -48,7 +48,7 @@ const FROST_BG = 'color-mix(in srgb, var(--bg-elevated) 50%, transparent)'
 // One marketing-style header for EVERY screen except the composer (which
 // brings its own — see Composer.jsx): the solid-ink wordmark left; "How it
 // works · Examples" plus the auth cluster right. The auth cluster is the
-// wireframe's: "Login · Sign up free" signed out, the avatar menu signed in
+// wireframe's: "Login · Sign up" signed out, the avatar menu signed in
 // (see AccountControl in lib/auth.jsx). When accounts aren't configured the
 // cluster falls back to the spark "Start free".
 // Headers start clear over the page ground and frost on scroll; the landing

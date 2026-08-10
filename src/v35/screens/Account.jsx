@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import DS2 from '../ds2'
 import AppPage, { PageCard, kickerStyle } from '../components/AppPage'
+import PlanBox from '../components/PlanBox'
 import { useAuth } from '../lib/auth'
 import { getSupabase } from '../lib/supabase'
 import { displayName, usePrefs } from '../lib/prefs'
@@ -48,11 +49,16 @@ export default function Account() {
 
   const save = async () => {
     update({ name: draft.name, language: draft.language })
+    const sb = getSupabase()
+    // The name also lives on the account (user metadata) so it follows the
+    // user across devices — fire-and-forget; prefs already have it locally.
+    if (auth.signedIn && sb && draft.name !== prefs.name) {
+      sb.auth.updateUser({ data: { display_name: draft.name.trim() } }).catch(() => {})
+    }
     if (!emailDirty) return setStatus({ ok: 'Saved.' })
     const addr = draft.email.trim()
     if (!/.+@.+\..+/.test(addr)) return setStatus({ err: 'That doesn’t look like an email address.' })
     setStatus('busy')
-    const sb = getSupabase()
     if (auth.signedIn && sb) {
       // Supabase sends a confirmation link to the new address; the account
       // switches over once it's clicked.
@@ -188,6 +194,11 @@ export default function Account() {
         <p style={{ fontFamily: 'var(--font-sans)', fontSize: 12.5, color: 'var(--ink-500)', margin: 0 }}>
           BetterWords writes in English for now — more languages are on the way.
         </p>
+      </PageCard>
+
+      {/* ---- plan ---- */}
+      <PageCard>
+        <PlanBox />
       </PageCard>
     </AppPage>
   )
