@@ -177,7 +177,6 @@ export default function Composer() {
   const tweenRef = useRef(null)
   const rafRef = useRef(null)
   const histRef = useRef({ undo: [], redo: [] })
-  const dragSnapRef = useRef(null)
 
   const [tool, setTool] = useState('edit') // 'edit' | 'insert' | 'image'
   const [popup, setPopup] = useState(null) // {kind:'rewrite'|'insert', ...}
@@ -225,8 +224,11 @@ export default function Composer() {
   }, [])
 
   // Bottom-bar tune trays (Figma 449:2915 / 449:3569): "Adjust your tone" /
-  // "Adjust the length" expand under the pill bar. Done commits the retune;
-  // Cancel puts the sliders back where the tray found them.
+  // "Adjust the length" expand under the pill bar. Adjustments save
+  // themselves — leaving a selection instance (selecting other text, another
+  // tool, the other tray, Done) commits its settled version as ONE undo
+  // entry, so slider back-and-forth never litters the history. Cancel still
+  // reverts just the instance in hand.
   // Dev deep-link (matches `?tour=0`): `&tray=tone|length` opens a tray on
   // load for design review/screenshots.
   const [tray, setTray] = useState(() => {
@@ -251,17 +253,24 @@ export default function Composer() {
   const evalSeqRef = useRef(0)
   const lastPreviewRef = useRef(null)
 
-  const runTunePreview = async () => {
-    const base = trayBaseRef.current
-    if (!base) return
-    const { tone, verbosity, tuneSel: sel } = liveRef.current
+  // `selOverride`/`baseOverride` let a commit run one final settle pass for a
+  // selection instance the writer just left (so "Done"/re-scope beating the
+  // 350ms debounce never drops the last drag) — with an override the preview
+  // doesn't touch tuneSel, and the caller gets back the applied letter fields
+  // to re-baseline from.
+  const runTunePreview = async (selOverride, baseOverride) => {
+    const base = baseOverride ?? trayBaseRef.current
+    if (!base) return null
+    const hasSelOverride = selOverride !== undefined
+    const sel = hasSelOverride ? selOverride : liveRef.current.tuneSel
+    const { tone, verbosity } = liveRef.current
     const seq = ++previewSeq.current
     // Back at the baseline → put the base text back verbatim.
     if (tone === base.tone && verbosity === base.verbosity) {
       const { sugs, ...letter } = base.snap
       dispatch({ type: 'RESTORE_EDIT', ...letter })
       lastPreviewRef.current = { tone, verbosity, sel: sel?.find ?? sel?.text ?? null }
-      return
+      return letter
     }
     const baseParas = base.snap.letterParas || strat.paragraphs || []
     dispatch({ type: 'SET_LETTER_LOADING', value: true })
@@ -277,13 +286,16 @@ export default function Composer() {
           instruction: `Rewrite only this passage to ${asks.join(', and ')}. Keep its meaning, facts, and the writer's voice; return only the rewritten passage.`,
           context: (convo ? `${convo}\n\n` : '') + paras.join('\n\n'),
         })
-        if (seq !== previewSeq.current) return
+        if (seq !== previewSeq.current) return null
         const replacements = [...base.snap.replacements, { find: sel.find ?? sel.text, replace: rep }]
         dispatch({ type: 'RESTORE_EDIT', letterParas: base.snap.letterParas, replacements, inserts: base.snap.inserts, tone, verbosity })
         // the freshly generated text is now "the selection" (still anchored
-        // to its original base passage, so repeated drags never compound)
-        setTuneSel({ text: rep, find: sel.find ?? sel.text })
+        // to its original base passage, so repeated drags never compound) —
+        // unless this is a settle pass for an instance already left behind
+        if (!hasSelOverride) setTuneSel({ text: rep, find: sel.find ?? sel.text })
         evaluate(composeLetter(strat, { ...state, letterParas: base.snap.letterParas, replacements, inserts: base.snap.inserts }), { moveSliders: false })
+        lastPreviewRef.current = { tone, verbosity, sel: sel.find ?? sel.text }
+        return { letterParas: base.snap.letterParas, replacements, inserts: base.snap.inserts, tone, verbosity }
       } else if (aiMode) {
         // Full-text adjustment → retuneLetter regenerates the draft (OpenAI).
         // (Static scenarios re-derive from tone variants in composeLetter,
@@ -292,11 +304,14 @@ export default function Composer() {
           ? baseParas.map((p) => rephrase(p, bucket(tone) === 'soft' ? 'soften' : bucket(tone) === 'strong' ? 'firmer' : verbosity < 50 ? 'shorten' : 'detail'))
           : null
         const next = await retuneLetter({ scenarioId: state.scenarioId, strategy: strat, paras: baseParas, tone, verbosity, convo, fallbackParas: rfFallback })
-        if (seq !== previewSeq.current) return
+        if (seq !== previewSeq.current) return null
         dispatch({ type: 'SET_LETTER', paras: next })
         evaluate(composeLetter(strat, { ...state, letterParas: next, replacements: base.snap.replacements, inserts: base.snap.inserts }), { moveSliders: false })
+        lastPreviewRef.current = { tone, verbosity, sel: null }
+        return { letterParas: next, replacements: base.snap.replacements, inserts: base.snap.inserts, tone, verbosity }
       }
       lastPreviewRef.current = { tone, verbosity, sel: sel?.find ?? sel?.text ?? null }
+      return null
     } finally {
       if (seq === previewSeq.current) dispatch({ type: 'SET_LETTER_LOADING', value: false })
     }
@@ -321,7 +336,7 @@ export default function Composer() {
     previewTimer.current = setTimeout(runTunePreview, 350)
   }
 
-  const closeTray = (commit) => {
+  const closeTray = (commit, { settle = true } = {}) => {
     const base = trayBaseRef.current
     trayBaseRef.current = null
     clearTimeout(previewTimer.current)
@@ -332,17 +347,16 @@ export default function Composer() {
       const changed = base.tone !== state.tone || base.verbosity !== state.verbosity
       if (changed) {
         // Keep what the live preview produced; undo returns to the pre-tray
-        // letter in one step. If the last drag hasn't previewed yet (Done
-        // beat the debounce), run that final pass now.
+        // letter in one step. If the last drag hasn't previewed yet (the
+        // close beat the debounce), run that final pass now — except where
+        // the caller is about to restore other state itself (settle: false),
+        // where a late-landing preview would clobber it.
         pushHistory(base.snap)
         const lp = lastPreviewRef.current
         const cur = liveRef.current.tuneSel
         const sel = cur ? cur.find ?? cur.text : null
-        if (!lp || lp.tone !== state.tone || lp.verbosity !== state.verbosity || lp.sel !== sel) {
-          trayBaseRef.current = base // runTunePreview needs the base once more
-          runTunePreview().finally(() => {
-            trayBaseRef.current = null
-          })
+        if (settle && (!lp || lp.tone !== state.tone || lp.verbosity !== state.verbosity || lp.sel !== sel)) {
+          runTunePreview(cur ?? null, base)
         }
       }
     } else {
@@ -357,10 +371,46 @@ export default function Composer() {
     }
     lastPreviewRef.current = null
   }
+  // Leaving the current selection instance for a NEW scope (dragging a new
+  // selection, or clicking back to full text) while the sliders have moved:
+  // commit that instance to the edit history and re-baseline the open tray
+  // on the committed letter, so the next instance's drags stack on top of it
+  // instead of lifting it off. Called through a ref so the mouseup listener
+  // (bound once per tray) always sees fresh state.
+  const rescopeTune = async (prevSel) => {
+    const base = trayBaseRef.current
+    if (!base) return
+    const { tone, verbosity } = liveRef.current
+    if (tone === base.tone && verbosity === base.verbosity) return // untouched sliders → nothing to save
+    clearTimeout(previewTimer.current)
+    pushHistory(base.snap)
+    // If the last drag hasn't previewed yet, settle it against the instance
+    // that's being left before the new one takes over.
+    const lp = lastPreviewRef.current
+    const prevKey = prevSel ? prevSel.find ?? prevSel.text : null
+    let applied = null
+    if (!lp || lp.tone !== tone || lp.verbosity !== verbosity || lp.sel !== prevKey) {
+      applied = await runTunePreview(prevSel ?? null, base)
+    }
+    if (!applied) applied = { letterParas: state.letterParas, replacements: state.replacements, inserts: state.inserts, tone, verbosity }
+    trayBaseRef.current = {
+      tone,
+      verbosity,
+      snap: { ...applied, sugs: addSugs },
+      eval: { why: state.evalWhy, reaction: state.evalReaction, pros: state.evalPros, cons: state.evalCons, risk: state.evalRisk, impact: state.evalImpact },
+    }
+    lastPreviewRef.current = null
+  }
+  const rescopeTuneRef = useRef()
+  rescopeTuneRef.current = rescopeTune
+
   const openTray = (which) => {
     setAddOpen(false)
     setPopup(null)
-    if (tray === which) return closeTray(false)
+    if (tray === which) return closeTray(true)
+    // switching trays commits the open tray's pending adjustment first (no
+    // settle pass — its late dispatch would fight the fresh base snapshot)
+    if (tray) closeTray(true, { settle: false })
     trayBaseRef.current = {
       tone: state.tone,
       verbosity: state.verbosity,
@@ -391,20 +441,13 @@ export default function Composer() {
         const text = sel.toString().trim()
         if (text.length >= 3) next = { text, find: text }
       }
-      setTuneSel((prev) => {
-        // Re-scoping while the sliders are already moved — narrowing to a
-        // passage OR clicking back to the full-text default — re-runs the
-        // preview against the NEW scope (previews always re-derive from the
-        // tray's base, so the old scope's changes lift off first) and
-        // re-evaluates the full letter. Untouched sliders → nothing to apply.
-        if (next && (prev?.text || null) !== next.text) {
-          const base = trayBaseRef.current
-          if (base && (liveRef.current.tone !== base.tone || liveRef.current.verbosity !== base.verbosity)) {
-            scheduleTunePreview()
-          }
-        }
-        return next
-      })
+      // Re-scoping — narrowing to a passage OR clicking back to the full-text
+      // default — auto-saves the instance being left: its settled adjustment
+      // becomes one undo entry and the tray re-baselines on it, so the new
+      // scope's drags stack on top. Untouched sliders → nothing to save.
+      const prev = liveRef.current.tuneSel || null
+      if ((prev?.text || null) !== (next?.text || null)) rescopeTuneRef.current?.(prev)
+      setTuneSel(next)
     }
     document.addEventListener('mouseup', onUp)
     return () => document.removeEventListener('mouseup', onUp)
@@ -571,23 +614,32 @@ export default function Composer() {
     histRef.current.redo = []
     setHistTick((t) => t + 1)
   }
-  const canUndo = histRef.current.undo.length > 0
-  const canRedo = histRef.current.redo.length > 0
+  // An open tray whose sliders have moved holds a not-yet-committed edit —
+  // undo treats it like any other change (commit, then step back over it).
+  const trayPending = Boolean(trayBaseRef.current && (trayBaseRef.current.tone !== state.tone || trayBaseRef.current.verbosity !== state.verbosity))
+  const canUndo = histRef.current.undo.length > 0 || trayPending
+  const canRedo = histRef.current.redo.length > 0 && !trayPending
   const restoreEntry = (entry) => {
     const { sugs, ...letter } = entry
     dispatch({ type: 'RESTORE_EDIT', ...letter })
     if (sugs != null) setAddSugs(sugs)
   }
   const doUndo = () => {
+    if (busy || state.letterLoading) return
+    // commit the pending tray adjustment first (no settle pass — the restore
+    // below must win), so undo reverts it and redo can bring it back
+    if (trayBaseRef.current) closeTray(true, { settle: false })
     const h = histRef.current
-    if (!h.undo.length || busy || state.letterLoading) return
+    if (!h.undo.length) return
     h.redo.push(snapshot())
     restoreEntry(h.undo.pop())
     setHistTick((t) => t + 1)
   }
   const doRedo = () => {
+    if (busy || state.letterLoading) return
+    if (trayBaseRef.current) closeTray(true, { settle: false })
     const h = histRef.current
-    if (!h.redo.length || busy || state.letterLoading) return
+    if (!h.redo.length) return
     h.undo.push(snapshot())
     restoreEntry(h.redo.pop())
     setHistTick((t) => t + 1)
@@ -939,30 +991,6 @@ export default function Composer() {
     } finally {
       setAddBusy(false)
     }
-  }
-
-  // ---------- full-text tuning ----------
-  const retune = async (nextTone, nextVerb) => {
-    if (!aiMode) return
-    dispatch({ type: 'SET_LETTER_LOADING', value: true })
-    const base = state.letterParas || strat.paragraphs
-    // Without AI (or on error) a reply draft can't re-derive from scenario
-    // tone variants — nudge each paragraph in the slider's direction instead.
-    const rfFallback = isReplyDraft
-      ? base.map((p) => rephrase(p, bucket(nextTone) === 'soft' ? 'soften' : bucket(nextTone) === 'strong' ? 'firmer' : nextVerb < 50 ? 'shorten' : 'detail'))
-      : null
-    const next = await retuneLetter({ scenarioId: state.scenarioId, strategy: strat, paras: base, tone: nextTone, verbosity: nextVerb, convo, fallbackParas: rfFallback })
-    dispatch({ type: 'SET_LETTER', paras: next })
-    evaluate(composeLetter(strat, { ...state, letterParas: next }), { moveSliders: false })
-  }
-  const startDrag = () => {
-    if (!dragSnapRef.current) dragSnapRef.current = snapshot()
-  }
-  const commitTune = () => {
-    const snap = dragSnapRef.current
-    dragSnapRef.current = null
-    if (snap && (snap.tone !== state.tone || snap.verbosity !== state.verbosity)) pushHistory(snap)
-    retune(state.tone, state.verbosity)
   }
 
   // ---------- top actions ----------
@@ -1356,7 +1384,7 @@ export default function Composer() {
                     title="Edit text — select a passage to revise it"
                     aria-label="Edit text tool"
                     data-keep-add=""
-                    onClick={() => { setTool('edit'); setPopup(null); setHoverPt(null); closeTray(false); setAddOpen(false) }}
+                    onClick={() => { setTool('edit'); setPopup(null); setHoverPt(null); closeTray(true); setAddOpen(false) }}
                   >
                     <span className="bw-cmp2-glyph" style={{ WebkitMaskImage: `url(${GLYPHS}/cmp-tool-edit.svg)`, maskImage: `url(${GLYPHS}/cmp-tool-edit.svg)` }} />
                   </button>
@@ -1365,7 +1393,7 @@ export default function Composer() {
                     title="Insert text — click between sentences or paragraphs"
                     aria-label="Insert text tool"
                     data-keep-add=""
-                    onClick={() => { setTool('insert'); setPopup(null); closeTray(false); setAddOpen(false) }}
+                    onClick={() => { setTool('insert'); setPopup(null); closeTray(true); setAddOpen(false) }}
                   >
                     <span className="bw-cmp2-glyph" style={{ WebkitMaskImage: `url(${GLYPHS}/cmp-tool-insert.svg)`, maskImage: `url(${GLYPHS}/cmp-tool-insert.svg)` }} />
                   </button>
@@ -1374,7 +1402,7 @@ export default function Composer() {
                     title="Insert image — click a gap to attach one"
                     aria-label="Insert image tool"
                     data-keep-add=""
-                    onClick={() => { setTool('image'); setPopup(null); setHoverPt(null); closeTray(false); setAddOpen(false) }}
+                    onClick={() => { setTool('image'); setPopup(null); setHoverPt(null); closeTray(true); setAddOpen(false) }}
                   >
                     <span className="bw-cmp2-glyph" style={{ WebkitMaskImage: `url(${GLYPHS}/cmp-tool-image.svg)`, maskImage: `url(${GLYPHS}/cmp-tool-image.svg)` }} />
                   </button>
@@ -1397,7 +1425,7 @@ export default function Composer() {
                     art="/ds-v35/assets/characters/cmp-add-octo.png"
                     label="Add Something Else"
                     active={addOpen}
-                    onClick={() => { closeTray(false); toggleAdd() }}
+                    onClick={() => { closeTray(true); toggleAdd() }}
                   />
                 </span>
                 <PillTab
