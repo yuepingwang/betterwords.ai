@@ -23,9 +23,15 @@ function loadBundle(src, globalKey, label) {
   })
 }
 
-// Version switch: v3.5 (src/v35/) is the primary app — `/` and `/?v=3.5`
-// both load it. Older versions stay reachable: `/?v=3` (also `/?v3` or
-// `/#v3`), `/?v=2` (`/?v2`, `/#v2`), and `/?v=1` (`/?v1`, `/#v1`).
+// Version switch: v4 (src/v4/) is the primary app — `/` and `/?v=4` (also
+// `/?v4` or `/#v4`) both load it. Older versions stay reachable: `/?v=3.5`
+// (also `/?v35` or `/#v35`), `/?v=3` (`/?v3`, `/#v3`), `/?v=2` (`/?v2`,
+// `/#v2`), and `/?v=1` (`/?v1`, `/#v1`).
+function wantsV35() {
+  const params = new URLSearchParams(window.location.search)
+  return params.get('v') === '3.5' || params.has('v35') || window.location.hash === '#v35'
+}
+
 function wantsV1() {
   const params = new URLSearchParams(window.location.search)
   return params.get('v') === '1' || params.has('v1') || window.location.hash === '#v1'
@@ -45,9 +51,11 @@ function wantsV3() {
 // advisor, scenario data, Daybreak tokens, and its /ds-* component bundle —
 // so changes in one can never affect the others.
 async function boot() {
-  const v3 = wantsV3()
-  const v2 = !v3 && wantsV2()
-  const v35 = !v3 && !v2 && !wantsV1()
+  const v35 = wantsV35()
+  const v3 = !v35 && wantsV3()
+  const v2 = !v35 && !v3 && wantsV2()
+  // v4 is the default: `/`, `/?v=4`, and anything not claiming another fork.
+  const v4 = !v35 && !v3 && !v2 && !wantsV1()
   // Messenger bundle powers v1 (and any v2 screen not yet rebuilt on Daybreak).
   await loadBundle('/ds/_ds_bundle.js', 'MessengerDesignSystem_02d4f6', 'Messenger design system bundle')
   // v2/v3 also load their own copy of the Betterwords "Daybreak" design-system
@@ -63,13 +71,18 @@ async function boot() {
   if (v35) {
     await loadBundle('/ds-v35/_ds_bundle.js', 'BetterwordsAiDesignSystem_ac387e', 'Betterwords design system bundle (v3.5)')
   }
-  const { default: App } = v35
-    ? await import('./v35/V35App.jsx')
-    : v3
-      ? await import('./v3/V3App.jsx')
-      : v2
-        ? await import('./v2/V2App.jsx')
-        : await import('./App.jsx')
+  if (v4) {
+    await loadBundle('/ds-v4/_ds_bundle.js', 'BetterwordsAiDesignSystem_ac387e', 'Betterwords design system bundle (v4)')
+  }
+  const { default: App } = v4
+    ? await import('./v4/V4App.jsx')
+    : v35
+      ? await import('./v35/V35App.jsx')
+      : v3
+        ? await import('./v3/V3App.jsx')
+        : v2
+          ? await import('./v2/V2App.jsx')
+          : await import('./App.jsx')
   const root = ReactDOMClient.createRoot(document.getElementById('root'))
   root.render(React.createElement(App))
 }

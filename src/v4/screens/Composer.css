@@ -1,0 +1,1991 @@
+/* BetterWords v3 Composer — "2nd iteration" editor screen.
+   Scoped under .bw-v4 like every other v3 stylesheet. Layout lives in
+   Composer.jsx; everything with a hover/active/cursor state lives here. */
+
+/* ---- page background — the Daybreak gradient (design-system token) with a
+   soft sparkling diamond overlay, after the texture-sample reference
+   (betterwords resources › Composer screen iterations › background gradients).
+   Tiles are generated with scripts/gen-composer-sparkle.js (mulberry32 seeds 11/47):
+   sparse diamonds on a tight 5px grid (neighbors can touch), opacity from a
+   tiling perlin field — bright/dim clusters with strong contrast. Applied to
+   the app wrapper (V4App) on the editor screen so the ground runs the full
+   viewport height, behind the header and under the frosted footer. ---- */
+.bw-v4 .bw-cmp-bg {
+  position: relative;
+  isolation: isolate;
+  /* a 50% paper veil over the sweep ≈ the daybreak gradient at 50% opacity
+     on the cream base — softens the ground so the glass panels read lighter.
+     The sweep itself is the daybreak run re-eased after --grad-soft (see the
+     Gradients spec): a lighter, airier tone holds the top before the
+     purple→orange turn, with the original stops shifted down the ramp */
+  background-image: linear-gradient(rgba(251, 247, 239, 0.5), rgba(251, 247, 239, 0.5)),
+    linear-gradient(155deg, #E7EEFB 0%, #CFDAF8 26%, #C6C1F0 48%, #E7DDEE 62%, #FBEBDD 75%, #F9BF9E 100%);
+  background-size: cover;/* gradient + sparkle layers are pinned to the viewport so the texture
+     stays still while the page content scrolls over it */
+  background-attachment: fixed;
+}
+/* .bw-sparkle-field shares these exact tiles — a class for layering the
+   sparkle over any other ground (the landing hero scopes/absolutes it in
+   Landing.css) without duplicating the data URIs. */
+.bw-v4 .bw-cmp-bg::before,
+.bw-v4 .bw-cmp-bg::after,
+.bw-v4 .bw-sparkle-field::before,
+.bw-v4 .bw-sparkle-field::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  /* white diamonds sparsely scattered on a tight 5px grid (neighbors can sit
+     side by side), perlin-field opacity — see the texture-sample reference;
+     the two layers breathe in counter-phase (opacity only, no movement) so
+     different diamonds gently brighten and fade — a soft sparkle field */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cg fill='%23fff'%3E%3Cpath d='M77.5 0.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.67'/%3E%3Cpath d='M142.5 0.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.32'/%3E%3Cpath d='M7.5 5.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.36'/%3E%3Cpath d='M37.5 5.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.76'/%3E%3Cpath d='M152.5 5.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.38'/%3E%3Cpath d='M22.5 15.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.65'/%3E%3Cpath d='M47.5 15.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.49'/%3E%3Cpath d='M107.5 15.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.15'/%3E%3Cpath d='M132.5 15.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.41'/%3E%3Cpath d='M37.5 20.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.76'/%3E%3Cpath d='M2.5 25.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.84'/%3E%3Cpath d='M27.5 25.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.98'/%3E%3Cpath d='M77.5 30.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.06'/%3E%3Cpath d='M62.5 35.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.06'/%3E%3Cpath d='M112.5 35.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.98'/%3E%3Cpath d='M92.5 40.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.41'/%3E%3Cpath d='M127.5 40.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.91'/%3E%3Cpath d='M32.5 45.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.98'/%3E%3Cpath d='M37.5 45.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.84'/%3E%3Cpath d='M52.5 45.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.26'/%3E%3Cpath d='M57.5 45.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.11'/%3E%3Cpath d='M67.5 45.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.06'/%3E%3Cpath d='M97.5 45.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.67'/%3E%3Cpath d='M67.5 50.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.06'/%3E%3Cpath d='M127.5 50.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.86'/%3E%3Cpath d='M62.5 55.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.06'/%3E%3Cpath d='M67.5 55.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.06'/%3E%3Cpath d='M167.5 55.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.06'/%3E%3Cpath d='M177.5 55.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.25'/%3E%3Cpath d='M67.5 60.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.06'/%3E%3Cpath d='M157.5 60.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.1'/%3E%3Cpath d='M47.5 65.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.33'/%3E%3Cpath d='M57.5 65.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.07'/%3E%3Cpath d='M77.5 65.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.26'/%3E%3Cpath d='M87.5 65.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.56'/%3E%3Cpath d='M127.5 65.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.84'/%3E%3Cpath d='M12.5 70.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.49'/%3E%3Cpath d='M127.5 70.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.8'/%3E%3Cpath d='M92.5 75.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.54'/%3E%3Cpath d='M132.5 75.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.81'/%3E%3Cpath d='M42.5 80.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.57'/%3E%3Cpath d='M27.5 90.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.68'/%3E%3Cpath d='M107.5 90.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.06'/%3E%3Cpath d='M2.5 95.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.41'/%3E%3Cpath d='M147.5 95.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.62'/%3E%3Cpath d='M2.5 100.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.24'/%3E%3Cpath d='M172.5 100.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.61'/%3E%3Cpath d='M7.5 105.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.06'/%3E%3Cpath d='M87.5 105.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.89'/%3E%3Cpath d='M102.5 105.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.44'/%3E%3Cpath d='M177.5 105.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.35'/%3E%3Cpath d='M42.5 110.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.98'/%3E%3Cpath d='M97.5 110.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.8'/%3E%3Cpath d='M152.5 110.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.41'/%3E%3Cpath d='M82.5 125.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.95'/%3E%3Cpath d='M117.5 125.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.1'/%3E%3Cpath d='M127.5 125.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.06'/%3E%3Cpath d='M32.5 130.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.6'/%3E%3Cpath d='M112.5 130.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.27'/%3E%3Cpath d='M117.5 130.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.06'/%3E%3Cpath d='M142.5 135.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.69'/%3E%3Cpath d='M147.5 135.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.69'/%3E%3Cpath d='M162.5 135.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.98'/%3E%3Cpath d='M172.5 135.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.9'/%3E%3Cpath d='M87.5 145.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.43'/%3E%3Cpath d='M122.5 145.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.4'/%3E%3Cpath d='M147.5 145.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.98'/%3E%3Cpath d='M127.5 150.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.81'/%3E%3Cpath d='M2.5 155.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.81'/%3E%3Cpath d='M132.5 155.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.97'/%3E%3Cpath d='M37.5 160.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.42'/%3E%3Cpath d='M57.5 160.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.18'/%3E%3Cpath d='M87.5 160.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.5'/%3E%3Cpath d='M127.5 165.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.98'/%3E%3Cpath d='M137.5 165.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.97'/%3E%3Cpath d='M162.5 165.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.95'/%3E%3Cpath d='M32.5 170.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.62'/%3E%3Cpath d='M52.5 170.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.42'/%3E%3Cpath d='M177.5 170.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.7'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 180px 180px;
+  mix-blend-mode: screen;
+  animation: bw-cmp-glisten 5s var(--ease-in-out) infinite;
+}
+.bw-v4 .bw-cmp-bg::after,
+.bw-v4 .bw-sparkle-field::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cg fill='%23fff'%3E%3Cpath d='M57.5 0.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.71'/%3E%3Cpath d='M72.5 0.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.98'/%3E%3Cpath d='M82.5 0.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.98'/%3E%3Cpath d='M162.5 0.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.31'/%3E%3Cpath d='M7.5 5.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.24'/%3E%3Cpath d='M12.5 5.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.19'/%3E%3Cpath d='M72.5 5.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.98'/%3E%3Cpath d='M112.5 5.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.41'/%3E%3Cpath d='M117.5 5.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.31'/%3E%3Cpath d='M167.5 5.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.16'/%3E%3Cpath d='M82.5 10.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.98'/%3E%3Cpath d='M122.5 10.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.47'/%3E%3Cpath d='M122.5 15.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.65'/%3E%3Cpath d='M62.5 20.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.98'/%3E%3Cpath d='M2.5 25.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.18'/%3E%3Cpath d='M32.5 25.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.53'/%3E%3Cpath d='M67.5 25.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.98'/%3E%3Cpath d='M192.5 25.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.41'/%3E%3Cpath d='M122.5 30.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.9'/%3E%3Cpath d='M172.5 30.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.45'/%3E%3Cpath d='M7.5 35.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.21'/%3E%3Cpath d='M57.5 35.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.87'/%3E%3Cpath d='M97.5 35.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.98'/%3E%3Cpath d='M127.5 40.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.84'/%3E%3Cpath d='M167.5 40.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.41'/%3E%3Cpath d='M182.5 40.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.74'/%3E%3Cpath d='M22.5 50.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.33'/%3E%3Cpath d='M57.5 50.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.39'/%3E%3Cpath d='M52.5 55.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.33'/%3E%3Cpath d='M142.5 55.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.64'/%3E%3Cpath d='M197.5 55.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.59'/%3E%3Cpath d='M82.5 60.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.27'/%3E%3Cpath d='M172.5 60.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.26'/%3E%3Cpath d='M42.5 65.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.46'/%3E%3Cpath d='M22.5 70.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.45'/%3E%3Cpath d='M107.5 70.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.06'/%3E%3Cpath d='M157.5 70.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.12'/%3E%3Cpath d='M12.5 75.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.52'/%3E%3Cpath d='M192.5 80.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.32'/%3E%3Cpath d='M117.5 85.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.15'/%3E%3Cpath d='M97.5 90.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.08'/%3E%3Cpath d='M102.5 90.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.29'/%3E%3Cpath d='M17.5 95.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.98'/%3E%3Cpath d='M82.5 95.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.06'/%3E%3Cpath d='M2.5 100.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.5'/%3E%3Cpath d='M107.5 105.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.67'/%3E%3Cpath d='M132.5 105.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.4'/%3E%3Cpath d='M82.5 110.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.17'/%3E%3Cpath d='M92.5 110.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.55'/%3E%3Cpath d='M182.5 110.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.43'/%3E%3Cpath d='M112.5 115.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.89'/%3E%3Cpath d='M132.5 115.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.7'/%3E%3Cpath d='M167.5 115.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.7'/%3E%3Cpath d='M177.5 115.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.44'/%3E%3Cpath d='M52.5 120.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.06'/%3E%3Cpath d='M82.5 120.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.33'/%3E%3Cpath d='M182.5 120.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.39'/%3E%3Cpath d='M12.5 125.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.37'/%3E%3Cpath d='M157.5 125.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.58'/%3E%3Cpath d='M32.5 130.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.12'/%3E%3Cpath d='M42.5 130.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.09'/%3E%3Cpath d='M37.5 135.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.06'/%3E%3Cpath d='M112.5 135.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.57'/%3E%3Cpath d='M162.5 135.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.38'/%3E%3Cpath d='M132.5 140.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.76'/%3E%3Cpath d='M172.5 140.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.16'/%3E%3Cpath d='M12.5 145.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.18'/%3E%3Cpath d='M22.5 145.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.15'/%3E%3Cpath d='M32.5 145.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.08'/%3E%3Cpath d='M47.5 145.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.33'/%3E%3Cpath d='M122.5 145.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.44'/%3E%3Cpath d='M152.5 145.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.59'/%3E%3Cpath d='M182.5 145.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.38'/%3E%3Cpath d='M72.5 150.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.82'/%3E%3Cpath d='M62.5 155.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.79'/%3E%3Cpath d='M132.5 155.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.61'/%3E%3Cpath d='M197.5 155.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.71'/%3E%3Cpath d='M27.5 160.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.53'/%3E%3Cpath d='M67.5 170.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.98'/%3E%3Cpath d='M142.5 175.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.91'/%3E%3Cpath d='M87.5 185.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.98'/%3E%3Cpath d='M62.5 195.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.74'/%3E%3Cpath d='M107.5 195.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.42'/%3E%3Cpath d='M137.5 195.3l2.2 2.2-2.2 2.2-2.2-2.2z' fill-opacity='0.72'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 200px 200px;
+  animation-duration: 9s;
+  animation-delay: -6.5s;
+}
+@keyframes bw-cmp-glisten {
+  0%, 100% {
+    opacity: 0.18;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bw-v4 .bw-cmp-bg::before,
+  .bw-v4 .bw-cmp-bg::after,
+  .bw-v4 .bw-sparkle-field::before,
+  .bw-v4 .bw-sparkle-field::after {
+    animation: none;
+    opacity: 0.32;
+  }
+}
+
+/* ---- top action row (DS button geometry: 46px pill, 15px/600/.02em) ---- */
+.bw-v4 .bw-cmp-back {
+  border: 0;
+  background: none;
+  padding: 8px 4px;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-wide);
+  /* accent, like every other screen's back link (Conversation, ReplyFlow…) */
+  color: var(--accent);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+.bw-v4 .bw-cmp-back:hover {
+  opacity: 0.72;
+}
+.bw-v4 .bw-cmp-back:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-shadow);
+}
+/* "Save as New Draft" renders as the DS Button variant="outline" (styles ship
+   with the bundle), with the line-set star icon. */
+/* round help button — replays the onboarding tour (wrapped in a DS Tooltip);
+   surfaced like the frosted glass panels (.bw-cmp-panel) */
+.bw-v4 .bw-cmp-help {
+  /* matches the "Save as New Draft" button height (40px); icon stays 24px */
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  background: rgba(253, 254, 255, 0.5);
+  backdrop-filter: blur(18px) saturate(1.5);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-out),
+              transform var(--dur-base) var(--ease-spring),
+              box-shadow var(--dur-fast) var(--ease-out);
+}
+.bw-v4 .bw-cmp-help img {
+  width: 24px;
+  height: 24px;
+  display: block;
+}
+.bw-v4 .bw-cmp-help:hover {
+  border-color: var(--peri-400);
+  box-shadow: var(--shadow-sm);
+}
+.bw-v4 .bw-cmp-help:active {
+  transform: translateY(0.5px) scale(0.96);
+  box-shadow: var(--inset-press);
+}
+.bw-v4 .bw-cmp-help:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-shadow);
+}
+/* "Review & Send" — the DS Button variant="gradient" spec, verbatim from the
+   Forms.html bundle (Button.jsx): aurora sweep resting on the cool blue→lilac
+   end (background-position 0 0), hover slides the fill to the warm end with a
+   spark glow and the base .bw-btn lift/press. */
+.bw-v4 .bw-cmp-send {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 40px;
+  padding: 0 var(--space-5);
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-pill);
+  background-image: var(--grad-aurora);
+  background-repeat: no-repeat;
+  background-origin: border-box;
+  background-clip: border-box;
+  background-size: 220% 100%;
+  background-position: 0 0;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-wide);
+  color: var(--paper-0);
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: var(--shadow-md);
+  transition: background-position var(--dur-slow) var(--ease-out),
+              transform var(--dur-base) var(--ease-spring),
+              box-shadow var(--dur-base) var(--ease-out);
+}
+.bw-v4 .bw-cmp-send:hover {
+  background-position: 100% 0;
+  box-shadow: var(--glow-spark);
+  transform: translateY(-1.5px);
+}
+.bw-v4 .bw-cmp-send:active {
+  transform: translateY(0.5px) scale(0.97);
+  transition-duration: var(--dur-fast);
+}
+.bw-v4 .bw-cmp-send:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-shadow);
+}
+
+/* ---- translucent panels (right-rail cards; the draft wrapper is now
+   rendered by DS2.DraftPanel with the same glass treatment) ---- */
+.bw-v4 .bw-cmp-panel {
+  background-color: rgba(252, 253, 255, 0.44);
+  /* pre-baked specular shade stretched over the tint for a more vivid glass
+     read (white-on-transparent PNG; sits under the content, over the blur) */
+  background-image: url('/ds-v4/assets/glass-shade.png');
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: var(--radius-lg);
+  /* top inner highlight = light catching the pane's upper edge */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), var(--shadow-md);
+  /* heavier blur + saturation so the gradient hues pop through the pane */
+  backdrop-filter: blur(12px) saturate(1.25);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  /* slim inline/bottom padding so inner cards run close to the glass edge */
+  padding: 20px 16px 16px;
+}
+.bw-v4 .bw-cmp-panel-h2 {
+  font-family: var(--font-display);
+  font-variation-settings: var(--display-soft);
+  font-weight: var(--weight-medium);
+  font-size: var(--text-md);
+  line-height: var(--leading-snug);
+  color: var(--ink-800);
+  margin: 0;
+}
+
+/* ---- white letter sheet — rendered by DS2.DraftPanel. Only app-specific
+   override: no bottom padding, so the embedded toolbar (.bw-cmp-tools)
+   sits flush with the sheet's bottom edge. ---- */
+.bw-v4 .bw-draftpanel-letter {
+  padding-bottom: 0;
+}
+
+.bw-v4 .bw-cmp-body {
+  position: relative;
+  /* own stacking context so the rewrite overlay's z:-1 rects paint above the
+     letter's white ground but under the text */
+  isolation: isolate;
+  min-height: 300px;
+  max-height: 54vh;
+  overflow-y: auto;
+  padding: 4px 18px 24px 2px;
+  margin-right: -24px;
+  transition: opacity 0.25s var(--ease-out);
+}
+.bw-v4 .bw-cmp-body::-webkit-scrollbar {
+  width: 8px;
+}
+.bw-v4 .bw-cmp-body::-webkit-scrollbar-thumb {
+  background: var(--sand-2);
+  border-radius: 999px;
+}
+.bw-v4 .bw-cmp-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.bw-v4 .bw-cmp-body p {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-loose);
+  color: var(--text-body);
+  border-radius: var(--radius-xs);
+  transition: background 0.8s var(--ease-out);
+}
+.bw-v4 .bw-cmp-img {
+  display: block;
+  max-width: 78%;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-hair);
+  box-shadow: var(--shadow-xs);
+}
+/* inserted-image hover controls — the wrapper carries the resize width
+   (inline max-width from the marker's |w= suffix) */
+.bw-v4 .bw-cmp-imgwrap {
+  position: relative;
+  display: inline-block;
+  max-width: 78%;
+}
+.bw-v4 .bw-cmp-imgwrap .bw-cmp-img {
+  max-width: 100%;
+}
+.bw-v4 .bw-cmp-imgtools {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.15s var(--ease-out);
+}
+.bw-v4 .bw-cmp-imgwrap:hover .bw-cmp-imgtools,
+.bw-v4 .bw-cmp-imgtools:focus-within {
+  opacity: 1;
+}
+.bw-v4 .bw-cmp-imgtools button {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--border-hair);
+  background: var(--paper-0);
+  color: var(--ink-700);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+.bw-v4 .bw-cmp-imgtools button:hover:not(:disabled) {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.bw-v4 .bw-cmp-imgtools button.is-remove:hover:not(:disabled) {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.bw-v4 .bw-cmp-imgtools button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.bw-v4 .bw-cmp-sig {
+  margin-top: 4px;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-loose);
+  color: var(--text-body);
+}
+
+/* tool-mode cursors — the glyph assets ride along as the pointer */
+.bw-v4 .bw-cmp-body--edit {
+  cursor: url('/ds-v4/assets/glyphs/edit-text-glyph.svg') 12 14, text;
+}
+.bw-v4 .bw-cmp-body--edit p::selection,
+.bw-v4 .bw-cmp-body--edit .bw-cmp-sig::selection {
+  background: #10b981;
+  color: #fff;
+}
+/* rewrite popup's captured range (CSS Custom Highlight API) — turns the text
+   white only; the green ground is drawn by the Composer's overlay rects at
+   full line pitch, since ::highlight boxes only the font (thin strips) while
+   native ::selection fills whole line boxes */
+.bw-v4 .bw-cmp-body p::highlight(bw-rewrite) {
+  background: transparent;
+  color: #fff;
+}
+.bw-v4 .bw-cmp-body--insert {
+  cursor: url('/ds-v4/assets/glyphs/insert-text-glyph.svg') 6 24, copy;
+}
+.bw-v4 .bw-cmp-body--image {
+  cursor: default;
+}
+
+/* ---- paragraph gaps — hover targets for the insert tools ---- */
+.bw-v4 .bw-cmp-gap {
+  position: relative;
+  height: 22px;
+}
+.bw-v4 .bw-cmp-body--edit .bw-cmp-gap {
+  pointer-events: none;
+}
+.bw-v4 .bw-cmp-gapline {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 50%;
+  height: 5px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: var(--blue-600);
+  opacity: 0;
+  transition: opacity 0.15s var(--ease-out);
+  pointer-events: none;
+}
+/* image mode keeps room on the right for the round insert-image chip;
+   the line matches the image tool's active lilac */
+.bw-v4 .bw-cmp-body--image .bw-cmp-gapline {
+  right: 50px;
+  background: var(--lilac-600);
+}
+.bw-v4 .bw-cmp-gapchip {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid var(--border-hair);
+  box-shadow: var(--shadow-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s var(--ease-out);
+  pointer-events: none;
+}
+.bw-v4 .bw-cmp-gapchip img {
+  width: 26px;
+  height: 26px;
+}
+.bw-v4 .bw-cmp-body--insert .bw-cmp-gap:hover .bw-cmp-gapline,
+.bw-v4 .bw-cmp-body--image .bw-cmp-gap:hover .bw-cmp-gapline,
+.bw-v4 .bw-cmp-gap.is-active .bw-cmp-gapline,
+.bw-v4 .bw-cmp-body--image .bw-cmp-gap:hover .bw-cmp-gapchip {
+  opacity: 1;
+}
+
+/* sentence-boundary caret (insert mode) */
+.bw-v4 .bw-cmp-caret {
+  position: absolute;
+  width: 5px;
+  border-radius: 3px;
+  background: var(--blue-600);
+  box-shadow: 0 1px 4px rgba(63, 90, 224, 0.4);
+  pointer-events: none;
+  z-index: 30;
+}
+
+/* ---- letter toolbar ---- */
+.bw-v4 .bw-cmp-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid var(--border-hair);
+  margin: 0 -40px;
+  padding: 12px 16px;
+  background: var(--paper-1);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+.bw-v4 .bw-cmp-tool {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+.bw-v4 .bw-cmp-tool img {
+  width: 40px;
+  height: 40px;
+  display: block;
+}
+.bw-v4 .bw-cmp-tool:hover {
+  background: var(--paper-2);
+}
+.bw-v4 .bw-cmp-tool.is-active {
+  box-shadow: var(--shadow-sm);
+}
+.bw-v4 .bw-cmp-tool.is-active img {
+  filter: brightness(0) invert(1);
+}
+.bw-v4 .bw-cmp-tool--edit.is-active {
+  background: #10b981;
+}
+.bw-v4 .bw-cmp-tool--insert.is-active {
+  background: #2b45d4;
+}
+.bw-v4 .bw-cmp-tool--image.is-active {
+  background: var(--lilac-600);
+}
+
+.bw-v4 .bw-cmp-mini {
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink-700);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out);
+}
+.bw-v4 .bw-cmp-mini:hover {
+  background: var(--paper-2);
+}
+.bw-v4 .bw-cmp-mini:disabled {
+  opacity: 0.35;
+  cursor: default;
+  background: transparent;
+}
+
+.bw-v4 .bw-cmp-addbtn {
+  height: 44px;
+  padding: 0 20px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-soft);
+  background: var(--paper-0);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-sm);
+  color: var(--ink-800);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+.bw-v4 .bw-cmp-addbtn:hover {
+  border-color: var(--peri-400);
+  box-shadow: var(--shadow-sm);
+}
+
+/* "Add something else" panel — a white card below the letter sheet, inside
+   the frosted draft panel: three draft-anchored suggestions plus a free-form
+   ask ("Or describe your own") that writes a passage into the best spot */
+.bw-v4 .bw-cmp-addpanel {
+  margin-top: 16px;
+  background: var(--paper-0);
+  border: 1px solid var(--border-hair);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: 16px;
+  animation: adv-up 0.25s var(--ease-out);
+}
+.bw-v4 .bw-cmp-addsug {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--paper-1);
+  border: 1px solid var(--border-hair);
+  border-radius: var(--radius-sm);
+  padding: 11px 13px;
+  cursor: pointer;
+  transition: border-color 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+}
+.bw-v4 .bw-cmp-addsug + .bw-cmp-addsug {
+  margin-top: 8px;
+}
+.bw-v4 .bw-cmp-addsug:hover {
+  border-color: var(--peri-400);
+  box-shadow: var(--shadow-xs);
+}
+
+/* ---- inline popups (rewrite + insert) ---- */
+.bw-v4 .bw-cmp-pop {
+  position: absolute;
+  transform: translateX(-50%);
+  z-index: 50;
+  width: 362px; /* fits Soften/Firmer/Shorter/Add Detail chips on one line */
+  background: var(--paper-0);
+  border: 1px solid var(--border-hair);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: 16px;
+  animation: adv-up 0.22s var(--ease-out);
+}
+.bw-v4 .bw-cmp-pop-quote {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: #0e9f6e;
+  margin-bottom: 12px;
+}
+.bw-v4 .bw-cmp-pop-kicker {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+.bw-v4 .bw-cmp-pop-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.bw-v4 .bw-cmp-chip {
+  border: 1px solid var(--border-soft);
+  background: var(--paper-0);
+  color: var(--ink-700);
+  border-radius: var(--radius-pill);
+  padding: 7px 14px;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+.bw-v4 .bw-cmp-chip:hover:not(:disabled) {
+  border-color: var(--blue-600);
+  color: var(--blue-600);
+  background: var(--peri-100);
+}
+.bw-v4 .bw-cmp-chip:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.bw-v4 .bw-cmp-pop-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.bw-v4 .bw-cmp-pop-input {
+  flex: 1;
+  min-width: 0;
+  height: 44px; /* matches .bw-cmp-addbtn */
+  background: var(--paper-1);
+  border: 1px solid var(--border-hair);
+  border-radius: var(--radius-sm);
+  padding: 0 12px;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--ink-800);
+  outline: none;
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+.bw-v4 .bw-cmp-pop-input:focus {
+  border-color: var(--accent);
+  box-shadow: var(--focus-shadow);
+}
+.bw-v4 .bw-cmp-pop-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 44px; /* matches .bw-cmp-addbtn */
+  border: 0;
+  background: var(--peri-300);
+  color: var(--ink-800);
+  border-radius: var(--radius-pill);
+  padding: 0 18px;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-wide);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.bw-v4 .bw-cmp-pop-btn:hover:not(:disabled) {
+  background: var(--peri-400);
+}
+.bw-v4 .bw-cmp-pop-btn--blue {
+  background: var(--blue-600);
+  color: #fff;
+}
+.bw-v4 .bw-cmp-pop-btn--blue:hover:not(:disabled) {
+  background: var(--blue-500);
+}
+.bw-v4 .bw-cmp-pop-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+/* text action beside the "describe a change / describe your own" inputs —
+   soft-IconButton palette (accent on accent-soft), pop-btn shape */
+.bw-v4 .bw-cmp-pop-txtbtn {
+  display: inline-flex;
+  align-items: center;
+  height: 44px; /* matches .bw-cmp-addbtn */
+  border: 0;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: var(--radius-pill);
+  padding: 0 18px;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-wide);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.bw-v4 .bw-cmp-pop-txtbtn:hover:not(:disabled) {
+  background: var(--peri-200);
+}
+.bw-v4 .bw-cmp-pop-txtbtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.bw-v4 .bw-cmp-pop-hint {
+  margin-top: 9px;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 13px;
+  color: var(--text-faint);
+}
+
+/* ---- right rail: tuning sliders ---- */
+.bw-v4 .bw-cmp-round {
+  width: var(--control-h-sm);
+  height: var(--control-h-sm);
+  border-radius: 50%;
+  border: 1.5px solid var(--border-soft);
+  background: rgba(255, 253, 248, 0.85);
+  color: var(--ink-700);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out),
+              transform var(--dur-base) var(--ease-spring),
+              opacity var(--dur-fast) var(--ease-out);
+}
+.bw-v4 .bw-cmp-round:hover:not(:disabled) {
+  background: #fff;
+}
+.bw-v4 .bw-cmp-round:active:not(:disabled) {
+  transform: scale(0.94);
+}
+.bw-v4 .bw-cmp-round:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-shadow);
+}
+.bw-v4 .bw-cmp-round:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Slider per the Forms spec: 8px pill track (--accent fill / --bg-sunken rest,
+   painted inline in Composer.jsx), 22px --paper-0 thumb with a 2px --accent
+   border and --shadow-sm, grab cursor, springy press. */
+.bw-v4 .bw-cmp-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  outline: none;
+  cursor: pointer;
+  margin: 10px 0 6px;
+}
+.bw-v4 .bw-cmp-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--paper-0);
+  border: 2px solid var(--accent);
+  box-shadow: var(--shadow-sm);
+  cursor: grab;
+  transition: transform var(--dur-base) var(--ease-spring);
+}
+.bw-v4 .bw-cmp-range::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.08);
+}
+.bw-v4 .bw-cmp-range:focus-visible::-webkit-slider-thumb {
+  box-shadow: var(--focus-shadow);
+}
+.bw-v4 .bw-cmp-range::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--paper-0);
+  border: 2px solid var(--accent);
+  box-shadow: var(--shadow-sm);
+  cursor: grab;
+}
+.bw-v4 .bw-cmp-range:focus-visible::-moz-range-thumb {
+  box-shadow: var(--focus-shadow);
+}
+
+/* ---- right rail: evaluation ---- */
+.bw-v4 .bw-cmp-inner {
+  background: var(--paper-0);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+  padding: 16px;
+}
+.bw-v4 .bw-cmp-inner + .bw-cmp-inner {
+  margin-top: 12px;
+}
+/* .t-label metrics (12px · 600 · 0.12em · uppercase) */
+.bw-v4 .bw-cmp-eval-label {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.bw-v4 .bw-cmp-eval-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.bw-v4 .bw-cmp-eval-list li {
+  position: relative;
+  padding-left: 15px;
+  font-family: var(--font-serif);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--text-body);
+  margin-bottom: 4px;
+}
+.bw-v4 .bw-cmp-eval-list li::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 0.62em;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--ink-500);
+}
+
+/* ---- responsive (grid collapse handled by v4.css .bw-composer rules) ---- */
+@media (max-width: 768px) {
+  .bw-v4 .bw-draftpanel-letter {
+    padding: 22px 22px 0;
+  }
+  .bw-v4 .bw-cmp-tools {
+    margin: 0 -22px;
+    flex-wrap: wrap;
+  }
+  .bw-v4 .bw-cmp-top-actions {
+    flex-wrap: wrap;
+  }
+}
+
+/* ============================================================
+   Composer v2 (Figma 449:1945 / 449:3569 / 449:3223)
+   Glass toolbar · white sheet · glass action bar with pill tabs
+   ============================================================ */
+
+.bw-v4 .bw-cmp2-tool {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--ink-600);
+  transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out);
+}
+.bw-v4 .bw-cmp2-tool:hover {
+  background: rgba(21, 18, 62, 0.05);
+}
+/* engaged tool — the frame's mint-filled chip (449:6223): #10B981 is the
+   same green the edit tool paints selections with */
+.bw-v4 .bw-cmp2-tool.is-active {
+  color: #fff;
+  box-shadow: 0 2px 5px rgba(21, 18, 62, 0.07), 0 18px 44px rgba(21, 18, 62, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+/* per-tool fills — same trio as the v3 composer */
+.bw-v4 .bw-cmp2-tool--edit.is-active {
+  background: #10b981;
+}
+.bw-v4 .bw-cmp2-tool--insert.is-active {
+  background: #2b45d4;
+}
+.bw-v4 .bw-cmp2-tool--image.is-active {
+  background: var(--lilac-600);
+}
+.bw-v4 .bw-cmp2-glyph {
+  width: 24px;
+  height: 24px;
+  background-color: currentColor;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+.bw-v4 .bw-cmp2-mini {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50px;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--ink-600);
+  transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out);
+}
+.bw-v4 .bw-cmp2-mini:hover:not(:disabled) {
+  background: rgba(21, 18, 62, 0.05);
+  color: var(--accent);
+}
+.bw-v4 .bw-cmp2-mini:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* the white letter sheet — now the top of the card (449:5132) */
+.bw-v4 .bw-cmp2-sheet {
+  position: relative;
+  /* above the glass bar and neighboring columns, so the rewrite/insert
+     popups overflow freely; only the sticky header (z 50) outranks it */
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  /* tall enough for the letter, shrinking (body scrolls) only when the
+     card hits the evaluation-rail cap set in Composer.jsx */
+  flex: 0 1 auto;
+  min-height: 360px;
+  background: #fff;
+  border-radius: 22px;
+  filter: drop-shadow(0 4px 5px rgba(21, 18, 62, 0.06));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+/* the sheet's letter voice (Figma: Hanken light 14 / line 2) */
+.bw-v4 .bw-cmp2-body {
+  padding: 16px 28px 8px 20px;
+  /* still scrolls, but without a visible scrollbar */
+  scrollbar-width: none;
+}
+.bw-v4 .bw-cmp2-body::-webkit-scrollbar {
+  display: none;
+  width: 0;
+}
+.bw-v4 .bw-cmp2-body p {
+  font-family: var(--font-sans);
+  font-weight: 300;
+  font-size: 14px;
+  line-height: 2;
+  color: var(--ink-900);
+}
+.bw-v4 .bw-cmp2-body .bw-cmp-sig {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 2;
+  color: var(--ink-900);
+}
+
+/* "Add Something Else" open — the letter is just being read: default cursor */
+.bw-v4 .bw-cmp2-body--quiet,
+.bw-v4 .bw-cmp2-body--quiet * {
+  cursor: default;
+}
+
+/* tune mode (a tone/length tray is open, Figma 449:4774/6234): the magic
+   cursor over the letter, the whole text reading as selected by default —
+   peri-300 bars behind the words, text color untouched */
+.bw-v4 .bw-cmp2-body--tune,
+.bw-v4 .bw-cmp2-body--tune p,
+.bw-v4 .bw-cmp2-body--tune .bw-cmp-sig {
+  cursor: url('/ds-v4/assets/glyphs/cursor-magic.svg') 16 18, text;
+}
+.bw-v4 .bw-cmp2-hl {
+  background: var(--peri-300);
+  padding: 3px 4px;
+  margin: -3px -4px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+/* narrowing the adjustment by dragging: the native selection paints in the
+   same peri-300, and the letter ink stays ink */
+.bw-v4 .bw-cmp2-body--tune p::selection,
+.bw-v4 .bw-cmp2-body--tune .bw-cmp-sig::selection,
+.bw-v4 .bw-cmp2-body--tune span::selection {
+  background: var(--peri-300);
+  color: var(--ink-900);
+}
+
+/* glass action bar under the sheet — its own rounded card in the recap
+   rail's exact frost (shared .bw-recap-frost: rgba(252,253,255,.52) fill,
+   white hairline, blur), a hairline's breadth below the sheet */
+.bw-v4 .bw-cmp2-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  margin-top: 1px;
+  border-radius: 22px;
+}
+.bw-v4 .bw-cmp2-pill {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 48px;
+  border: 1px solid transparent;
+  border-radius: 99px;
+  background: #fff;
+  filter: drop-shadow(0 2px 2.5px rgba(21, 18, 62, 0.07));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: background 0.15s var(--ease-out), border-color 0.15s var(--ease-out),
+    transform 0.2s var(--ease-spring);
+}
+.bw-v4 .bw-cmp2-pill:hover {
+  transform: translateY(-1px);
+}
+.bw-v4 .bw-cmp2-pill:active {
+  transform: scale(0.98);
+}
+.bw-v4 .bw-cmp2-pill.is-active {
+  background: var(--peri-100);
+  border-color: var(--accent);
+}
+.bw-v4 .bw-cmp2-pill-art {
+  height: 25px;
+  width: 42px;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: flex-start;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.bw-v4 .bw-cmp2-pill-art img {
+  height: 30px;
+  width: auto;
+  object-fit: cover;
+  object-position: top;
+}
+.bw-v4 .bw-cmp2-pill-label {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: 10px;
+  letter-spacing: 0.1px;
+  text-transform: uppercase;
+  color: var(--ink-500);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bw-v4 .bw-cmp2-pill.is-active .bw-cmp2-pill-label {
+  color: var(--accent);
+}
+
+/* expanded trays (tone / length / add-something-else) */
+.bw-v4 .bw-cmp2-tray {
+  background: #fff;
+  border-radius: 20px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  animation: bw-rise var(--dur-base) var(--ease-out) both;
+}
+.bw-v4 .bw-cmp2-traybtn {
+  height: 36px;
+  padding: 0 15px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  color: var(--accent);
+  cursor: pointer;
+  transition: background 0.15s var(--ease-out), filter 0.15s var(--ease-out);
+}
+.bw-v4 .bw-cmp2-traybtn:hover:not(:disabled) {
+  background: rgba(21, 18, 62, 0.04);
+}
+.bw-v4 .bw-cmp2-traybtn.is-done {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--paper-0);
+  filter: drop-shadow(0 2px 2px rgba(28, 23, 70, 0.06));
+}
+.bw-v4 .bw-cmp2-traybtn.is-done:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.bw-v4 .bw-cmp2-traybtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* tray slider — sunken paper track, gradient fill, ringed white thumb */
+.bw-v4 .bw-cmp2-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 12px;
+  margin: 4px 0 6px;
+  background-image: linear-gradient(to right, transparent var(--pct), var(--paper-2) var(--pct)), var(--fill);
+  box-shadow: 0 1px 4px rgba(21, 18, 62, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  outline: none;
+  cursor: pointer;
+}
+.bw-v4 .bw-cmp2-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 12px;
+  background: #fffdf7;
+  border: 2px solid var(--thumb, #3d52d6);
+  box-shadow: 0 2px 5px rgba(21, 18, 62, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+}
+.bw-v4 .bw-cmp2-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 12px;
+  background: #fffdf7;
+  border: 2px solid var(--thumb, #3d52d6);
+  box-shadow: 0 2px 5px rgba(21, 18, 62, 0.1);
+  cursor: pointer;
+}
+.bw-v4 .bw-cmp2-range:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* right-rail evaluation cards */
+.bw-v4 .bw-cmp2-card {
+  background: #fff;
+  border-radius: 22px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  filter: drop-shadow(0 4px 5px rgba(28, 23, 70, 0.06));
+}
+.bw-v4 .bw-cmp2-card-h2 {
+  font-family: var(--font-display);
+  font-variation-settings: 'SOFT' 0, 'WONK' 1;
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 20px;
+  color: var(--ink-900);
+  margin: 0;
+}
+.bw-v4 .bw-cmp2-eval-kicker {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.bw-v4 .bw-cmp2-evalchip {
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+/* stack the three columns when the viewport can't fit them */
+@media (max-width: 1080px) {
+  .bw-v4 .bw-composer {
+    flex-wrap: wrap !important;
+  }
+  .bw-v4 .bw-composer > div:first-child {
+    width: 100% !important;
+  }
+  .bw-v4 .bw-composer-rail {
+    width: 100% !important;
+    padding-top: 0 !important;
+  }
+}
+
+/* ==================================================================== */
+/* v4 composer — Figma section 660:2835 (contexts open) / 668:3326      */
+/* (hidden) / 636:6296 tone tray / 659:2466 length tray / 636:6685      */
+/* edit popup. White header band over the full-bleed pastel image       */
+/* ground; 300/700/300 columns with 6px gaps; 48px round tool buttons.  */
+/* ==================================================================== */
+
+/* ---- header band (660:2915): white, hairline + soft shadow --------- */
+.bw-v4 .bw-cmp4-header {
+  position: relative;
+  background: #fff;
+  border-bottom: 1px solid #f3ece0;
+  box-shadow: 0 2px 4px rgba(28, 23, 70, 0.06);
+  min-height: 170px;
+  box-sizing: border-box;
+  padding: 20px 15px;
+  z-index: 40;
+}
+/* the shared column grid: header content and the content row center the
+   same three tracks, so the badges and To:/RE: block sit flush with the
+   letter card's left edge while the card stays centered on the screen.
+   The side tracks share one minmax so they give up width in lockstep —
+   keeping the card dead-center — before the card narrows from 700. */
+.bw-v4 .bw-cmp4-cols {
+  display: grid;
+  grid-template-columns: minmax(200px, 300px) minmax(420px, 700px) minmax(200px, 300px);
+  column-gap: 6px;
+  justify-content: center;
+}
+/* the action pills anchor to the window's top-right, outside the grid */
+.bw-v4 .bw-cmp4-actions {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 1;
+  filter: drop-shadow(0 4px 5px rgba(28, 23, 70, 0.03)) drop-shadow(0 1px 2px rgba(28, 23, 70, 0.06));
+}
+/* the reusable header pill button (Back / Save as New Draft / help) */
+.bw-v4 .bw-cmp4-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  border: 0.5px solid #eee5d5;
+  border-radius: 25px;
+  padding: 12px 16px;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 14px;
+  letter-spacing: 0.26px;
+  color: #272159;
+  cursor: pointer;
+  filter: drop-shadow(0 4px 5px rgba(28, 23, 70, 0.03)) drop-shadow(0 1px 2px rgba(28, 23, 70, 0.06));
+  white-space: nowrap;
+}
+.bw-v4 .bw-cmp4-pill:hover {
+  background: #fcf7ef;
+}
+.bw-v4 .bw-cmp4-pill--primary {
+  background: #3f5ae0;
+  border: 0;
+  color: #fffdf9;
+  letter-spacing: 0.3px;
+  padding: 10px 16px;
+}
+.bw-v4 .bw-cmp4-pill--primary:hover {
+  background: #3550cc;
+}
+.bw-v4 .bw-cmp4-pill--back {
+  gap: 9px;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: #3a3473;
+  box-shadow: 0 4px 10px rgba(28, 23, 70, 0.03), 0 1px 4px rgba(28, 23, 70, 0.06);
+  filter: none;
+}
+.bw-v4 .bw-cmp4-pill--icon {
+  width: 44px;
+  height: 44px;
+  padding: 0 6px;
+  justify-content: center;
+  box-sizing: border-box;
+}
+/* badges row (660:2922) */
+.bw-v4 .bw-cmp4-badges {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.bw-v4 .bw-cmp4-option {
+  background: #e5ebfd;
+  border-radius: 20px;
+  padding: 6px 10px;
+  box-shadow: 0 2px 4px rgba(28, 23, 70, 0.06);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 1.2;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #3a356e;
+  white-space: nowrap;
+  max-width: 340px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bw-v4 .bw-cmp4-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #fff;
+  border-radius: 999px;
+  padding: 6px 10px;
+  filter: drop-shadow(0 2px 2px rgba(28, 23, 70, 0.06));
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 1.2;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #3f5ae0;
+  white-space: nowrap;
+}
+.bw-v4 .bw-cmp4-grad-text {
+  font-weight: 700;
+  background-image: linear-gradient(90deg, #ee8654 0%, #f4a278 20.7%, #f27a66 37.5%, #c48cc0 55.8%, #a688e4 75%, #8aa8ef 87.5%, #5c7beb 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+/* To: / RE: block (660:2953) */
+.bw-v4 .bw-cmp4-toline {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 18px;
+  letter-spacing: 0.09px;
+  color: #3a356e;
+}
+.bw-v4 .bw-cmp4-subject {
+  margin: 8px 0 0;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 28px;
+  letter-spacing: 0.14px;
+  color: #15123e;
+}
+/* gradient-ring avatar (660:2970) */
+.bw-v4 .bw-cmp4-avatar-ring {
+  width: 44px;
+  height: 44px;
+  border-radius: 50px;
+  box-sizing: border-box;
+  display: inline-flex;
+  padding: 4px;
+  border: 0;
+  cursor: pointer;
+  background:
+    linear-gradient(93deg, rgba(245, 198, 89, 0.5) 42%, rgba(242, 122, 102, 0.5) 61%, rgba(166, 136, 228, 0.5) 80%, rgba(92, 123, 235, 0.5) 99%),
+    #fbf7ef;
+  filter: drop-shadow(0 2px 2px rgba(28, 23, 70, 0.06));
+}
+.bw-v4 .bw-cmp4-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #3f5ae0;
+  color: #fff;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 19px;
+  line-height: 36px;
+  text-align: center;
+}
+
+/* ---- content row on the image ground -------------------------------- */
+.bw-v4 .bw-cmp4-ground {
+  flex: 1;
+  width: 100%;
+  min-height: calc(100vh - 170px);
+  background-size: cover;
+  background-position: center;
+  box-sizing: border-box;
+}
+.bw-v4 .bw-cmp4-row {
+  align-items: start;
+  padding: 12px 15px 24px;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+/* ---- left contexts column (660:3041 open / 660:3215 collapsed) ------ */
+.bw-v4 .bw-cmp4-left {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+.bw-v4 .bw-cmp4-left > .bw-cmp4-ctx {
+  align-self: stretch;
+}
+.bw-v4 .bw-cmp4-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 50px;
+  box-sizing: border-box;
+  padding: 10px 20px;
+  background: #fcf7ef;
+  border: 0.5px solid #f3ece0;
+  border-radius: 999px;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 1.2;
+  color: #272159;
+  cursor: pointer;
+  filter: drop-shadow(0 2px 2px rgba(28, 23, 70, 0.06));
+  white-space: nowrap;
+}
+.bw-v4 .bw-cmp4-chip:hover {
+  background: #f6eedf;
+}
+.bw-v4 .bw-cmp4-chip--icon {
+  width: 50px;
+  padding: 13px;
+  justify-content: center;
+  filter: drop-shadow(0 4px 5px rgba(28, 23, 70, 0.06)) drop-shadow(0 2px 2px rgba(28, 23, 70, 0.06));
+}
+.bw-v4 .bw-cmp4-chip img.bw-cmp4-crab {
+  width: 35px;
+  height: 30px;
+  object-fit: contain;
+  filter: drop-shadow(0 7px 24px rgba(28, 23, 70, 0.16));
+}
+/* Context/History cards wear the Drafts page's frosted recap glass
+   (.bw-recap-frost values — keep in sync with v4.css) */
+.bw-v4 .bw-cmp4-ctx {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(252, 253, 255, 0.52);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-xs);
+  border-radius: 25px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bw-v4 .bw-cmp4-ctx-title {
+  padding: 16px 8px;
+  border-bottom: 1px solid rgba(28, 23, 70, 0.08);
+  font-family: var(--font-display);
+  font-variation-settings: 'SOFT' 0, 'WONK' 1;
+  font-weight: 600;
+  font-size: 16px;
+  color: #3a3473;
+}
+.bw-v4 .bw-cmp4-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 8px;
+}
+.bw-v4 .bw-cmp4-field-label {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(28, 23, 70, 0.5);
+}
+.bw-v4 .bw-cmp4-field-value {
+  font-family: var(--font-sans);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 1.35;
+  color: #3f5ae0;
+}
+/* same colors as the Drafts recap card's button: elevated warm white,
+   accent-blue text, --shadow-sm, accent-soft hover */
+.bw-v4 .bw-cmp4-editans {
+  width: 100%;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 13px 16px;
+  background: var(--bg-elevated);
+  border: 0;
+  border-radius: 999px;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 14px;
+  letter-spacing: 0.26px;
+  color: var(--accent);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+.bw-v4 .bw-cmp4-editans:hover {
+  background: var(--accent-soft);
+}
+
+/* ---- the letter card (660:2873) ------------------------------------- */
+.bw-v4 .bw-cmp4-card {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  background: #fffdf9;
+  border: 0.5px solid #f3ece0;
+  border-radius: 25px;
+  box-shadow: 0 1px 4px rgba(28, 23, 70, 0.06);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+/* letter voice 14/24 (660:2874): 40px inset, paragraphs 12 apart */
+.bw-v4 .bw-cmp4-body {
+  flex: 1;
+  min-height: 200px;
+  max-height: none;
+  margin: 0;
+  padding: 40px 40px 16px;
+}
+.bw-v4 .bw-cmp4-body p {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 24px;
+  color: #14103a;
+  margin: 0 0 12px;
+}
+.bw-v4 .bw-cmp4-sig {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 24px;
+  color: #14103a;
+  padding-top: 0;
+}
+/* the bottom block: optional tray row + the tool row (660:2876/636:6335) */
+.bw-v4 .bw-cmp4-dock {
+  flex: none;
+  /* 5.5px + the card's 0.5px border = the design's 6px inset (660:2876) */
+  margin: 0 5.5px 5.5px;
+  background: #fcf7ef;
+  border: 0.5px solid #eee5d5;
+  border-radius: 20px;
+  filter: drop-shadow(0 1px 2px rgba(28, 23, 70, 0.06));
+  display: flex;
+  flex-direction: column;
+}
+.bw-v4 .bw-cmp4-dock--flat {
+  border-radius: 24px;
+}
+/* the tool row wears a uniform 6px inset in every state (660:2876 and
+   659:2309 both put the 48px button groups at x/y 6 in a 60px row), so
+   the buttons never shift when a slider tray opens above them */
+.bw-v4 .bw-cmp4-toolrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px;
+}
+.bw-v4 .bw-cmp4-toolgrp {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+/* the reusable 48px tool button (Figma set 641:7743): edit tools fill
+   with their color when active; critter tools sit on a sand chip */
+.bw-v4 .bw-cmp4-tool {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 20px;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+}
+.bw-v4 .bw-cmp4-tool:hover {
+  background: rgba(28, 23, 70, 0.05);
+}
+.bw-v4 .bw-cmp4-tool.is-active.bw-cmp4-tool--edit {
+  background: #10b981;
+}
+.bw-v4 .bw-cmp4-tool.is-active.bw-cmp4-tool--insert {
+  background: #3f5ae0;
+}
+.bw-v4 .bw-cmp4-tool.is-active.bw-cmp4-tool--image {
+  background: #a688e4;
+}
+.bw-v4 .bw-cmp4-tool.is-active.bw-cmp4-tool--critter {
+  background: #eee5d5;
+}
+.bw-v4 .bw-cmp4-tool img.bw-cmp4-tool-ic {
+  width: 24px;
+  height: 24px;
+}
+.bw-v4 .bw-cmp4-tool img.bw-cmp4-critter-ic {
+  width: 36px;
+  height: auto;
+}
+.bw-v4 .bw-cmp4-flat {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.bw-v4 .bw-cmp4-flat:hover {
+  background: rgba(28, 23, 70, 0.05);
+}
+.bw-v4 .bw-cmp4-flat:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.bw-v4 .bw-cmp4-flat .is-flip {
+  transform: scaleX(-1);
+}
+
+/* ---- trays (659:2268): kicker + value · slider · close -------------- */
+.bw-v4 .bw-cmp4-tray {
+  box-sizing: border-box;
+  min-height: 108px;
+  padding: 24px;
+  border-bottom: 0.5px solid #eee5d5;
+}
+.bw-v4 .bw-cmp4-tray-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 12px 0 24px;
+}
+.bw-v4 .bw-cmp4-tray-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 12px;
+  flex: none;
+}
+.bw-v4 .bw-cmp4-tray-kicker {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 1.2;
+  text-transform: uppercase;
+  color: #5b5493;
+  white-space: nowrap;
+}
+.bw-v4 .bw-cmp4-tray-word {
+  font-family: var(--font-display);
+  font-variation-settings: 'SOFT' 0, 'WONK' 1;
+  font-style: italic;
+  font-size: 20px;
+  line-height: 24px;
+  letter-spacing: 0.2px;
+  color: #2b45d4;
+  white-space: nowrap;
+}
+.bw-v4 .bw-cmp4-slider {
+  position: relative;
+  width: 300px;
+  flex: 0 1 300px;
+  padding-top: 35px;
+}
+.bw-v4 .bw-cmp4-slider-track {
+  position: relative;
+  height: 7px;
+  border-radius: 12px;
+  background: #f0e9db;
+  box-shadow: 0 1px 4px rgba(21, 18, 62, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.bw-v4 .bw-cmp4-slider-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 7px;
+  border-radius: 12px;
+}
+.bw-v4 .bw-cmp4-slider-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2px;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 10px;
+  line-height: 16px;
+  letter-spacing: 0.1px;
+  text-transform: uppercase;
+  color: #5b5493;
+}
+/* the invisible range input rides the track for clicks/keyboard —
+   anchored from the bottom so it stays on the track whatever headroom
+   the critter above needs (labels 18px + track 7px from the bottom) */
+.bw-v4 .bw-cmp4-slider input[type='range'] {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 14px;
+  width: 100%;
+  height: 20px;
+  margin: 0;
+  opacity: 0;
+  cursor: ew-resize;
+}
+.bw-v4 .bw-cmp4-thumb {
+  position: absolute;
+  bottom: 14px;
+  width: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+.bw-v4 .bw-cmp4-thumb-ring {
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 2px solid #3d52d6;
+  border-radius: 12px;
+  background: #fffdf7;
+  box-shadow: 0 2px 5px rgba(21, 18, 62, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+.bw-v4 .bw-cmp4-close {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  line-height: 0;
+}
+.bw-v4 .bw-cmp4-close:hover {
+  opacity: 0.7;
+}
+/* the octopus "add something else" tray content */
+.bw-v4 .bw-cmp4-addsug {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+  background: #fffdf9;
+  border: 0.5px solid #f3ece0;
+  border-radius: 14px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+.bw-v4 .bw-cmp4-addsug:hover {
+  background: #fff;
+}
+.bw-v4 .bw-cmp4-addsug .t-lab {
+  display: block;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #3f5ae0;
+  margin-bottom: 3px;
+}
+.bw-v4 .bw-cmp4-addsug .t-body {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.45;
+  color: #14103a;
+}
+
+/* ---- right rail accordions (660:3142) ------------------------------- */
+.bw-v4 .bw-cmp4-rail {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.bw-v4 .bw-cmp4-acc {
+  box-sizing: border-box;
+  width: 100%;
+  background: #fcf7ef;
+  border: 0.5px solid #f3ece0;
+  border-radius: 25px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 2px 5px rgba(21, 18, 62, 0.07);
+}
+.bw-v4 .bw-cmp4-acc-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 1.2;
+  color: #272159;
+  width: 100%;
+  box-sizing: border-box;
+}
+/* the caret component (675:4635): a 14×8 glyph centered in its 20px
+   slot — never stretched to fill it */
+.bw-v4 .bw-cmp4-acc-head img {
+  width: 14px;
+  height: 8px;
+  margin: 6px 3px;
+  align-self: center;
+  transition: transform 0.2s var(--ease-out);
+}
+.bw-v4 .bw-cmp4-acc.is-open .bw-cmp4-acc-head img {
+  transform: scaleY(-1);
+}
+.bw-v4 .bw-cmp4-ecard {
+  width: 100%;
+  box-sizing: border-box;
+  background: #fffdf9;
+  border: 0.5px solid #f3ece0;
+  border-radius: 20px;
+  filter: drop-shadow(0 1px 2px rgba(28, 23, 70, 0.06));
+}
+.bw-v4 .bw-cmp4-pchead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 58px;
+  box-sizing: border-box;
+  padding: 0 20px;
+}
+.bw-v4 .bw-cmp4-pcicon {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.bw-v4 .bw-cmp4-pcicon img {
+  width: 16px;
+  height: 16px;
+}
+.bw-v4 .bw-cmp4-pctitle {
+  font-family: var(--font-display);
+  font-variation-settings: 'SOFT' 0, 'WONK' 1;
+  font-weight: 600;
+  font-size: 18px;
+  letter-spacing: 0.09px;
+  color: #3a356e;
+}
+.bw-v4 .bw-cmp4-pcrow {
+  position: relative;
+  min-height: 45px;
+  box-sizing: border-box;
+  padding: 8px 16px 8px 54px;
+  /* rows are buttons now — clicking one paints its quoted passage in the
+     letter; rows without a grounded quote stay inert */
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: 12px;
+  font: inherit;
+  cursor: pointer;
+}
+.bw-v4 .bw-cmp4-pcrow:hover:not(:disabled) {
+  background: rgba(28, 23, 70, 0.04);
+}
+.bw-v4 .bw-cmp4-pcrow:disabled {
+  cursor: default;
+}
+.bw-v4 .bw-cmp4-pcrow::before {
+  content: '';
+  position: absolute;
+  left: 32px;
+  top: 13px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--dot, #52bb89);
+}
+.bw-v4 .bw-cmp4-pcrow .t-title {
+  display: block;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 1.3;
+  color: #3a356e;
+}
+.bw-v4 .bw-cmp4-pcrow .t-quote {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-sans);
+  font-weight: 300;
+  font-style: italic;
+  font-size: 9px;
+  line-height: 1.3;
+  color: #5b5493;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* the passage a clicked pro/con is grounded in, painted in the letter —
+   mint for pros, honey for cons */
+.bw-v4 .bw-cmp4-body p::highlight(bw-evidence-pro) {
+  background-color: rgba(82, 187, 137, 0.45);
+  color: #14103a;
+}
+.bw-v4 .bw-cmp4-body p::highlight(bw-evidence-con) {
+  background-color: rgba(245, 198, 89, 0.55);
+  color: #14103a;
+}
+.bw-v4 .bw-cmp4-fcard {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 68px;
+  background: #fffdf9;
+  border: 0.5px solid #f3ece0;
+  border-radius: 20px;
+  box-shadow: 0 1px 4px rgba(28, 23, 70, 0.06);
+  padding: 16px 20px 16px 32px;
+}
+.bw-v4 .bw-cmp4-fcard .t-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.bw-v4 .bw-cmp4-fcard .t-name {
+  font-family: var(--font-display);
+  font-variation-settings: 'SOFT' 0, 'WONK' 1;
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.08px;
+  color: #3a356e;
+}
+.bw-v4 .bw-cmp4-fcard .t-level {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 14px;
+  color: #3a356e;
+  padding-right: 12px;
+}
+.bw-v4 .bw-cmp4-meter {
+  position: relative;
+  height: 8px;
+  width: calc(100% - 12px);
+  border-radius: 12px;
+  background: #f0e9db;
+  box-shadow: 0 1px 4px rgba(21, 18, 62, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.bw-v4 .bw-cmp4-meter > span {
+  display: block;
+  height: 100%;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(21, 18, 62, 0.05);
+  transition: width var(--dur-slow) var(--ease-out);
+}
+.bw-v4 .bw-cmp4-reaction {
+  margin: 0;
+  padding-right: 12px;
+  font-family: var(--font-display);
+  font-variation-settings: 'SOFT' 0, 'WONK' 1;
+  font-style: italic;
+  font-size: 12px;
+  line-height: 20px;
+  color: #2b45d4;
+}
+
+/* ---- hover-morph chips (660:3204 crab / 660:3219 chat → 668:3326) ----
+   Icon-only 50px pills that grow their label on hover; while their panel
+   is open the label stays out ("Hide Context" / "Hide History"). */
+.bw-v4 .bw-cmp4-chip--morph {
+  height: 50px;
+  padding: 13px;
+  gap: 0;
+  filter: drop-shadow(0 4px 5px rgba(28, 23, 70, 0.06)) drop-shadow(0 2px 2px rgba(28, 23, 70, 0.06));
+}
+/* hovered / open chips lighten to near-white (668:3439) instead of the
+   resting cream */
+.bw-v4 .bw-cmp4-chip--morph:hover,
+.bw-v4 .bw-cmp4-chip--morph.is-open {
+  background: #fffdf9;
+}
+.bw-v4 .bw-cmp4-chip-ic {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  display: inline-block;
+  overflow: hidden;
+  position: relative;
+}
+.bw-v4 .bw-cmp4-chip-ic img {
+  display: block;
+}
+.bw-v4 .bw-cmp4-chip-label {
+  max-width: 0;
+  opacity: 0;
+  margin-left: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: max-width 0.5s var(--ease-out), opacity 0.4s var(--ease-out), margin-left 0.5s var(--ease-out);
+}
+.bw-v4 .bw-cmp4-chip--morph:hover .bw-cmp4-chip-label,
+.bw-v4 .bw-cmp4-chip--morph.is-open .bw-cmp4-chip-label {
+  max-width: 130px;
+  opacity: 1;
+  margin-left: 10px;
+}
+
+/* header middle column (badges + To/RE) — rides beside the Back pill on
+   wide screens; under 1280px it drops below the top-right action pills so
+   the RECOMMENDED badge never disappears beneath them */
+.bw-v4 .bw-cmp4-hmid {
+  min-width: 0;
+  padding-top: 9px;
+}
+@media (max-width: 1280px) {
+  .bw-v4 .bw-cmp4-hmid {
+    padding-top: 56px;
+  }
+}
