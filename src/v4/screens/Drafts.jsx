@@ -3,7 +3,6 @@ import DS2 from '../ds2'
 import { useStore } from '../store'
 import { RecapRail } from '../components/ClarifyRecap'
 import { stanceLabel, lvl, initialParas } from '../lib/advisor'
-import { COMPOSER_GROUND } from './Composer'
 
 // .t-label — the DS's small uppercase label (12px · 600 · 0.12em).
 const T_LABEL = {
@@ -78,7 +77,10 @@ export default function Drafts() {
   return (
     // Shares the composer's ground: the sunset (Figma 449:2180) fills the
     // viewport below the 68px header, teal-lipped night footer under it.
-    <div className="bw-cmp2-ground" style={{ width: '100%', minHeight: 'calc(100vh - 68px)', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', backgroundImage: COMPOSER_GROUND }}>
+    // same ground as the conversation thread page (Figma 445:1210): cream
+    // holding to 95%, then the dusk crest — honey 97, pink 99, peri-blue 100
+    // into the night footer's lip
+    <div className="bw-cmp2-ground" style={{ width: '100%', minHeight: 'calc(100vh - 68px)', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', backgroundImage: 'linear-gradient(180deg, var(--paper-1) 95%, #EBD46A 97%, #EC7FB0 99%, #6E88E4 100%)' }}>
     <main className="bw-sec-pad" style={{ width: '100%', boxSizing: 'border-box', maxWidth: 1280, margin: '0 auto', padding: '44px 32px 112px', flex: 1 }}>
       {/* no alignItems:start — the rail column stretches so the side card
           always reaches at least the bottom of the last draft card */}

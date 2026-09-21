@@ -144,8 +144,8 @@ function Router() {
   // The v4 composer sunset (Figma 566:5667) ends on blue-500, the night
   // footer's own default. The conversation thread's dusk crest (Figma
   // 445:1322) instead ends on peri-blue and deepens to royal by 4%.
-  const footerLip = state.screen === 'conversation' ? '#6E88E4' : undefined
-  const footerBody = state.screen === 'conversation' ? '#2B45D4' : undefined
+  const footerLip = ['conversation', 'drafts'].includes(state.screen) ? '#6E88E4' : undefined
+  const footerBody = ['conversation', 'drafts'].includes(state.screen) ? '#2B45D4' : undefined
 
   return (
     <div
@@ -196,7 +196,7 @@ function Router() {
       {/* drafts drops its night scheme along with the night fill: its
           transparent footer sits on the cream page ground, so it needs the
           default dark text */}
-      <SiteFooter night={nightFooter && !['drafts', 'editor'].includes(state.screen)} warm={WARM_SCREENS.includes(state.screen)} transparent={['home', 'clarify', 'drafts', 'replyflow', 'editor', 'send'].includes(state.screen)} noDivider={state.screen === 'conversation'} lip={footerLip} body={footerBody} onLogo={() => dispatch({ type: 'GO_LANDING' })} onNav={goLandingSection} />
+      <SiteFooter night={nightFooter && state.screen !== 'editor'} warm={WARM_SCREENS.includes(state.screen)} transparent={['home', 'clarify', 'replyflow', 'editor', 'send', 'generating'].includes(state.screen)} noDivider={['conversation', 'drafts'].includes(state.screen)} lip={footerLip} body={footerBody} onLogo={() => dispatch({ type: 'GO_LANDING' })} onNav={goLandingSection} />
     </div>
   )
 }
