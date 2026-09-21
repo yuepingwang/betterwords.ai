@@ -22,8 +22,10 @@ export const HOME_GROUND = {
   display: 'flex',
   flexDirection: 'column',
   boxSizing: 'border-box',
+  // Figma 490:4346 — cream holds to 94%, then the rainbow crest bands:
+  // honey 96, green 98, teal 99, lilac 100 (into the warm footer)
   backgroundImage:
-    'linear-gradient(180deg, var(--paper-1) 90%, #F2D24E 93%, #6FCB77 96%, #35BFB0 98%, var(--lilac-500) 100%)',
+    'linear-gradient(180deg, var(--paper-1) 94%, #F2D24E 96%, #6FCB77 98%, #35BFB0 99%, var(--lilac-500) 100%)',
 }
 
 export default function HomeHero({ active = 'home' }) {
@@ -67,43 +69,103 @@ export default function HomeHero({ active = 'home' }) {
         </h1>
       </div>
 
-      {/* Home / My Conversations segmented toggle ("View mode" 490:5029) */}
-      <div style={{ display: 'flex', padding: '4px 0' }}>
-        <div style={{ background: 'var(--peri-100)', borderRadius: 999, padding: 6, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-          {segments.map(([key, label, go]) => {
-            const isActive = active === key
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={isActive ? undefined : go}
-                aria-pressed={isActive}
-                className={isActive ? undefined : 'bw-vm-btn'}
-                style={{
-                  border: 0,
-                  borderRadius: 999,
-                  padding: '8px 20px',
-                  fontFamily: 'var(--font-sans)',
-                  fontSize: 15,
-                  lineHeight: 1.2,
-                  whiteSpace: 'nowrap',
-                  cursor: isActive ? 'default' : 'pointer',
-                  ...(isActive
-                    ? {
-                        background: 'var(--paper-0)',
-                        color: 'var(--blue-600)',
-                        fontWeight: 500,
-                        filter: 'drop-shadow(0 4px 5px rgba(28, 23, 70, 0.06)) drop-shadow(0 2px 2px rgba(28, 23, 70, 0.06))',
-                      }
-                    : { background: 'transparent', color: 'var(--ink-500)', fontWeight: 400 }),
-                }}
-              >
-                {label}
-              </button>
-            )
-          })}
-        </div>
-      </div>
+      {/* Home / My Conversations segmented toggle ("View mode" 490:5029) —
+          frosted light-blue track with a measured white puck that slides
+          (same no-overshoot ease as the DS Segmented) before navigating */}
+      <ViewModeToggle active={active} segments={segments} />
     </>
+  )
+}
+
+
+// The Home / My Conversations pill switch. The active white pill is a
+// separate measured "puck" that slides between the (unequal-width) buttons
+// with the same calm no-overshoot ease as the DS Segmented's puck; clicking
+// slides it first, then navigates once the slide has played.
+function ViewModeToggle({ active, segments }) {
+  const [localActive, setLocalActive] = React.useState(active)
+  const btnRefs = React.useRef({})
+  const [puck, setPuck] = React.useState(null)
+
+  React.useEffect(() => setLocalActive(active), [active])
+
+  const measure = React.useCallback(() => {
+    const el = btnRefs.current[localActive]
+    if (el) setPuck({ left: el.offsetLeft, width: el.offsetWidth })
+  }, [localActive])
+  React.useLayoutEffect(() => {
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [measure])
+
+  const pick = (key, go) => {
+    if (key === localActive) return
+    setLocalActive(key)
+    setTimeout(go, 300) // let the slide play before the screen swaps
+  }
+
+  return (
+    <div style={{ display: 'flex', padding: '4px 0' }}>
+      <div
+        style={{
+          position: 'relative',
+          background: 'var(--peri-100)',
+          borderRadius: 999,
+          padding: 6,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+        }}
+      >
+        {puck && (
+          <span
+            aria-hidden
+            style={{
+              position: 'absolute',
+              top: 6,
+              bottom: 6,
+              left: puck.left,
+              width: puck.width,
+              borderRadius: 999,
+              background: 'var(--paper-0)',
+              filter: 'drop-shadow(0 4px 5px rgba(28, 23, 70, 0.06)) drop-shadow(0 2px 2px rgba(28, 23, 70, 0.06))',
+              transition: 'left 0.35s cubic-bezier(0.22, 1, 0.36, 1), width 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
+            }}
+          />
+        )}
+        {segments.map(([key, label, go]) => {
+          const isActive = localActive === key
+          return (
+            <button
+              key={key}
+              ref={(el) => { btnRefs.current[key] = el }}
+              type="button"
+              onClick={() => pick(key, go)}
+              aria-pressed={isActive}
+              className={isActive ? undefined : 'bw-vm-btn'}
+              style={{
+                position: 'relative',
+                border: 0,
+                borderRadius: 999,
+                padding: '8px 20px',
+                fontFamily: 'var(--font-sans)',
+                fontSize: 15,
+                lineHeight: 1.2,
+                whiteSpace: 'nowrap',
+                cursor: isActive ? 'default' : 'pointer',
+                background: 'transparent',
+                ...(isActive
+                  ? { color: 'var(--blue-600)', fontWeight: 500 }
+                  : { color: 'var(--ink-500)', fontWeight: 400 }),
+                transition: 'color 0.2s var(--ease-quiet)',
+              }}
+            >
+              {label}
+            </button>
+          )
+        })}
+      </div>
+    </div>
   )
 }

@@ -908,3 +908,16 @@
   background: color-mix(in srgb, var(--paper-0) 55%, transparent);
   color: var(--ink-700);
 }
+
+/* Segmented control puck (DS .bw-seg): calmer slide — an ease-out with no
+   overshoot, so long jumps (Soft -> Strong) never swing the puck outside
+   the track. Overrides the bundle's springy cubic-bezier(.34,1.56,.64,1). */
+.bw-v4 .bw-seg__puck {
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  transition-duration: 0.35s;
+}
+
+/* the "Watch it work" tone toggle (landing #examples): borderless track */
+.bw-v4 #examples .bw-seg {
+  border: 0;
+}

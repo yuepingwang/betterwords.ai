@@ -22,10 +22,13 @@ export default function Home() {
     // wrapper in V4App so it runs the full viewport height; this main just
     // anchors the floating characters.
     <main style={{ position: 'relative' }}>
-      {/* ambient critters, floating gently (hidden on small screens) */}
-      <img className="bw-float" src="/ds-v4/assets/characters/ctx-courage.svg" style={{ width: 116, bottom: 16, left: '4%' }} alt="" />
-      <img className="bw-float f2" src="/ds-v4/assets/characters/tool-landing.svg" style={{ width: 108, top: 108, right: '8%' }} alt="" />
-      <img className="bw-float f3" src="/ds-v4/assets/characters/spark.svg" style={{ width: 52, top: 140, left: '13%' }} alt="" />
+      {/* the animated noise haze lives on the V4App wrapper (so it can run
+          the full page height behind the header and footer) */}
+      {/* ambient critters — the landing hero's pixel sprites, floating
+          gently (hidden on small screens) */}
+      <img className="bw-float" src="/ds-v4/assets/pixel/snail.svg" style={{ width: 76, bottom: 16, left: '4%' }} alt="" />
+      <img className="bw-float f2" src="/ds-v4/assets/pixel/bird.svg" style={{ width: 83, top: 108, right: '8%' }} alt="" />
+      <img className="bw-float f3" src="/ds-v4/assets/pixel/spark.svg" style={{ width: 56, top: 140, left: '13%' }} alt="" />
 
       <div className="bw-sec-pad" style={{ maxWidth: 1180, margin: '0 auto', padding: '72px 40px 96px' }}>
         <div className="anim-rise" style={{ textAlign: 'center', maxWidth: 680, margin: '0 auto 56px' }}>

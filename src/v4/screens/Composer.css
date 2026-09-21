@@ -1146,12 +1146,14 @@
 /* ---- header band (660:2915): white, hairline + soft shadow --------- */
 .bw-v4 .bw-cmp4-header {
   position: relative;
-  background: #fff;
+  background: #fcf7ef;
   border-bottom: 1px solid #f3ece0;
   box-shadow: 0 2px 4px rgba(28, 23, 70, 0.06);
-  min-height: 170px;
+  min-height: 152px;
   box-sizing: border-box;
-  padding: 20px 15px;
+  /* top row rides at 12px so the avatar sits where the app header's
+     avatar does (68px chrome, 44px avatar → 12px inset) */
+  padding: 12px 15px 10px;
   z-index: 40;
 }
 /* the shared column grid: header content and the content row center the
@@ -1168,15 +1170,16 @@
 /* the action pills anchor to the window's top-right, outside the grid */
 .bw-v4 .bw-cmp4-actions {
   position: absolute;
-  top: 20px;
-  right: 24px;
+  top: 12px;
+  right: 28px;
   display: flex;
   align-items: center;
   gap: 12px;
   z-index: 1;
-  filter: drop-shadow(0 4px 5px rgba(28, 23, 70, 0.03)) drop-shadow(0 1px 2px rgba(28, 23, 70, 0.06));
 }
-/* the reusable header pill button (Back / Save as New Draft / help) */
+/* the reusable header pill button (Back / Save as New Draft / help).
+   Rest shadow = the header badges' (0 2px 2px); on hover only the shadow
+   deepens (to the old resting pill shadow) — the fill never changes. */
 .bw-v4 .bw-cmp4-pill {
   display: inline-flex;
   align-items: center;
@@ -1191,11 +1194,12 @@
   letter-spacing: 0.26px;
   color: #272159;
   cursor: pointer;
-  filter: drop-shadow(0 4px 5px rgba(28, 23, 70, 0.03)) drop-shadow(0 1px 2px rgba(28, 23, 70, 0.06));
+  filter: drop-shadow(0 2px 2px rgba(28, 23, 70, 0.06));
+  transition: filter 0.15s var(--ease-quiet);
   white-space: nowrap;
 }
 .bw-v4 .bw-cmp4-pill:hover {
-  background: #fcf7ef;
+  filter: drop-shadow(0 4px 5px rgba(28, 23, 70, 0.03)) drop-shadow(0 1px 2px rgba(28, 23, 70, 0.06));
 }
 .bw-v4 .bw-cmp4-pill--primary {
   background: #3f5ae0;
@@ -1204,17 +1208,22 @@
   letter-spacing: 0.3px;
   padding: 10px 16px;
 }
-.bw-v4 .bw-cmp4-pill--primary:hover {
-  background: #3550cc;
-}
 .bw-v4 .bw-cmp4-pill--back {
   gap: 9px;
   font-size: 16px;
   font-weight: 500;
   letter-spacing: 0;
   color: #3a3473;
-  box-shadow: 0 4px 10px rgba(28, 23, 70, 0.03), 0 1px 4px rgba(28, 23, 70, 0.06);
+  /* rests on the header in its own fill (#FCF7EF) with the same soft
+     shadow as the header badges, and lightens to cream-white on hover */
+  background: #fcf7ef;
+  box-shadow: 0 2px 2px rgba(28, 23, 70, 0.06);
   filter: none;
+  transition: background 0.15s var(--ease-quiet);
+}
+.bw-v4 .bw-cmp4-pill--back:hover {
+  background: #fffdf9;
+  filter: none; /* keeps the badge shadow — the base pill's hover shadow is for Send/Save */
 }
 .bw-v4 .bw-cmp4-pill--icon {
   width: 44px;
@@ -1272,20 +1281,24 @@
   color: transparent;
 }
 /* To: / RE: block (660:2953) */
+/* Figma 636:6416 — the To line sits UNDER the subject, italic Fraunces */
 .bw-v4 .bw-cmp4-toline {
-  margin: 0;
-  font-family: var(--font-sans);
-  font-weight: 500;
-  font-size: 18px;
-  letter-spacing: 0.09px;
+  margin: 8px 0 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-variation-settings: 'SOFT' 0, 'WONK' 1;
+  font-weight: 300;
+  font-size: 16px;
+  letter-spacing: 0.08px;
   color: #3a356e;
 }
 .bw-v4 .bw-cmp4-subject {
-  margin: 8px 0 0;
+  margin: 0;
   font-family: var(--font-sans);
   font-weight: 500;
-  font-size: 28px;
-  letter-spacing: 0.14px;
+  /* Figma 636:6417 — 24px, 0.12px tracking */
+  font-size: 24px;
+  letter-spacing: 0.12px;
   color: #15123e;
 }
 /* gradient-ring avatar (660:2970) */
@@ -1740,7 +1753,7 @@
 .bw-v4 .bw-cmp4-acc {
   box-sizing: border-box;
   width: 100%;
-  background: #fcf7ef;
+  background: #fffdf9;
   border: 0.5px solid #f3ece0;
   border-radius: 25px;
   padding: 6px;
@@ -1780,7 +1793,7 @@
 .bw-v4 .bw-cmp4-ecard {
   width: 100%;
   box-sizing: border-box;
-  background: #fffdf9;
+  background: #fcf7ef;
   border: 0.5px solid #f3ece0;
   border-radius: 20px;
   filter: drop-shadow(0 1px 2px rgba(28, 23, 70, 0.06));
@@ -1883,7 +1896,7 @@
   width: 100%;
   box-sizing: border-box;
   min-height: 68px;
-  background: #fffdf9;
+  background: #fcf7ef;
   border: 0.5px solid #f3ece0;
   border-radius: 20px;
   box-shadow: 0 1px 4px rgba(28, 23, 70, 0.06);
@@ -1988,4 +2001,69 @@
   .bw-v4 .bw-cmp4-hmid {
     padding-top: 56px;
   }
+}
+
+/* ---- composer pastel ground: blurred color blobs + grain ------------ */
+.bw-v4 .bw-cmp4-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(52px);
+  will-change: transform;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+.bw-v4 .bw-cmp4-grain {
+  position: absolute;
+  inset: 0;
+  background-repeat: repeat;
+  mix-blend-mode: soft-light;
+  opacity: 0.8;
+}
+@keyframes bw-cmp4-blob-a {
+  from { transform: translate(0, 0) scale(1); }
+  to { transform: translate(28px, -20px) scale(1.07); }
+}
+@keyframes bw-cmp4-blob-b {
+  from { transform: translate(0, 0) scale(1); }
+  to { transform: translate(-24px, 22px) scale(1.05); }
+}
+@keyframes bw-cmp4-blob-c {
+  from { transform: translate(0, 0) scale(1.04); }
+  to { transform: translate(-18px, -26px) scale(0.98); }
+}
+
+/* inline recipient edit in the header's To: line — the name reads as part
+   of the line but underlines on hover; editing swaps in a bare input with
+   the same italic Fraunces styling */
+.bw-v4 .bw-cmp4-toline-name {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  cursor: text;
+  border-radius: 4px;
+  /* dotted underline shows by default — the affordance that this segment
+     is editable; it darkens on hover */
+  text-decoration: underline dotted #b9b3d8;
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.15s var(--ease-quiet);
+}
+.bw-v4 .bw-cmp4-toline-name:hover,
+.bw-v4 .bw-cmp4-toline-name:focus-visible {
+  text-decoration-color: #5b5493;
+  outline: none;
+}
+.bw-v4 .bw-cmp4-toline-input {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  border-bottom: 1px solid #857faf;
+  outline: none;
+  min-width: 40px;
 }

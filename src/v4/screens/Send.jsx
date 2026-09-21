@@ -14,7 +14,11 @@ export default function Send() {
 
   // Reply/follow-up drafts continue an existing conversation: keep its
   // recipient + subject, and record follow-ups under their own kind.
-  const toLabel = (state.replyFlow?.thread?.recipient || recipientLabel(scenario) || '').split(/[—·]/)[0].trim()
+  const rawTo = state.replyFlow?.thread?.recipient || scenario?.recipient || recipientLabel(scenario) || ''
+  const [toRoleBase, toNameBase] = rawTo.split(/[—·]/).map((p) => p.trim())
+  const toRole = state.recipientRoleOverride || toRoleBase || ''
+  const toName = state.recipientOverride || toNameBase || null
+  const toLabel = toName ? `${toRole} — ${toName}` : toRole
   const subject = state.subjectOverride || selected.subject
   const isFollowup = state.replyFlow?.mode === 'followup'
 

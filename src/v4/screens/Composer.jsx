@@ -18,7 +18,7 @@ import {
   rephrase,
 } from '../lib/advisor'
 import Onboarding from '../components/Onboarding'
-import { useAuth } from '../lib/auth'
+import { useAuth, AccountControl } from '../lib/auth'
 import { saveDraftVersion } from '../lib/db'
 import './Composer.css'
 
@@ -33,7 +33,33 @@ export const COMPOSER_GROUND =
 const ONBOARD_KEY = 'bw_onboarded_composer7'
 const GLYPHS = '/ds-v4/assets/glyphs'
 const G4 = '/ds-v4/assets/glyphs/cmp4'
-const BG = '/ds-v4/assets/background-image-light.png'
+// The static pastel image ground (background-image-light.png) rendered
+// live: every color blob of the reference placed as a blurred ellipse
+// (positions/colors sampled from the image), drifting very slowly, under
+// a resolution-locked grain overlay.
+const BG_BASE = '#FBEFEA'
+// one entry per blob in the reference image: [left%, top%, width%, height%, color, opacity, drift variant, duration s, delay s]
+const BG_BLOBS = [
+  ['30%', '28%', '42%', '42%', '#F9E3E6', 0.55, 'c', 74, -20], // soft pink wash, center
+  ['56%', '20%', '36%', '32%', '#F8DABC', 0.75, 'b', 66, -8],  // apricot wash, upper right
+  ['1%', '4%', '25%', '27%', '#B9D3F1', 0.9, 'a', 58, 0],      // powder blue, top left
+  ['-5%', '21%', '15%', '17%', '#C3D9F3', 0.8, 'b', 62, -30],  // blue, left edge
+  ['7%', '33%', '23%', '21%', '#FAEFB4', 0.9, 'c', 60, -14],   // butter, upper left-mid
+  ['-4%', '49%', '15%', '19%', '#F8D8B0', 0.85, 'a', 68, -40], // peach, left edge
+  ['-3%', '66%', '19%', '21%', '#C9DDF4', 0.85, 'b', 56, -22], // pale blue, lower left
+  ['37%', '72%', '19%', '23%', '#FAF0B6', 0.9, 'a', 64, -33],  // butter, bottom center
+  ['77%', '50%', '23%', '29%', '#AFE3C4', 0.9, 'c', 70, -5],   // mint, lower right
+  ['83%', '0%', '19%', '17%', '#F6D8E3', 0.7, 'b', 72, -48],   // pink tint, top right
+  ['91%', '11%', '9%', '9%', '#DCD6F2', 0.7, 'a', 54, -26],    // lilac speck, top right
+]
+// grain tile: 128x128 texels of fractal noise; sized so each texel is
+// exactly TWO device pixels (the "smallest unit" x2 at this screen's
+// resolution — cf. the landing grain, which supersamples the same unit)
+const GRAIN_TILE =
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='2.6' intercept='-0.8'/%3E%3CfeFuncG type='linear' slope='2.6' intercept='-0.8'/%3E%3CfeFuncB type='linear' slope='2.6' intercept='-0.8'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='128' height='128' filter='url(%23n)'/%3E%3C/svg%3E\")"
+const GRAIN_TILE_CSS = typeof window !== 'undefined' ? 256 / (window.devicePixelRatio || 1) : 128
+const REDUCE_MOTION =
+  typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
 const QUICK_CHIPS = [
   { mode: 'soften', label: 'Soften' },
@@ -174,6 +200,72 @@ function ToolButton({ kind, active, onClick }) {
 }
 
 // ---- the reusable header pill (Back / Review & Send / Save / help) ----
+// "To: Your landlord — Mr. Aubert": the role word ("landlord") and the
+// name ("Mr. Aubert") are separate inline-editable segments — dotted
+// underlines by default, click to edit (Enter/blur commits, Esc cancels).
+// A leading "Your "/"My " on the role stays fixed; only the role word edits.
+function InlineEdit({ value, ariaLabel, onCommit }) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(value)
+  const inputRef = useRef(null)
+  useEffect(() => {
+    if (editing) {
+      setDraft(value)
+      requestAnimationFrame(() => {
+        inputRef.current?.focus()
+        inputRef.current?.select()
+      })
+    }
+  }, [editing]) // eslint-disable-line react-hooks/exhaustive-deps
+  const commit = () => {
+    setEditing(false)
+    const v = draft.trim()
+    if (v && v !== value) onCommit(v)
+  }
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        className="bw-cmp4-toline-input"
+        value={draft}
+        size={Math.max(4, draft.length + 1)}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') commit()
+          if (e.key === 'Escape') setEditing(false)
+        }}
+        aria-label={ariaLabel}
+      />
+    )
+  }
+  return (
+    <button type="button" className="bw-cmp4-toline-name" title={`Edit the ${ariaLabel}`} onClick={() => setEditing(true)}>
+      {value}
+    </button>
+  )
+}
+
+function RecipientLine({ role, name, onCommitRole, onCommitName }) {
+  // keep a leading "Your " / "My " fixed; the editable role segment is the
+  // word after it ("landlord")
+  const m = /^((?:your|my)\s+)(.+)$/i.exec(role || '')
+  const rolePrefix = m ? m[1] : ''
+  const roleWord = m ? m[2] : role || ''
+  return (
+    <p className="bw-cmp4-toline">
+      To: {rolePrefix}
+      <InlineEdit value={roleWord} ariaLabel="recipient’s role" onCommit={(w) => onCommitRole(rolePrefix + w)} />
+      {name != null && (
+        <>
+          {' — '}
+          <InlineEdit value={name} ariaLabel="recipient’s name" onCommit={onCommitName} />
+        </>
+      )}
+    </p>
+  )
+}
+
 function PillButton({ primary, back, icon, children, ...rest }) {
   return (
     <button
@@ -454,7 +546,13 @@ export default function Composer() {
     target.scrollIntoView({ block: 'center', behavior: 'smooth' })
   }
 
-  const recipient = (rf?.thread?.recipient || recipientLabel(scenario) || '').split(/[—·]/)[0].trim()
+  // "Your landlord — Mr. Aubert": role and (placeholder) name are separate
+  // inline-editable segments; overrides live in the store
+  const rawRecipient = rf?.thread?.recipient || scenario?.recipient || recipientLabel(scenario) || ''
+  const [roleBase, nameBase] = rawRecipient.split(/[—·]/).map((p) => p.trim())
+  const recipientRole = state.recipientRoleOverride || roleBase || ''
+  const recipientName = state.recipientOverride || nameBase || null
+  const recipient = recipientName ? `${recipientRole} — ${recipientName}` : recipientRole
   const subject = state.subjectOverride || strat.subject
 
   const displayMap = useMemo(() => {
@@ -987,11 +1085,6 @@ export default function Composer() {
     if (auth.signedIn) doSave()
     else auth.openSignIn(doSave)
   }
-  const openAccount = () => {
-    if (auth.signedIn) dispatch({ type: 'GOTO', screen: 'account' })
-    else if (auth.configured) auth.openSignIn(() => {})
-  }
-  const initial = (auth.user?.email || 'y')[0].toUpperCase()
   const goBack =
     state.replyFlow?.mode === 'respond' || state.replyFlow?.mode === 'followup'
       ? () => dispatch({ type: 'GOTO', screen: 'replyflow' })
@@ -1041,6 +1134,35 @@ export default function Composer() {
 
   return (
     <main>
+      {/* pastel mesh ground — absolutely positioned against the V4App page
+          wrapper (the nearest positioned ancestor), so it runs the FULL
+          page height: behind the columns AND under the transparent footer.
+          z -1 inside the wrapper's isolated stacking context. */}
+      <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: -1, overflow: 'hidden', pointerEvents: 'none', backgroundColor: BG_BASE }}>
+        {BG_BLOBS.map(([l, t, w, h, color, op, variant, dur, delay], i) => (
+          <span
+            key={i}
+            className="bw-cmp4-blob"
+            style={{
+              left: l,
+              top: t,
+              width: w,
+              height: h,
+              background: color,
+              opacity: op,
+              animationName: REDUCE_MOTION ? 'none' : `bw-cmp4-blob-${variant}`,
+              animationDuration: `${dur}s`,
+              animationDelay: `${delay}s`,
+            }}
+          />
+        ))}
+        {/* grain: each noise texel = 2 device pixels at this resolution */}
+        <span
+          className="bw-cmp4-grain"
+          style={{ backgroundImage: GRAIN_TILE, backgroundSize: `${GRAIN_TILE_CSS}px ${GRAIN_TILE_CSS}px` }}
+        />
+      </div>
+
       {/* ---- white header band (660:2915) ---- */}
       <header className="bw-cmp4-header">
         {/* the action pills anchor to the window's top-right, outside the
@@ -1052,10 +1174,9 @@ export default function Composer() {
           <PillButton icon={<img src={`${G4}/star-square.svg`} alt="" style={{ width: 20, height: 20 }} />} onClick={saveDraft}>
             {saved === 'err' ? 'Couldn’t save' : saved ? 'Saved ✓' : 'Save as New Draft'}
           </PillButton>
-          <PillButton icon={<img src={`${G4}/question.svg`} alt="" style={{ width: 24, height: 24 }} />} aria-label="Replay the composer tour" title="Show me around the composer" onClick={() => dispatch({ type: 'ASK_TOUR' })} />
-          <button className="bw-cmp4-avatar-ring" aria-label="Account" onClick={openAccount}>
-            <span className="bw-cmp4-avatar">{initial}</span>
-          </button>
+          {/* same account control as the rest of the app's header
+              (avatar + dropdown menu; Login/Sign up signed out) */}
+          <AccountControl />
         </div>
         {/* same column grid as the content row below, so the badges and
             To:/RE: block sit flush with the letter card's left edge at
@@ -1089,16 +1210,22 @@ export default function Composer() {
               )}
             </div>
             <div style={{ marginTop: 20 }}>
-              <p className="bw-cmp4-toline">To: {recipient}</p>
               <h1 className="bw-cmp4-subject">{subject}</h1>
+              <RecipientLine
+                role={recipientRole}
+                name={recipientName}
+                onCommitRole={(role) => dispatch({ type: 'SET_RECIPIENT_ROLE', role })}
+                onCommitName={(name) => dispatch({ type: 'SET_RECIPIENT', recipient: name })}
+              />
             </div>
           </div>
           <div />
         </div>
       </header>
 
-      {/* ---- the pastel image ground with the three columns ---- */}
-      <div className="bw-cmp4-ground" style={{ backgroundImage: `url(${BG})` }}>
+      {/* ---- the three columns (the mesh ground lives above, on the
+          full-page layer) ---- */}
+      <div className="bw-cmp4-ground">
         <div className="bw-cmp4-row bw-cmp4-cols">
           {/* left: the Context and History chips (660:3204 / 660:3219) —
               icon-only until hovered, when they grow their label (668:3326);
@@ -1162,6 +1289,18 @@ export default function Composer() {
                 </div>
               </div>
             )}
+            {/* help — replays the composer tour; same hover-morph chip as
+                Context/History (icon-only until hovered) */}
+            <button
+              className="bw-cmp4-chip bw-cmp4-chip--morph"
+              aria-label="Replay the composer tour"
+              onClick={() => dispatch({ type: 'ASK_TOUR' })}
+            >
+              <span className="bw-cmp4-chip-ic">
+                <img src={`${G4}/question.svg`} alt="" style={{ width: 24, height: 24 }} />
+              </span>
+              <span className="bw-cmp4-chip-label">Show me around</span>
+            </button>
           </div>
 
           {/* center: the letter card (660:2873) */}

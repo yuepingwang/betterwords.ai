@@ -21,11 +21,13 @@ export default function AppPage({ title, sub, actions, children }) {
         display: 'flex',
         flexDirection: 'column',
         boxSizing: 'border-box',
+        // Figma 490:4346 — cream holds to 94%, then the rainbow crest bands:
+        // honey 96, green 98, teal 99, lilac 100 (into the warm footer)
         backgroundImage:
-          'linear-gradient(180deg, var(--paper-1) 90%, #F2D24E 93%, #6FCB77 96%, #35BFB0 98%, var(--lilac-500) 100%)',
+          'linear-gradient(180deg, var(--paper-1) 94%, #F2D24E 96%, #6FCB77 98%, #35BFB0 99%, var(--lilac-500) 100%)',
       }}
     >
-      <main style={{ maxWidth: 856, width: '100%', margin: '0 auto', padding: '18px 28px 64px', boxSizing: 'border-box', flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <main style={{ maxWidth: 856, width: '100%', margin: '0 auto', padding: '18px 28px 140px', boxSizing: 'border-box', flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, minHeight: 36 }}>
           {/* same 42px height and 15px type as the Cancel/Save pair opposite */}
           <a
@@ -79,19 +81,50 @@ export const kickerStyle = { fontFamily: 'var(--font-sans)', fontWeight: 600, fo
 // measuring.
 export function SegPill({ options, value, onChange, ariaLabel, style, innerRef }) {
   const fluid = style?.width != null
+  // the active white pill is a measured "puck" that slides between the
+  // segments — same no-overshoot ease as the DS Segmented / view toggle
+  const btnRefs = React.useRef({})
+  const [puck, setPuck] = React.useState(null)
+  const measure = React.useCallback(() => {
+    const el = btnRefs.current[value]
+    if (el) setPuck({ left: el.offsetLeft, width: el.offsetWidth })
+  }, [value])
+  React.useLayoutEffect(() => {
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [measure])
   return (
-    <div ref={innerRef} role="radiogroup" aria-label={ariaLabel} style={{ background: 'var(--peri-100)', borderRadius: 999, padding: 6, display: 'inline-flex', alignItems: 'center', gap: 6, alignSelf: 'flex-start', boxSizing: 'border-box', ...style }}>
+    <div ref={innerRef} role="radiogroup" aria-label={ariaLabel} style={{ position: 'relative', background: 'var(--peri-100)', borderRadius: 999, padding: 6, display: 'inline-flex', alignItems: 'center', gap: 6, alignSelf: 'flex-start', boxSizing: 'border-box', ...style }}>
+      {puck && (
+        <span
+          aria-hidden
+          style={{
+            position: 'absolute',
+            top: 6,
+            bottom: 6,
+            left: puck.left,
+            width: puck.width,
+            borderRadius: 999,
+            background: 'var(--paper-0)',
+            filter: 'drop-shadow(0 4px 5px rgba(28, 23, 70, 0.06)) drop-shadow(0 2px 2px rgba(28, 23, 70, 0.06))',
+            transition: 'left 0.35s cubic-bezier(0.22, 1, 0.36, 1), width 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
+          }}
+        />
+      )}
       {options.map((opt) => {
         const active = value === opt
         return (
           <button
             key={opt}
+            ref={(el) => { btnRefs.current[opt] = el }}
             type="button"
             role="radio"
             aria-checked={active}
             onClick={active ? undefined : () => onChange(opt)}
             className={active ? undefined : 'bw-vm-btn'}
             style={{
+              position: 'relative',
               border: 0,
               borderRadius: 999,
               padding: '8px 18px',
@@ -101,14 +134,11 @@ export function SegPill({ options, value, onChange, ariaLabel, style, innerRef }
               lineHeight: 1.2,
               whiteSpace: 'nowrap',
               cursor: active ? 'default' : 'pointer',
+              background: 'transparent',
               ...(active
-                ? {
-                    background: 'var(--paper-0)',
-                    color: 'var(--blue-600)',
-                    fontWeight: 500,
-                    filter: 'drop-shadow(0 4px 5px rgba(28, 23, 70, 0.06)) drop-shadow(0 2px 2px rgba(28, 23, 70, 0.06))',
-                  }
-                : { background: 'transparent', color: 'var(--ink-500)', fontWeight: 400 }),
+                ? { color: 'var(--blue-600)', fontWeight: 500 }
+                : { color: 'var(--ink-500)', fontWeight: 400 }),
+              transition: 'color 0.2s var(--ease-quiet)',
             }}
           >
             {opt}

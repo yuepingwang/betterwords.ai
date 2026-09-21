@@ -2,7 +2,18 @@ import React, { useEffect, useRef, useState } from 'react'
 import DS2 from '../ds2'
 import { SiteHeader, SiteFooter } from '../components/SiteChrome'
 import { DATA, SCENARIO_IDS } from '../data/advocate'
+import { GrainGradient, Dithering } from '@paper-design/shaders-react'
 import './Landing.css'
+
+// Hero background version switch — 'v1' is the pixel bitmap clouds
+// (snapshot: landing-background-v1.md); 'v2-shader' portrays the clouds
+// with Paper's GrainGradient shader in the same daybreak palette.
+const LANDING_BG = 'v2-shader'
+const REDUCE_MOTION =
+  typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+// render the grain shaders at 2× the device's own pixel ratio: grain specks
+// come out half a device pixel — "2× finest"
+const GRAIN_2X_RATIO = typeof window !== 'undefined' ? Math.max(2, (window.devicePixelRatio || 1) * 2) : 4
 
 // v3 Landing (forked from v2) — rebuilt to the "betterwords-web" desktop reference kit
 // (claude.ai/design). Composes the Daybreak bundle; CTAs enter the app via
@@ -86,21 +97,23 @@ export default function Landing({ onStart }) {
     if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 72, behavior: 'smooth' })
   }
 
-  // Hero parallax: scrolling up, the gradient rises at 0.6× the page.
-  // Implemented as a downward translation that grows with scrollY — the
-  // layer's top gap stays above the viewport, the clip wrapper handles
-  // the bottom. Skipped for reduced-motion.
+  // Hero background anchor: the background stack (gradient, haze shader,
+  // clouds) is position:fixed at the viewport top, so it simply never
+  // moves with scroll — no per-scroll JS, hence no compositor jitter.
+  // It's sized to the hero section here so the gradient keeps its
+  // proportions; the opaque sections after the hero cover it as they
+  // scroll over.
   const heroGradRef = React.useRef(null)
   React.useEffect(() => {
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
-    const apply = () => {
-      const y = Math.max(0, window.scrollY)
-      if (y > 2000) return // hero long gone — skip the style writes
-      if (heroGradRef.current) heroGradRef.current.style.transform = `translateY(${(y * 0.4).toFixed(1)}px)`
-    }
-    apply()
-    window.addEventListener('scroll', apply, { passive: true })
-    return () => window.removeEventListener('scroll', apply)
+    const el = heroGradRef.current
+    if (!el) return
+    const sect = el.closest('section')
+    if (!sect) return
+    const size = () => { el.style.height = `${sect.offsetHeight}px` }
+    size()
+    const ro = new ResizeObserver(size)
+    ro.observe(sect)
+    return () => ro.disconnect()
   }, [])
 
   return (
@@ -120,28 +133,94 @@ export default function Landing({ onStart }) {
             the page; see the scroll effect below. The wrapper clips the
             slid layer at the section's edges. */}
         <div className="lp-hero-parallax" aria-hidden>
-          <div ref={heroGradRef} className="lp-hero-grad" />
-          {/* cute bitmap clouds — chunky pixel-art sprites (assets/clouds)
-              drifting across the hero at cloud pace, bobbing as they go.
-              Reduced motion parks them at their --rest positions. */}
+          {/* the whole background stack (gradient + haze shader + clouds)
+              rides in this viewport-fixed layer anchored at y=0 — it never
+              moves with scroll; the sections below (all opaque) cover it
+              as they scroll over the hero */}
+          <div ref={heroGradRef} className="lp-hero-fixee">
+          <div className="lp-hero-grad" />
+          {/* v2: the cloud haze as a Paper GrainGradient shader — spread
+              wide and soft (no hot crest) in the theme's cream/lilac/peri
+              over the daybreak gradient; reduced motion freezes it. */}
+          {LANDING_BG === 'v2-shader' && (
+            // rendered at 2× the device's native resolution (supersampled,
+            // then downscaled to fit), so the per-pixel grain comes out
+            // twice as fine as a device pixel
+            <GrainGradient
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+              minPixelRatio={GRAIN_2X_RATIO}
+              maxPixelCount={34000000}
+              colorBack="#00000000"
+              colors={['#FFFDF9', '#EFE8F7', '#DCE6FB', '#CFDDFB']}
+              shape="wave"
+              softness={0.95}
+              intensity={0.3}
+              noise={0.38}
+              speed={REDUCE_MOTION ? 0 : 0.4}
+              scale={1.7}
+              frame={4500}
+            />
+          )}
+          {/* the individual clouds, rendered THROUGH the Dithering shader
+              (Paper): each puff is a small canvas of morphing simplex noise
+              quantized by a 4×4 Bayer matrix in the theme cream, and a soft
+              elliptical mask dissolves its contour into scattered dither
+              dots. The drift + bob wrappers are unchanged; the first cloud
+              keeps its pixel face. */}
           <div className="lp-clouds">
-            <span className="lp-cloud" style={{ top: 84, width: 196, '--dur': '95s', '--delay': '-12s', '--rest': '10vw', '--op': 0.95 }}>
-              <img src="/ds-v4/assets/clouds/cloud-a.svg" alt="" />
-            </span>
-            <span className="lp-cloud" style={{ top: 152, width: 118, '--dur': '135s', '--delay': '-78s', '--rest': '58vw', '--op': 0.8 }}>
-              <img src="/ds-v4/assets/clouds/cloud-b.svg" alt="" />
-            </span>
-            <span className="lp-cloud" style={{ top: 44, width: 88, '--dur': '160s', '--delay': '-110s', '--rest': '80vw', '--op': 0.7 }}>
-              <img src="/ds-v4/assets/clouds/cloud-b.svg" alt="" />
-            </span>
-            {/* the two lower clouds pass behind the headline — kept faint
-                so the type stays crisp while they drift by */}
-            <span className="lp-cloud" style={{ top: 316, width: 150, '--dur': '115s', '--delay': '-45s', '--rest': '30vw', '--op': 0.45 }}>
-              <img src="/ds-v4/assets/clouds/cloud-c.svg" alt="" />
-            </span>
-            <span className="lp-cloud" style={{ top: 430, width: 108, '--dur': '145s', '--delay': '-20s', '--rest': '72vw', '--op': 0.35 }}>
-              <img src="/ds-v4/assets/clouds/cloud-c.svg" alt="" />
-            </span>
+            {[
+              { top: 60, width: 420, height: 210, dur: '95s', delay: '-12s', rest: '10vw', op: 0.95, speed: 0.32, scale: 0.5, frame: 0, face: true },
+              { top: 140, width: 300, height: 150, dur: '135s', delay: '-78s', rest: '58vw', op: 0.85, speed: 0.42, scale: 0.6, frame: 4200 },
+              { top: 30, width: 220, height: 110, dur: '160s', delay: '-110s', rest: '80vw', op: 0.78, speed: 0.5, scale: 0.7, frame: 9400 },
+              { top: 300, width: 370, height: 185, dur: '115s', delay: '-45s', rest: '30vw', op: 0.6, speed: 0.36, scale: 0.55, frame: 14600 },
+              { top: 420, width: 280, height: 140, dur: '145s', delay: '-20s', rest: '72vw', op: 0.5, speed: 0.28, scale: 0.65, frame: 20800 },
+            ].map((c, i) => (
+              <span key={i} className="lp-cloud" style={{ top: c.top, width: c.width, height: c.height, '--dur': c.dur, '--delay': c.delay, '--rest': c.rest, '--op': c.op }}>
+                <span className="lp-cloud-inner">
+                  {/* animated simplex pass, ring-masked to the OUTER band
+                      only — the fade-in/out of dither happens at the
+                      cloud's edge, never through the center */}
+                  <span className="lp-cloud-fringe" aria-hidden>
+                    <Dithering
+                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+                      colorBack="#00000000"
+                      colorFront="#FFFDF9"
+                      shape="simplex"
+                      type="4x4"
+                      size={2}
+                      scale={c.scale}
+                      frame={c.frame}
+                      speed={REDUCE_MOTION ? 0 : c.speed * 1.8}
+                    />
+                  </span>
+                  {/* STATIC dense body pass (speed 0): the sphere shape's
+                      solid center fills the whole silhouette, so the cloud's
+                      body never animates or thins */}
+                  <span className="lp-cloud-core" aria-hidden>
+                    <Dithering
+                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', transform: 'translate(1px, 1px)' }}
+                      colorBack="#00000000"
+                      colorFront="#FFFDF9"
+                      shape="sphere"
+                      type="4x4"
+                      size={2}
+                      scale={2.1}
+                      frame={c.frame + 3100}
+                      speed={0}
+                    />
+                  </span>
+                  {c.face && (
+                    <span className="lp-cloud-face" aria-hidden>
+                      <i className="e" style={{ left: '46.3%' }} />
+                      <i className="e" style={{ left: '57.3%' }} />
+                      <i className="b" style={{ left: '41.9%' }} />
+                      <i className="b" style={{ left: '61.75%' }} />
+                    </span>
+                  )}
+                </span>
+              </span>
+            ))}
+          </div>
           </div>
         </div>
         <div className="lp2-hero">
@@ -225,7 +304,7 @@ export default function Landing({ onStart }) {
       <LiveExample />
 
       {/* where it helps — direct-entry scenario cards (jump straight into a flow) */}
-      <section id="situations" className="section">
+      <section id="situations" className="section" style={{ background: 'var(--bg-base)' }}>
         <div className="wrap">
           <div style={{ marginBottom: 40 }}>
             <span className="site-kick">Where it helps</span>
@@ -303,23 +382,44 @@ export default function Landing({ onStart }) {
       </section>
       )}
 
-      {/* closing CTA — night starfield (from the v1 landing, Daybreak-styled) */}
-      <section className="section night bg-night-sky">
-        <div className="wrap center" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <Sparkle size={34} style={{ color: 'var(--foil)' }} twinkle />
-          <h2 className="site-h2" style={{ marginTop: 22, maxWidth: '18ch' }}>The words you can’t find — found.</h2>
-          <p className="site-lead" style={{ marginTop: 18, maxWidth: '42ch' }}>
-            Stop drafting the same hard message at midnight. Tell BetterWords the situation, and send something you’re proud of.
-          </p>
-          <div style={{ marginTop: 30 }}>
-            <Button variant="spark" size="lg" iconRight={<img src="/ds-v4/assets/glyphs/logo-star-white.svg" alt="" width={13} height={13} style={{ display: 'block', transform: 'translateY(2px)' }} />} onClick={start}>Compose a message</Button>
-          </div>
-          <div style={{ marginTop: 20, fontSize: 13, color: 'var(--text-faint)', letterSpacing: '0.04em' }}>Rehearse your approach as many times as you need · Till it feels right</div>
+      {/* closing CTA + footer — one shared night ground (starfield + the
+          hero's GrainGradient noise recipe in the night palette) running
+          from the CTA's top edge through the bottom of the footer */}
+      <div className="bg-night-sky lp-night-wrap">
+        <div className="lp-night-haze" aria-hidden>
+          <GrainGradient
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+            minPixelRatio={GRAIN_2X_RATIO}
+            maxPixelCount={34000000}
+            colorBack="#00000000"
+            colors={['#1E1A4E', '#33418C', '#201B4E', '#45304A']}
+            shape="wave"
+            softness={1}
+            intensity={0}
+            noise={0.38}
+            speed={REDUCE_MOTION ? 0 : 0.4}
+            scale={4}
+            offsetY={0.3}
+            frame={12000}
+          />
         </div>
-      </section>
+        <section className="section night">
+          <div className="wrap center" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <Sparkle size={34} style={{ color: 'var(--foil)' }} twinkle />
+            <h2 className="site-h2" style={{ marginTop: 22, maxWidth: '18ch' }}>The words you can’t find — found.</h2>
+            <p className="site-lead" style={{ marginTop: 18, maxWidth: '42ch' }}>
+              Stop drafting the same hard message at midnight. Tell BetterWords the situation, and send something you’re proud of.
+            </p>
+            <div style={{ marginTop: 30 }}>
+              <Button variant="gradient-warm" size="lg" iconRight={<img src="/ds-v4/assets/glyphs/logo-star-white.svg" alt="" width={13} height={13} style={{ display: 'block', transform: 'translateY(2px)' }} />} onClick={start}>Compose a message</Button>
+            </div>
+            <div style={{ marginTop: 20, fontSize: 13, color: 'var(--text-faint)', letterSpacing: '0.04em' }}>Rehearse your approach as many times as you need · Till it feels right</div>
+          </div>
+        </section>
 
-      {/* footer */}
-      <SiteFooter onNav={scrollTo} />
+        {/* footer — transparent, riding on the shared night ground */}
+        <SiteFooter night transparent onNav={scrollTo} />
+      </div>
     </div>
   )
 }
@@ -401,7 +501,7 @@ function RegisterSection() {
   const front = LETTERS[order[0]]
 
   return (
-    <div className="lp2-reg">
+    <div className="lp2-reg" style={{ background: 'var(--bg-base)' }}>
       <div className="wrap">
         <div className="lp2-reg-grid">
           <div>

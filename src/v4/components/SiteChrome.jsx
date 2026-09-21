@@ -37,7 +37,17 @@ export function LandingWordmark({ size = 21, color = 'var(--ink-800)', onClick }
       }}
     >
       Better<i style={{ fontWeight: 500 }}>words</i>
-      <span className="lp-logo-star" style={{ color: 'var(--spark)' }}>✦</span>
+      {/* star carries the favicon's gradient (logo-star-gradient.svg:
+          #EE8654 → #A688E4 → #3F5AE0, ~107°) as a text-clipped fill */}
+      <span
+        className="lp-logo-star"
+        style={{
+          backgroundImage: 'linear-gradient(107deg, #EE8654 8%, #A688E4 52%, #3F5AE0 100%)',
+          WebkitBackgroundClip: 'text',
+          backgroundClip: 'text',
+          color: 'transparent',
+        }}
+      >✦</span>
     </span>
   )
 }
@@ -150,7 +160,7 @@ export function SiteHeader({ landing = false, heroSelector = null, onLogo, onNav
 // `warm` (Figma "Footer" 489:4176, under the signed-in home) — that ground's
 // rainbow ends on lilac, and the footer carries it into a peach dawn: lilac
 // lip blending to peach-400 by 5%, with the day scheme's ink text on top.
-export function SiteFooter({ night = false, warm = false, lip, onLogo, onNav }) {
+export function SiteFooter({ night = false, warm = false, transparent = false, noDivider = false, lip, body, onLogo, onNav }) {
   const { Logo, Divider } = DS2
   const textColor = night ? 'var(--peri-300)' : 'var(--text-muted)'
   return (
@@ -159,16 +169,33 @@ export function SiteFooter({ night = false, warm = false, lip, onLogo, onNav }) 
       style={{
         marginTop: 'auto',
         padding: '56px 0 40px',
-        ...(night
-          // no top border — the ground's sweep above ends on the lip color,
-          // so the footer continues it seamlessly
-          ? { background: `linear-gradient(180deg, ${lip || 'var(--blue-500)'} 0%, var(--blue-700) 5%)` }
-          : warm
-            ? { background: 'linear-gradient(180deg, var(--lilac-500) 0%, var(--peach-400) 5%)' }
-            : { background: FROST_BG, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', borderTop: '1px solid var(--border-hair)' }),
+        // `transparent` overrides every variant's fill (the page ground —
+        // home's dawn haze, the landing's night sky — shows straight
+        // through, no border); `night`/`warm` still set the text scheme
+        ...(transparent
+          ? { background: 'transparent' }
+          : night
+            // no top border — the ground's sweep above ends on the lip color,
+            // so the footer continues it seamlessly
+            ? { background: `linear-gradient(180deg, ${lip || 'var(--blue-500)'} 0%, ${body || 'var(--blue-700)'} ${lip ? '4%' : '5%'})` }
+            : warm
+              ? { background: 'linear-gradient(180deg, var(--lilac-500) 0%, var(--peach-400) 5%)' }
+              : { background: FROST_BG, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', borderTop: '1px solid var(--border-hair)' }),
       }}
     >
-      <div className="wrap" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 32 }}>
+      {/* divider at the footer's top edge (same .wrap width as the rest) —
+          except on the warm footer, which per Figma 490:4528 has no lines
+          at all (the ground's rainbow crest marks the fold instead) */}
+      {!warm && !noDivider && (
+        <div className="wrap">
+          {night ? (
+            <div style={{ borderTop: '1px solid color-mix(in srgb, var(--paper-2) 25%, transparent)' }} />
+          ) : (
+            <Divider />
+          )}
+        </div>
+      )}
+      <div className="wrap" style={{ marginTop: warm ? 0 : 40, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 32 }}>
         <div style={{ maxWidth: 320 }}>
           <span style={{ display: 'inline-flex', cursor: onLogo ? 'pointer' : undefined }} onClick={onLogo}>
             {night ? <LandingWordmark size={22} color="var(--paper-1)" /> : warm ? <LandingWordmark size={22} color="var(--ink-700)" /> : <Logo size={22} />}
@@ -195,14 +222,7 @@ export function SiteFooter({ night = false, warm = false, lip, onLogo, onNav }) 
           ))}
         </div>
       </div>
-      <div className="wrap" style={{ marginTop: 40 }}>
-        {night ? (
-          <div style={{ borderTop: '1px solid color-mix(in srgb, var(--paper-2) 25%, transparent)' }} />
-        ) : (
-          <Divider />
-        )}
-      </div>
-      <div className="wrap" style={{ marginTop: 20, fontSize: 13, color: night ? 'var(--peri-300)' : warm ? 'var(--text-muted)' : 'var(--text-faint)' }}>© 2026 BetterWords · Say the hard thing, well ✦</div>
+      <div className="wrap" style={{ marginTop: 40, fontSize: 13, color: night ? 'var(--peri-300)' : warm ? 'var(--text-muted)' : 'var(--text-faint)' }}>© 2026 BetterWords · Say the hard thing, well ✦</div>
     </footer>
   )
 }

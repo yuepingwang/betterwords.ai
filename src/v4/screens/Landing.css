@@ -35,9 +35,11 @@
   transform-origin: 50% 50%;
   animation: lp-star-morph 5s var(--ease-in-out) infinite;
 }
-/* Each leg of the morph also spins the star 90° — the ✦ glyph has 90°
-   symmetry, so 0/90/180 all read as the same pose and the loop stays
-   seamless while every transition gets a quarter-turn. */
+/* Each leg of the morph spins the star 180° so the loop closes on a full
+   360°: the ✦ glyph reads the same at every half-turn, and — unlike the
+   old 90°-per-leg loop that reset 180° → 0° — the gradient fill (which
+   only has 360° symmetry) never flips direction at the loop point; it
+   continuously follows the rotation. */
 @keyframes lp-star-morph {
   0%,
   32% {
@@ -45,11 +47,11 @@
   }
   46%,
   84% {
-    transform: translate(-0.14em, -0.42em) scale(0.42) rotate(90deg); /* Logo lockup pose */
+    transform: translate(-0.14em, -0.42em) scale(0.42) rotate(180deg); /* Logo lockup pose */
   }
   98%,
   100% {
-    transform: rotate(180deg);
+    transform: rotate(360deg);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -523,14 +525,49 @@
   overflow: hidden;
   pointer-events: none;
 }
-/* the hero gradient, as its own translatable layer (the section's own
-   background-image is switched off inline in Landing.jsx) */
+/* viewport-fixed layer carrying the whole background stack — anchored at
+   y=0 so it never moves with scroll (height synced to the hero section
+   in Landing.jsx; no ancestor has a transform, so `fixed` stays viewport-
+   relative despite the clip wrapper) */
+.bw-v4 .lp-hero-fixee {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100vh; /* fallback until the JS height sync runs */
+  z-index: -1;
+}
+/* every post-hero section (and the footer) gets its own stacking level
+   above the fixed sky, so the sky's shader canvases can never composite
+   over their content while scrolling */
+.bw-v4 .section,
+.bw-v4 .lp2-reg,
+.bw-v4 .lp-night-wrap,
+.bw-v4 footer {
+  position: relative;
+  z-index: 1;
+}
+/* shared night ground for the closing CTA + footer: the wrapper carries
+   the ink + starfield (bg-night-sky) and this haze layer adds the hero's
+   animated GrainGradient noise in the night palette. z -1 inside the
+   isolated wrapper = above its background, below the content. */
+.bw-v4 .lp-night-wrap {
+  isolation: isolate;
+}
+.bw-v4 .lp-night-haze {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+/* the hero gradient (the section's own background-image is switched off
+   inline in Landing.jsx) */
 .bw-v4 .lp-hero-grad {
   position: absolute;
   inset: 0;
   background-image: var(--grad-daybreak);
   background-size: cover;
-  will-change: transform;
 }
 
 /* ---- cute bitmap clouds in the hero sky ----------------------------- */
@@ -591,5 +628,128 @@
   }
   .bw-v4 .lp-cloud {
     transform: translateX(var(--rest, 20vw));
+  }
+}
+
+/* ---- dither-shader clouds ------------------------------------------- */
+/* Each puff is a small Dithering canvas; the mask is a UNION of several
+   offset radial gradients, so the silhouette is a lumpy, organic cloud
+   (belly + shoulder puffs) instead of a plain ellipse, and its edge still
+   dissolves into scattered Bayer dots.
+   The inner wrapper carries the bob (and the mask rides along with it). */
+.bw-v4 .lp-cloud-inner {
+  position: absolute;
+  inset: 0;
+  display: block;
+  animation: lp-cloud-bob 7s ease-in-out infinite alternate;
+  /* organic hand-drawn silhouette (SVG blob, blurred for the soft dither
+     fringe; the detached wisp lives ONLY here so the fringe pass animates
+     it) — no stacked-ellipse geometry */
+  -webkit-mask-image: url('/ds-v4/assets/clouds/mask-a.svg');
+  mask-image: url('/ds-v4/assets/clouds/mask-a.svg');
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+/* (no solid underside band — the bottom is the same dither texture as
+   the rest of the body, just cut flat by the clip-path) */
+/* second dither pass clipped to the belly — the union of the two Bayer
+   fields makes the center pixel-dense (near solid) while the outer band
+   stays a single sparse pass, so the fill is still real dither pixels */
+.bw-v4 .lp-cloud-core {
+  position: absolute;
+  inset: 0;
+  display: block;
+  /* the STATIC dense body: same organic blob, crisper and slightly
+     eroded, without the wisp */
+  -webkit-mask-image: url('/ds-v4/assets/clouds/mask-a-core.svg');
+  mask-image: url('/ds-v4/assets/clouds/mask-a-core.svg');
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+.bw-v4 .lp-cloud:nth-child(2n) .lp-cloud-core {
+  -webkit-mask-image: url('/ds-v4/assets/clouds/mask-b-core.svg');
+  mask-image: url('/ds-v4/assets/clouds/mask-b-core.svg');
+}
+.bw-v4 .lp-cloud:nth-child(3n) .lp-cloud-core {
+  -webkit-mask-image: url('/ds-v4/assets/clouds/mask-c-core.svg');
+  mask-image: url('/ds-v4/assets/clouds/mask-c-core.svg');
+}
+/* ring mask for the animated fringe pass: a hole over the body keeps the
+   morphing dither OUT of the center — it only fades in/out at the edge */
+.bw-v4 .lp-cloud-fringe {
+  position: absolute;
+  inset: 0;
+  display: block;
+  -webkit-mask-image: radial-gradient(ellipse 50% 44% at 50% 56%, transparent 52%, #000 74%, #000 88%, transparent 100%);
+  mask-image: radial-gradient(ellipse 50% 44% at 50% 56%, transparent 52%, #000 74%, #000 88%, transparent 100%);
+}
+/* alternate silhouettes so the puffs don't read as clones */
+.bw-v4 .lp-cloud:nth-child(2n) .lp-cloud-inner {
+  animation-duration: 9s;
+  animation-delay: -3s;
+  -webkit-mask-image: url('/ds-v4/assets/clouds/mask-b.svg');
+  mask-image: url('/ds-v4/assets/clouds/mask-b.svg');
+}
+.bw-v4 .lp-cloud:nth-child(3n) .lp-cloud-inner {
+  animation-duration: 11s;
+  animation-delay: -6s;
+  -webkit-mask-image: url('/ds-v4/assets/clouds/mask-c.svg');
+  mask-image: url('/ds-v4/assets/clouds/mask-c.svg');
+}
+/* the cute face, drawn as positioned blocks so it scales with the puff */
+.bw-v4 .lp-cloud-face {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.bw-v4 .lp-cloud-face i {
+  position: absolute;
+  /* inspiration cloud-a (34x17) layout, scaled 0.75 about the face
+     center so the whole face reads smaller at the same proportions */
+  top: 48.8%;
+  width: 2.2%;
+  height: 8.8%;
+  background: #1c1746;
+  border-radius: 2px;
+  transform-origin: 50% 75%;
+  animation: lp-eye-blink 6.4s linear infinite;
+}
+.bw-v4 .lp-cloud-face i.b {
+  /* blush one px below the eye bottoms, 2px outboard (same 0.75 scale) */
+  top: 57.6%;
+  height: 4.4%;
+  width: 2.2%;
+  background: #f9bf9e;
+  animation: none;
+}
+/* quick pixel double-blink: two consecutive ~130ms closes (with a short
+   ~130ms open between them) once every few seconds */
+@keyframes lp-eye-blink {
+  0%, 88.4% {
+    transform: scaleY(1);
+  }
+  88.5%, 90.5% {
+    transform: scaleY(0.15);
+  }
+  90.6%, 92.5% {
+    transform: scaleY(1);
+  }
+  92.6%, 94.6% {
+    transform: scaleY(0.15);
+  }
+  94.7%, 100% {
+    transform: scaleY(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bw-v4 .lp-cloud-inner {
+    animation: none;
+  }
+  .bw-v4 .lp-cloud-face i {
+    animation: none;
   }
 }

@@ -195,7 +195,9 @@ export default function HomeDashboard() {
     // SiteFooter warm variant). The whole page pulls up under the
     // transparent header so the hero starts 12px from the top (HOME_GROUND).
     <div style={HOME_GROUND}>
-      <main style={{ maxWidth: 856, width: '100%', margin: '0 auto', padding: '12px 28px 64px', boxSizing: 'border-box', flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* generous bottom padding = breathing room between the last cards
+          and the rainbow crest (Figma 490:4346) */}
+      <main style={{ maxWidth: 856, width: '100%', margin: '0 auto', padding: '12px 28px 140px', boxSizing: 'border-box', flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
         <HomeHero active="home" />
 
         {/* Two independent auto-layout columns (Figma 490:4342 / 490:4343):

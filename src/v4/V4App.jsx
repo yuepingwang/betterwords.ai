@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react'
+import { GrainGradient } from '@paper-design/shaders-react'
 import './ds/daybreak.css'
 import './v4.css'
 import { StoreProvider, useStore } from './store'
@@ -18,6 +19,11 @@ import Conversation from './screens/Conversation'
 import ReplyFlow from './screens/ReplyFlow'
 import Account from './screens/Account'
 import Settings from './screens/Settings'
+
+const REDUCE_MOTION = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+// render the grain shader at 2× the device's own pixel ratio: grain specks
+// come out half a device pixel — "2× finest"
+const GRAIN_2X_RATIO = typeof window !== 'undefined' ? Math.max(2, (window.devicePixelRatio || 1) * 2) : 4
 
 const SCREENS = {
   home: Home,
@@ -111,7 +117,10 @@ function Router() {
   const bgStyle = celebrating || sendCelebrate
     ? undefined
     : state.screen === 'home'
-      ? { backgroundImage: 'var(--glow-dawn-top), var(--grad-dawn)' }
+      // reversed dawn: the ground runs peri at the top down to peach at the
+      // bottom (the stock --grad-dawn flipped 180°), with the warm glow
+      // moved from the top edge to the bottom
+      ? { backgroundImage: 'radial-gradient(60% 60% at 50% 100%, rgba(251, 215, 193, 0.65), transparent 70%), linear-gradient(325deg, #F9BF9E 0%, #FBD7C1 34%, #FBF1E4 60%, #CFDDFB 100%)' }
       : SOFT_SCREENS.includes(state.screen)
         ? { backgroundImage: 'var(--glow-peri), var(--grad-soft)' }
         : undefined
@@ -133,16 +142,44 @@ function Router() {
   const SUNSET_SCREENS = ['editor', 'drafts']
   const nightFooter = DAYBREAK_EDGE_SCREENS.includes(state.screen) || SUNSET_SCREENS.includes(state.screen)
   // The v4 composer sunset (Figma 566:5667) ends on blue-500, the night
-  // footer's own default — no lip override needed.
-  const footerLip = undefined
+  // footer's own default. The conversation thread's dusk crest (Figma
+  // 445:1322) instead ends on peri-blue and deepens to royal by 4%.
+  const footerLip = state.screen === 'conversation' ? '#6E88E4' : undefined
+  const footerBody = state.screen === 'conversation' ? '#2B45D4' : undefined
 
   return (
     <div
       className={[bgClass, groundXfade && 'bw-ground-xfade'].filter(Boolean).join(' ') || undefined}
-      style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--cream-1)', ...bgStyle, fontFamily: 'var(--font-sans)', color: 'var(--text-body)', position: 'relative' }}
+      style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--cream-1)', ...bgStyle, fontFamily: 'var(--font-sans)', color: 'var(--text-body)', position: 'relative', isolation: ['home', 'editor'].includes(state.screen) ? 'isolate' : undefined }}
     >
       {sendCelebrate && (
         <div className="bw-celebrate-bg bw-celebrate-fade" aria-hidden style={{ position: 'fixed', inset: 0, zIndex: -1 }} />
+      )}
+      {/* home ground haze — the landing hero's GrainGradient recipe, on
+          the app wrapper so it runs the FULL page height: behind the
+          (transparent/frosted) header at the top and showing through the
+          frosted footer at the bottom. z -1 inside the wrapper's isolated
+          stacking context keeps it above the dawn gradient but below all
+          content. Frozen under reduced motion. */}
+      {state.screen === 'home' && (
+        <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: -1, overflow: 'hidden', pointerEvents: 'none' }}>
+          {/* rendered at 2× the device's native resolution (supersampled,
+              then downscaled to fit), so the per-pixel grain comes out
+              twice as fine as a device pixel */}
+          <GrainGradient
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+            minPixelRatio={GRAIN_2X_RATIO}
+            maxPixelCount={34000000}
+            colorBack="#00000000"
+            colors={['#CFDDFB', '#DCE6FB', '#EFE8F7', '#FFFDF9']}
+            shape="wave"
+            softness={0.95}
+            intensity={0.3}
+            noise={0.38}
+            speed={REDUCE_MOTION ? 0 : 0.4}
+            scale={1.7}
+          />
+        </div>
       )}
       {/* the composer brings its own header (draft actions live in it —
           see ComposerHeader in Composer.jsx); every other screen shares
@@ -156,7 +193,10 @@ function Router() {
         />
       )}
       <Screen />
-      <SiteFooter night={nightFooter} warm={WARM_SCREENS.includes(state.screen)} lip={footerLip} onLogo={() => dispatch({ type: 'GO_LANDING' })} onNav={goLandingSection} />
+      {/* drafts drops its night scheme along with the night fill: its
+          transparent footer sits on the cream page ground, so it needs the
+          default dark text */}
+      <SiteFooter night={nightFooter && !['drafts', 'editor'].includes(state.screen)} warm={WARM_SCREENS.includes(state.screen)} transparent={['home', 'clarify', 'drafts', 'replyflow', 'editor', 'send'].includes(state.screen)} noDivider={state.screen === 'conversation'} lip={footerLip} body={footerBody} onLogo={() => dispatch({ type: 'GO_LANDING' })} onNav={goLandingSection} />
     </div>
   )
 }

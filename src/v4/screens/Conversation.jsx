@@ -103,8 +103,10 @@ export default function Conversation() {
         display: 'flex',
         flexDirection: 'column',
         boxSizing: 'border-box',
+        // Figma 445:1210 — cream holds to 95%, then the dusk crest bands:
+        // honey 97, pink 99, peri-blue 100 (into the night footer's lip)
         backgroundImage:
-          'linear-gradient(180deg, var(--paper-1) 90%, var(--honey-400) 93%, var(--coral-400) 96%, var(--lilac-500) 98%, var(--blue-500) 100%)',
+          'linear-gradient(180deg, var(--paper-1) 95%, #EBD46A 97%, #EC7FB0 99%, #6E88E4 100%)',
       }}
     >
       <main style={{ maxWidth: 1152, width: '100%', margin: '0 auto', padding: '14px 24px 44px', boxSizing: 'border-box', flex: 1, display: 'flex', flexDirection: 'column' }}>

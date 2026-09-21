@@ -40,6 +40,8 @@ const initialState = {
   convoRefresh: 0, // bump to make the conversation screens refetch
   replyFlow: null, // { mode: 'respond' | 'followup', replyText, thread } while in the reply flow
   subjectOverride: null, // thread subject carried into the composer for replies/follow-ups
+  recipientOverride: null, // user-edited recipient name (inline edit in the composer header)
+  recipientRoleOverride: null, // user-edited recipient role ("landlord" -> "property manager")
 }
 
 // Browser back/forward (see the history sync in StoreProvider). Within a
@@ -76,19 +78,19 @@ function reducer(state, action) {
     case 'NAV_RESTORE':
       return navRestore(state, action)
     case 'GO_LANDING':
-      return { ...state, screen: 'landing', scenarioId: null, clarifyStep: 0, answers: {}, strategies: null, draftedAnswers: null, sent: false, threadId: null, activeThreadId: null, replyFlow: null, subjectOverride: null }
+      return { ...state, screen: 'landing', scenarioId: null, clarifyStep: 0, answers: {}, strategies: null, draftedAnswers: null, sent: false, threadId: null, activeThreadId: null, replyFlow: null, subjectOverride: null, recipientOverride: null, recipientRoleOverride: null }
     case 'RESTART':
-      return { ...state, screen: 'home', scenarioId: null, clarifyStep: 0, answers: {}, strategies: null, draftedAnswers: null, sent: false, threadId: null, activeThreadId: null, replyFlow: null, subjectOverride: null }
+      return { ...state, screen: 'home', scenarioId: null, clarifyStep: 0, answers: {}, strategies: null, draftedAnswers: null, sent: false, threadId: null, activeThreadId: null, replyFlow: null, subjectOverride: null, recipientOverride: null, recipientRoleOverride: null }
     case 'START_SCENARIO':
-      return { ...state, scenarioId: action.scenarioId, screen: 'clarify', clarifyStep: 0, answers: {}, strategies: null, draftedAnswers: null, threadId: null, activeThreadId: null, replyFlow: null, subjectOverride: null }
+      return { ...state, scenarioId: action.scenarioId, screen: 'clarify', clarifyStep: 0, answers: {}, strategies: null, draftedAnswers: null, threadId: null, activeThreadId: null, replyFlow: null, subjectOverride: null, recipientOverride: null, recipientRoleOverride: null }
     case 'OPEN_HOME':
       // Signed-in home (Figma 489:3991) — the dashboard the header's "Home"
       // link and a completed sign-in land on. Clears flow state like
       // OPEN_CONVERSATIONS so a later "+ New" starts fresh.
-      return { ...state, screen: 'dashboard', activeThreadId: null, replyFlow: null, subjectOverride: null, sent: false, convoRefresh: state.convoRefresh + 1 }
+      return { ...state, screen: 'dashboard', activeThreadId: null, replyFlow: null, subjectOverride: null, recipientOverride: null, recipientRoleOverride: null, sent: false, convoRefresh: state.convoRefresh + 1 }
     // --- conversations (v3.5) ---
     case 'OPEN_CONVERSATIONS':
-      return { ...state, screen: 'conversations', activeThreadId: null, replyFlow: null, subjectOverride: null, sent: false, convoRefresh: state.convoRefresh + 1 }
+      return { ...state, screen: 'conversations', activeThreadId: null, replyFlow: null, subjectOverride: null, recipientOverride: null, recipientRoleOverride: null, sent: false, convoRefresh: state.convoRefresh + 1 }
     case 'OPEN_CONVERSATION':
       return { ...state, screen: 'conversation', activeThreadId: action.threadId, threadId: action.threadId, replyFlow: null, sent: false, convoRefresh: state.convoRefresh + 1 }
     case 'START_REPLY_FLOW':
@@ -105,6 +107,8 @@ function reducer(state, action) {
         threadId: action.thread?.id ?? state.threadId,
         activeThreadId: action.thread?.id ?? state.activeThreadId,
         subjectOverride: action.thread?.subject || null,
+        recipientOverride: null,
+        recipientRoleOverride: null,
         answers: action.thread?.context?.answers || state.answers,
         sent: false,
       }
@@ -192,6 +196,10 @@ function reducer(state, action) {
       return { ...state, inserts: action.inserts }
     case 'ADD_COMMENT':
       return { ...state, comments: [...state.comments, action.comment] }
+    case 'SET_RECIPIENT':
+      return { ...state, recipientOverride: (action.recipient || '').trim() || null }
+    case 'SET_RECIPIENT_ROLE':
+      return { ...state, recipientRoleOverride: (action.role || '').trim() || null }
     case 'SET_SENT':
       return { ...state, sent: action.sent }
     default:
@@ -255,6 +263,7 @@ function initState() {
       activeThreadId: replyFlow?.thread?.id || activeThreadId,
       threadId: replyFlow?.thread?.id || null,
       subjectOverride: replyFlow?.thread?.subject || null,
+      recipientOverride: null,
       replyFlow,
     }
   } catch {

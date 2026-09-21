@@ -140,7 +140,9 @@ export default function Conversations() {
 
   return (
     <div style={HOME_GROUND}>
-      <main style={{ maxWidth: 856, width: '100%', margin: '0 auto', padding: '12px 28px 64px', boxSizing: 'border-box', flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* generous bottom padding = breathing room between the last cards
+          and the rainbow crest (matches HomeDashboard / AppPage) */}
+      <main style={{ maxWidth: 856, width: '100%', margin: '0 auto', padding: '12px 28px 140px', boxSizing: 'border-box', flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
         <HomeHero active="conversations" />
 
         {/* title row (490:4968) */}
